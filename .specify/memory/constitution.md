@@ -38,26 +38,24 @@
       (verified: no constitution references, and its only testing
       language concerns independently testable user stories, which
       conflicts with no principle here)
-    - .specify/templates/tasks-template.md ⚠️ conflicts with
-      Principles I / IX / XII — pending update
-      (it declares tests "OPTIONAL - only include them if explicitly
-      requested" at line 12 and again at lines 83, 109, and 131, which
-      contradicts Principle I's mandatory TDD and Principle IX's
-      never-deferred unit TDD; and line 182 requires tests to "MUST be
-      written and FAIL before implementation", where Principle XII
-      requires red-phase tests to report XFAIL, never a red suite.
-      Left unmodified here to keep this change atomic; see follow-up
-      TODO below)
+    - .specify/templates/tasks-template.md ✅ reconciled in a
+      follow-up change
+      (at ratification it declared tests "OPTIONAL - only include them
+      if explicitly requested" at line 12 and again at lines 83, 109,
+      and 131, which contradicted Principle I's mandatory TDD and
+      Principle IX's never-deferred unit TDD; and line 182 required
+      tests to "MUST be written and FAIL before implementation", where
+      Principle XII requires red-phase tests to report XFAIL, never a
+      red suite. It was left unmodified at ratification to keep that
+      change atomic, and has since been brought into compliance by a
+      dedicated follow-up commit that makes test tasks mandatory,
+      adopts the XFAIL red-phase wording, and labels the red-phase and
+      green-phase commit split)
     - .specify/templates/checklist-template.md ✅ no change needed
       (verified: no constitution, testing, licensing, or commit
       references)
 
   Follow-up TODOs:
-    - TODO(TASKS_TEMPLATE_TDD_ALIGNMENT): Reconcile
-      `.specify/templates/tasks-template.md` with Principles I, IX,
-      and XII in a dedicated follow-up change — make tests mandatory
-      rather than optional, and replace the "must FAIL before
-      implementation" wording with the XFAIL red-phase requirement.
     - TODO(HOSPITABLE_WEBHOOK_SIGNATURE): The exact webhook authenticity
       mechanism (signature header name and algorithm) is not confirmable
       from publicly readable Hospitable documentation. Principle XI is
