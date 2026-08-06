@@ -9,7 +9,21 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+<!--
+  ============================================================================
+  PROJECT OVERLAY — DO NOT LOSE ON SPEC KIT UPGRADE
+
+  This template is upstream Spec Kit material (MIT, see REUSE.toml) that
+  carries project-local modifications for constitutional compliance:
+  test tasks are mandatory rather than optional, and red-phase tests are
+  described as XFAIL-marked, tests-only commits per Principle XII.
+
+  An upstream Spec Kit upgrade will overwrite this file. These overlays
+  MUST be re-applied afterwards.
+  ============================================================================
+-->
+
+**Tests**: Test tasks are MANDATORY. Constitution Principle I (NON-NEGOTIABLE) makes code-level TDD mandatory and Principle IX forbids deferring unit-level TDD under any circumstance, so every user story MUST carry test tasks. Per Principle XII (Red-Phase Commit Protocol), those tests land as a red-phase commit that contains tests only, with every test marked `@pytest.mark.xfail(raises=..., reason="...", strict=True)` so the suite reports XFAIL and stays green; the implementation lands as a separate green-phase commit that removes those markers and the accompanying `# type: ignore[import-not-found]` comments. The only work exempt from this is listed under Principle XII's exemptions (pure refactors, documentation-only, CI-only, packaging-only, and configuration-only changes, and test-only changes that assert no new production behavior).
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -80,14 +94,24 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1 (red-phase commit) ⚠️
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Write these tests FIRST. Per Principle XII they ship as their
+> own tests-only red-phase commit, each marked
+> `@pytest.mark.xfail(raises=..., reason="...", strict=True)` so they
+> report XFAIL — never FAIL — and the suite stays green. An `xfail`
+> marker cannot rescue a module-level import of a not-yet-existing
+> module, which breaks collection before any marker applies: import
+> such modules INSIDE the test body, carrying
+> `# type: ignore[import-not-found]` so `mypy` stays green. The
+> green-phase commit removes both the marker and that ignore comment.
+> Verify the intended failure with `uv run pytest --runxfail <paths>`
+> scoped to the new tests before committing.**
 
 - [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
 
-### Implementation for User Story 1
+### Implementation for User Story 1 (green-phase commit)
 
 - [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
 - [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
@@ -106,12 +130,14 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2 (red-phase commit) ⚠️
+
+> **NOTE: Tests-only red-phase commit, `xfail`-marked per Principle XII.**
 
 - [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
 
-### Implementation for User Story 2
+### Implementation for User Story 2 (green-phase commit)
 
 - [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
 - [ ] T021 [US2] Implement [Service] in src/services/[service].py
@@ -128,12 +154,14 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3 (red-phase commit) ⚠️
+
+> **NOTE: Tests-only red-phase commit, `xfail`-marked per Principle XII.**
 
 - [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
 
-### Implementation for User Story 3
+### Implementation for User Story 3 (green-phase commit)
 
 - [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
 - [ ] T027 [US3] Implement [Service] in src/services/[service].py
@@ -154,7 +182,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX [P] Additional unit tests in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
@@ -179,7 +207,11 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Within Each User Story
 
-- Tests (if included) MUST be written and FAIL before implementation
+- Tests MUST be written before implementation and MUST report XFAIL,
+  not FAIL, per Principle XII. They land in a tests-only red-phase
+  commit; the implementation follows in a separate green-phase commit
+  that removes the `xfail` markers and the
+  `# type: ignore[import-not-found]` comments it has made stale.
 - Models before services
 - Services before endpoints
 - Core implementation before integration
@@ -199,7 +231,7 @@ Examples of foundational tasks (adjust based on your project):
 ## Parallel Example: User Story 1
 
 ```bash
-# Launch all tests for User Story 1 together (if tests requested):
+# Launch all tests for User Story 1 together:
 Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
 Task: "Integration test for [user journey] in tests/integration/test_[name].py"
 
@@ -246,7 +278,9 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
-- Verify tests fail before implementing
-- Commit after each task or logical group
+- Verify tests report XFAIL for the intended reason before implementing
+  (`uv run pytest --runxfail <paths>`, scoped to the new tests)
+- Commit after each task or logical group, keeping the red-phase and
+  green-phase commits separate
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
