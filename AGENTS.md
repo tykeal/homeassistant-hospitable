@@ -31,9 +31,14 @@ body entirely.
 
 ### Rule 2: Limit the subject line to 50 characters
 
-Keep subjects concise. The hard limit is 50 characters.
+Keep subjects concise. The project convention is a 50-character
+subject; the mechanically enforced ceiling is higher.
 
-- **Enforcement**: gitlint `title-max-length` (configured to 50).
+- **Enforcement**: gitlint `title-max-length`, which enforces its
+  72-character default because `.gitlint`'s `[title-max-length]`
+  stanza is commented out. The 50-character target is therefore a
+  stricter project convention applied by hand; no hook will catch a
+  subject of 51 to 72 characters.
 
 ### Rule 3: Capitalize the subject line
 
@@ -76,10 +81,13 @@ Bad examples:
 Body text MUST be wrapped at 72 characters per line. Lines containing URLs
 MAY exceed this limit, but enforcement tooling has limitations.
 
-- **Enforcement**: gitlint `body-max-line-length` (configured to 72). The
-  configured `ignore-by-body` rule disables this check for the entire
-  commit body if any line matches the URL pattern, so you MUST still
-  manually wrap non-URL lines to 72 characters.
+- **Enforcement**: gitlint `body-max-line-length` enforces its
+  80-character default; `.gitlint` does not override it. The
+  72-character wrap is therefore a stricter project convention applied
+  by hand, and no hook will catch a body wrapped at 73 to 80
+  characters. In addition, the configured `ignore-by-body` rule
+  disables the check entirely for any commit body containing a line
+  that matches the URL pattern.
 
 ### Rule 7: Use the body to explain what and why, not how
 
@@ -150,11 +158,11 @@ automatically.
 
 The following gitlint rules are active (see `.gitlint` for full config):
 
-| Rule | What it checks | Configured |
-| ---- | -------------- | ---------- |
-| `title-max-length` (T1) | Subject ≤50 chars | 50 |
+| Rule | What it checks | Enforced limit |
+| ---- | -------------- | -------------- |
+| `title-max-length` (T1) | Subject length | 72 (gitlint default; stanza commented out). Project convention: 50 |
 | `title-trailing-punctuation` (T3) | No trailing `.` `;` `:` etc. | Enabled |
-| `body-max-line-length` (B1) | Body lines ≤72 chars | 72 |
+| `body-max-line-length` (B1) | Body line length | 80 (gitlint default; not overridden). Project convention: 72 |
 | `contrib-title-conventional-commits` | Capitalized type prefix | Required |
 | `contrib-body-requires-signed-off-by` | DCO sign-off present | Required |
 | `ignore-by-body` | Exempt URL lines from B1 | Enabled |
@@ -224,29 +232,36 @@ Check `REUSE.toml` for file-type-specific header requirements.
 ## Git Worktrees
 
 When creating git worktrees for feature branches, bug fixes, or any
-other work, **always** place them in the sibling `worktrees/` directory:
+other work, **always** place them in the sibling `worktrees/` directory,
+namespaced by repository:
 
 ```bash
-git worktree add /home/tykeal/repos/personal/homeassistant/worktrees/<branch-name> -b <branch-name> main
+git worktree add /home/tykeal/repos/personal/homeassistant/worktrees/homeassistant-hospitable/<worktree-leaf> -b <branch-name> main
 ```
 
 The `worktrees/` directory is a sibling of the repository under the
-repository root's parent directory:
+repository root's parent directory, and each repository gets its own
+subdirectory inside it:
 
 ```text
 repos/personal/homeassistant/
-├── rental-control/          ← this repository
-└── worktrees/               ← all worktrees go here
-    ├── feat/some-feature/
-    └── fix/some-bugfix/
+├── homeassistant-hospitable/     ← this repository
+└── worktrees/                    ← all worktrees go here
+    └── homeassistant-hospitable/ ← namespaced by repository
+        ├── docfix1/
+        └── some-feature/
 ```
+
+The worktree leaf name is a short label for the work; it does not have
+to mirror the branch name, and a leaf that avoids `/` keeps the
+directory layout flat.
 
 **NEVER** create worktrees inside the repository directory itself.
 
 Clean up worktrees when the associated branch has been merged:
 
 ```bash
-git worktree remove /home/tykeal/repos/personal/homeassistant/worktrees/<branch-name>
+git worktree remove /home/tykeal/repos/personal/homeassistant/worktrees/homeassistant-hospitable/<worktree-leaf>
 git branch -D <branch-name>
 ```
 
@@ -287,8 +302,8 @@ from the repository root using `uv`:
 | Co-author | `Co-authored-by: <Model> <email>` |
 | Subject format | `Type(scope): imperative description` |
 | Type case | Capitalized (e.g., `Fix`, `Feat`) |
-| Subject length | ≤50 chars (enforced by gitlint) |
-| Body line length | ≤72 chars (URLs exempt) |
+| Subject length | ≤50 chars (project convention; gitlint enforces 72) |
+| Body line length | ≤72 chars, URLs exempt (project convention; gitlint enforces 80) |
 | Subject punctuation | No trailing period |
 | Subject mood | Imperative ("Add", not "Added") |
 | Body content | Explain what and why, not how |
