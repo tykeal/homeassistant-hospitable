@@ -80,7 +80,10 @@ the empirical findings that are this specification's main contribution.
 | FR-043 | Upstream status categories, including `checkpoint` |
 | FR-045 | Absence of a checked-in status upstream |
 | FR-049 | Upstream stay-type field |
+| FR-058 | Property calendar route and aggregate response shape |
 | FR-060 | Integer minor currency units |
+| FR-073 | Non-exhaustive upstream fields known to carry personal data |
+| FR-075 | Silent-ignore behavior for optional request parameters |
 
 ### Other deviations
 

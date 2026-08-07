@@ -363,6 +363,11 @@ integration is capable of modifying the Hospitable calendar.
   Verified live: `meta.links[].url` values come back with an `http://`
   scheme. Following them verbatim would downgrade the connection. The
   integration constructs its own page requests instead.
+- **Hospitable returns HTTP 200 for a request it did not honor.** Live
+  tests found multiple silently ignored inputs, including a bogus
+  calendar `listing_id` and invalid include names. The integration
+  validates response keys instead of treating success status alone as
+  proof that an expansion or filter took effect.
 - **A reservation request is issued without a property filter.**
   Hospitable requires the property filter; a request without it is
   invalid and must never be constructed.
@@ -586,7 +591,8 @@ false negative on the integration's primary sensor.
 - **FR-033**: The integration MUST request guest information as an
   include on the reservation query when guest data is surfaced,
   because Hospitable exposes no standalone guest resource, and MUST
-  behave correctly when that data is absent. (CONFIRMED)
+  behave correctly when that data is absent. Include responses are
+  subject to the response-key assertion rule in FR-075. (CONFIRMED)
 - **FR-034**: The integration MUST validate the shape of every
   response against the structure it expects, and MUST raise an
   explicit error rather than producing a partially populated entity
@@ -846,6 +852,15 @@ false negative on the integration's primary sensor.
   them. The platform's fixed-offset `timezone` value MUST NOT be used
   as the default, fallback, or persisted timezone value. (CONFIRMED
   need — see OQ-002)
+- **FR-075**: The client MUST NOT treat HTTP 200 as proof that an
+  optional request parameter was honored. Whenever it requests an
+  expansion with `include=`, it MUST assert that the expected response
+  keys are present and MUST handle their absence explicitly rather
+  than silently degrading. This is a standing client rule because live
+  testing found Hospitable silently accepts invalid include names,
+  silently discards the calendar `listing_id` parameter, and returns
+  insecure pagination URLs that must not be followed verbatim.
+  (CONFIRMED)
 
 ### Key Entities
 
@@ -1020,10 +1035,11 @@ false negative on the integration's primary sensor.
   | `/properties` | `listings`, `bookings`, `user` | `ical_imports`, `connections`, `channels`, `reviews`, `amenities` |
   | `/reservations` | `listings`, `financials`, `properties`, `review` | `guests` |
 
-  Includes can be combined. On `/reservations`, `include=properties`
-  is a material performance optimization because it collapses an N+1
-  property lookup pattern into the reservation list response.
-  (CONFIRMED)
+  Includes can be combined. Invalid include names can return HTTP 200
+  with no added keys and no error, so FR-075 requires explicit key
+  checks. On `/reservations`, `include=properties` is a material
+  performance optimization because it collapses an N+1 property lookup
+  pattern into the reservation list response. (CONFIRMED)
 - `GET /v2/properties/{id}/calendar` exists. It returns a top-level
   `data` object with `listing_id`, `provider`, `start_date`,
   `end_date`, and a `days` array. Each day carries `date`, `day`,
