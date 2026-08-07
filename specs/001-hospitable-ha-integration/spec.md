@@ -771,12 +771,13 @@ false negative on the integration's primary sensor.
 
 #### Privacy, diagnostics, and platform
 
-- **FR-062**: Guest personal data — names, email addresses, phone
-  numbers, and message content — MUST NOT be written at debug level
-  and MUST be redacted from diagnostics output.
+- **FR-062**: Personal data from any endpoint — including names,
+  email addresses, phone numbers, profile pictures, co-host identities,
+  billing fields, and message content — MUST NOT be written at debug
+  level and MUST be redacted from diagnostics output.
 - **FR-063**: The integration MUST provide a Home Assistant
   diagnostics download containing enough detail to troubleshoot, with
-  all credentials and guest personal data redacted.
+  all credentials and all personal data redacted.
 - **FR-064**: Every user-facing error MUST state what failed and what
   the user should do about it. A bare HTTP status code is not an
   acceptable user-facing error.
@@ -822,16 +823,20 @@ false negative on the integration's primary sensor.
   intervals, window bounds, and property selection, so that the
   warnings required by FR-023 are actionable rather than abstract. The
   estimate MUST be labelled as an estimate.
-- **FR-073**: When the integration retrieves the account record in
-  order to obtain the account identifier of FR-013, it MUST retain
-  only that identifier. The personal, billing, and address fields
-  that the same response carries — the account holder's email
-  address, name, postal address, company name, VAT number, and tax
-  identifier — MUST NOT be persisted, MUST NOT be written to the log
-  at any level, and MUST be redacted from diagnostics output. This
-  applies the handling that FR-062 and FR-063 require for guest
-  personal data to the account holder's own personal and billing
-  data.
+- **FR-073**: The integration MUST treat personal data from every
+  Hospitable endpoint as sensitive by default. No personal data may
+  appear unredacted in diagnostics output, logs, or exception text,
+  whether the endpoint is already known to carry personal data or is
+  added in a later specification. Known non-exhaustive examples
+  include guest names, email addresses, phone numbers, and message
+  content; user endpoint fields such as email address, name, postal
+  address, company name, VAT number, and tax identifier; listing
+  fields such as `platform_email`, `platform_name`,
+  `platform_user_id`, `platform_picture`, and `co_hosts`; and the
+  `/channels` `login` field, which live testing found can contain a
+  clear-text email address. Diagnostics attached to a GitHub issue
+  would otherwise leak the user's email address and co-host
+  identities. (CONFIRMED risk from live payloads)
 - **FR-074**: The integration MUST assign each selected property an
   effective IANA timezone for scheduled-time calculations. The default
   MUST be the Home Assistant instance timezone. The user MUST be able
@@ -868,7 +873,8 @@ false negative on the integration's primary sensor.
 - **Guest**: The person or party on a Reservation. Hospitable exposes
   no standalone guest resource; guest data is reachable only as an
   include on a Reservation. Guest data is personal data and is subject
-  to the redaction requirements above.
+  to the same endpoint-agnostic redaction requirements as account,
+  listing, and channel personal data.
 - **Reservation status**: The structured status object on a
   Reservation, carrying a current value and a history. Its categories
   are request, accepted, cancelled, not accepted, unknown, and
@@ -922,8 +928,8 @@ false negative on the integration's primary sensor.
   delay, without losing entity state and without a crash.
 - **SC-008**: An audit of all logs at every level and of a full
   diagnostics download finds zero occurrences of the Personal Access
-  Token and zero unredacted guest names, email addresses, or phone
-  numbers.
+  Token and zero unredacted personal data from any endpoint, including
+  guest, account, listing, and channel fields.
 - **SC-009**: A revoked or expired token produces a visible,
   actionable reauthentication prompt within one polling interval, and
   supplying a replacement restores polling with zero entity loss.
@@ -1156,8 +1162,8 @@ uncertainty.
   FR-055 therefore rest on confirmed behavior. FR-055 keeps the
   config entry identifier as a defensive fallback, which is no longer
   expected to be taken. The same response also carries personal and
-  billing fields, which FR-073 requires be discarded rather than
-  persisted, logged, or included in diagnostics.
+  billing fields, which FR-073 covers under the general rule against
+  logging or diagnosing personal data from any endpoint.
 - **OQ-010 — Property calendar response shape (RESOLVED).** US7 and
   FR-058 assume the property calendar endpoint returns per-day
   availability together with a nightly rate and currency. **Answer:**
