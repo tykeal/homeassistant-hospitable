@@ -80,7 +80,10 @@ the empirical findings that are this specification's main contribution.
 | FR-043 | Upstream status categories, including `checkpoint` |
 | FR-045 | Absence of a checked-in status upstream |
 | FR-049 | Upstream stay-type field |
+| FR-058 | Property calendar route and aggregate response shape |
 | FR-060 | Integer minor currency units |
+| FR-073 | Non-exhaustive upstream fields known to carry personal data |
+| FR-075 | Silent-ignore behavior for optional request parameters |
 
 ### Other deviations
 
@@ -112,9 +115,10 @@ This specification uses a four-tier evidence legend (CONFIRMED,
 DOCUMENTED, LIKELY, UNVERIFIED) rather than [NEEDS CLARIFICATION]
 markers, because the unresolved items are questions about a third
 party's undocumented API rather than questions the user can answer.
-Ten Open Questions (OQ-001 through OQ-010) carry them. OQ-009 has
-since been resolved by live test and is retained, restated as
-RESOLVED, for the historical record.
+Thirteen Open Questions (OQ-001 through OQ-013) carry them. OQ-002,
+OQ-003, OQ-008, OQ-009, and OQ-010 have since been resolved by live
+test and are retained, restated as RESOLVED, for the historical
+record.
 
 Two marking rules are enforced and were re-audited on 2026-08-07:
 
@@ -128,6 +132,6 @@ Two marking rules are enforced and were re-audited on 2026-08-07:
 
 ## Status
 
-All items either pass or are recorded above as deliberate,
-justified deviations. There are no unresolved failures. This is
-**not** a claim that every box is ticked — four are deliberately not.
+The checklist records both passing items and deliberate deviations
+above. It is **not** a claim that every box is ticked — four are
+deliberately not.

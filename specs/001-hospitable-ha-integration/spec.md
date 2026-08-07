@@ -198,6 +198,10 @@ channel listings.
    Hospitable, **When** the next poll runs, **Then** its entities
    become unavailable with an explanatory reason and are not silently
    removed.
+6. **Given** a property needs a timezone different from the Home
+   Assistant instance timezone, **When** the manager sets a
+   per-property IANA timezone override, **Then** subsequent arrival
+   and departure timestamps use that override.
 
 ---
 
@@ -308,9 +312,10 @@ with all entity history intact.
 
 ### User Story 7 - View availability and pricing read-only (Priority: P7)
 
-As a property manager, I want to see each property's near-term
-availability and nightly rate in Home Assistant, so that I can put my
-open nights on a dashboard.
+As a property manager, I want to see each property's aggregate
+near-term availability and nightly rate in Home Assistant, so that I
+can put my open nights on a dashboard without choosing among channel
+listings.
 
 **Why this priority**: This is genuinely useful but strictly
 supplementary, and it is the story most likely to be deferred to a
@@ -320,9 +325,10 @@ excluded from this specification even though a Personal Access Token
 is permitted to make them.
 
 **Independent Test**: Confirm each selected property exposes today's
-availability and rate, with a short forward window available as
-attributes, and confirm that no code path in the integration is
-capable of modifying the Hospitable calendar.
+aggregate availability and rate from
+`GET /v2/properties/{id}/calendar`, with a short forward window
+available as attributes, and confirm that no code path in the
+integration is capable of modifying the Hospitable calendar.
 
 **Acceptance Scenarios**:
 
@@ -330,11 +336,13 @@ capable of modifying the Hospitable calendar.
    integration polls, **Then** the property's availability sensor
    reports the night as available and carries the nightly rate and
    currency.
-2. **Given** a property that is booked today, **When** the integration
-   polls, **Then** the availability sensor reports the night as
-   booked. It MUST NOT use the word "unavailable" for this, because
-   Home Assistant reserves that entity state to mean that the
-   integration cannot currently reach the data.
+2. **Given** a property that is booked today through Airbnb,
+   Booking.com, or a direct booking, **When** the integration polls,
+   **Then** the availability sensor reports the night as booked from
+   the aggregate property calendar. It MUST NOT use the word
+   "unavailable" for this, because Home Assistant reserves that
+   entity state to mean that the integration cannot currently reach
+   the data.
 3. **Given** any configuration or service invocation, **When** the
    integration runs, **Then** it never issues a calendar update
    request to Hospitable.
@@ -355,6 +363,11 @@ capable of modifying the Hospitable calendar.
   Verified live: `meta.links[].url` values come back with an `http://`
   scheme. Following them verbatim would downgrade the connection. The
   integration constructs its own page requests instead.
+- **Hospitable returns HTTP 200 for a request it did not honor.** Live
+  tests found multiple silently ignored inputs, including a bogus
+  calendar `listing_id` and invalid include names. The integration
+  validates response keys instead of treating success status alone as
+  proof that an expansion or filter took effect.
 - **A reservation request is issued without a property filter.**
   Hospitable requires the property filter; a request without it is
   invalid and must never be constructed.
@@ -387,10 +400,16 @@ capable of modifying the Hospitable calendar.
   deselected by the manager.** In both cases its entities become
   unavailable with an explanatory reason and its registry entries are
   retained, so nothing is destroyed and reselection restores history.
-- **A reservation is on its arrival or departure date but carries no
-  usable scheduled check-in or check-out time.** Occupancy cannot be
-  determined, so the sensor reports unknown and logs the defect. No
-  midnight or other default time is substituted.
+- **A property's upstream timezone is a fixed UTC offset.** Verified
+  live: all ten tested properties returned `timezone: "-0700"`. The
+  integration does not use that value, because it is DST-blind and may
+  change seasonally. It uses the Home Assistant instance timezone by
+  default and accepts a per-property IANA override.
+- **A reservation is on its arrival or departure date but no usable
+  scheduled check-in or check-out time exists on either the
+  reservation or property.** Occupancy cannot be determined, so the
+  sensor reports unknown and logs the defect. No midnight or other
+  default time is substituted.
 - **Home Assistant restarts mid-window.** State is rebuilt entirely
   from the next poll; no local state is assumed to have survived.
 - **Two accounts contain properties with the same name.** Entity
@@ -464,7 +483,8 @@ capable of modifying the Hospitable calendar.
 - **FR-015**: The integration MUST provide an options flow exposing,
   at minimum: the reservation polling interval, the property polling
   interval, the reservation lookback window in days, the reservation
-  lookahead window in days, and the set of selected properties.
+  lookahead window in days, the set of selected properties, and each
+  selected property's optional timezone override.
 - **FR-016**: The options flow MUST validate every value against a
   documented minimum and maximum, and MUST reject an out-of-range
   value with a message naming the permitted bound.
@@ -505,7 +525,7 @@ publishes no general rate limit, so there is no upstream ceiling to
 calibrate against. The only sizing observation this project actually
 holds is that a single query against one reference account, spanning
 2025-01-01 to 2026-12-31 across all of that account's properties,
-returned six hundred and eighteen reservations. (CONFIRMED
+returned six hundred and twenty-one reservations. (CONFIRMED
 observation) That account's property count is not known, and the
 distribution of those reservations across the window is not known, so
 no per-property or per-day booking density can honestly be derived
@@ -571,7 +591,8 @@ false negative on the integration's primary sensor.
 - **FR-033**: The integration MUST request guest information as an
   include on the reservation query when guest data is surfaced,
   because Hospitable exposes no standalone guest resource, and MUST
-  behave correctly when that data is absent. (CONFIRMED)
+  behave correctly when that data is absent. Include responses are
+  subject to the response-key assertion rule in FR-075. (CONFIRMED)
 - **FR-034**: The integration MUST validate the shape of every
   response against the structure it expects, and MUST raise an
   explicit error rather than producing a partially populated entity
@@ -615,8 +636,14 @@ false negative on the integration's primary sensor.
   awaiting check-in, checked out, pending request, checkpoint,
   cancelled, not accepted, unknown, and no reservation. This enum is
   single-dimensional: it encodes reservation status and occupancy
-  only. It MUST NOT encode stay type, which is exposed as an attribute
-  under FR-049.
+  only. It MUST NOT encode stay type, which is exposed as an
+  attribute under FR-049. The six upstream reservation status
+  categories remain request, accepted, cancelled, not accepted,
+  unknown, and checkpoint. A live census observed accepted,
+  cancelled, not accepted, and checkpoint only; request and unknown
+  remain in the enum because absence from one account is not evidence
+  that the platform cannot return them. (CONFIRMED observed census;
+  full coverage UNVERIFIED — see OQ-008)
 - **FR-044**: When a property has more than one reservation in the
   window, the entity MUST select the single most operationally
   relevant reservation using this priority ordering, applied in order
@@ -633,33 +660,37 @@ false negative on the integration's primary sensor.
   deterministic. The reservations not selected MUST be exposed as an
   upcoming-reservations attribute.
 - **FR-045**: Hospitable publishes no checked-in status, so the
-  integration MUST derive occupancy itself. It MUST do so from the
-  reservation's scheduled check-in and check-out moments, never from
-  calendar-day boundaries. Specifically:
+  integration MUST derive occupancy itself. It MUST do so from
+  scheduled check-in and check-out moments, never from calendar-day
+  boundaries. The check-in moment is formed from the reservation's
+  arrival date and the best available scheduled check-in time. The
+  check-out moment is formed from the reservation's departure date and
+  the best available scheduled check-out time. A reservation-specific
+  time is used when one exists; otherwise the property's `checkin` or
+  `checkout` string is used. Specifically:
   - A reservation is occupied from its scheduled check-in moment until
     its scheduled check-out moment.
   - Before the scheduled check-in moment, including earlier on the
     arrival date itself, the state is awaiting check-in.
   - At or after the scheduled check-out moment, including later on the
     departure date itself, the state is checked out.
-  - All comparisons MUST be evaluated in the property's own timezone.
-    Where the property timezone is absent or cannot be interpreted as
-    a usable timezone, the integration MUST fall back to the Home
-    Assistant instance timezone and MUST log which timezone it chose,
-    at most once per property. See OQ-002, which records that the
-    platform's timezone field may be a UTC offset string rather than a
-    named timezone.
+  - All comparisons MUST be evaluated in the configured IANA timezone
+    for that property, as defined by FR-074. The integration MUST NOT
+    use the platform's `timezone` field as a timezone source, because
+    live testing found it to be a fixed UTC offset rather than an IANA
+    zone. See OQ-002.
   - A missing or uninterpretable scheduled check-in or check-out time
-    is a data error, not a case to work around. On the arrival or
-    departure date of an affected reservation the entity MUST report
-    the unknown state and MUST log a warning naming the reservation
-    and the missing field. It MUST NOT report the property as
-    occupied, and it MUST NOT substitute midnight or any other assumed
-    time. Away from those two boundary dates the state is unaffected,
-    because no scheduled time is needed to evaluate it.
+    on both the reservation and property is a data error, not a case
+    to work around. On the arrival or departure date of an affected
+    reservation the entity MUST report the unknown state and MUST log
+    a warning naming the reservation and the missing field. It MUST
+    NOT report the property as occupied, and it MUST NOT substitute
+    midnight or any other assumed time. Away from those two boundary
+    dates the state is unaffected, because no scheduled time is needed
+    to evaluate it.
 
-  (CONFIRMED that no checked-in status appears in the published status
-  list; see OQ-008 on whether that list is exhaustive)
+  (CONFIRMED that no checked-in status appeared in the live status
+  census; see OQ-008)
 - **FR-046**: The reservation status entity MUST expose, as
   attributes, at minimum: arrival date, departure date, number of
   nights, scheduled check-in and check-out times, total guest count
@@ -693,9 +724,9 @@ false negative on the integration's primary sensor.
   reservations within the configured window per property.
 - **FR-053**: The integration MUST expose a property information
   entity per property carrying, at minimum, the property address, its
-  configured check-in and check-out times, its guest capacity, its
-  timezone as reported by the platform, and its channel listings with
-  each listing's channel and channel identifier.
+  configured check-in and check-out times, its guest capacity, the
+  effective IANA timezone used by the integration, and its channel
+  listings with each listing's channel and channel identifier.
 - **FR-054**: Entity identifiers MUST follow the pattern
   `sensor.hospitable_<property>_<attribute>`. This specification
   creates entities on the sensor platform only; no other Home
@@ -726,35 +757,35 @@ false negative on the integration's primary sensor.
 #### Calendar visibility
 
 - **FR-058**: The integration MUST expose each selected property's
-  availability for the current day, together with its nightly rate and
-  currency, as read-only sensor data, and MUST make a short forward
+  aggregate availability for the current day, together with its
+  nightly rate and currency, as read-only sensor data from
+  `GET /v2/properties/{id}/calendar`, and MUST make a short forward
   window available as attributes. The availability state MUST use a
   term such as "booked" for an unavailable night and MUST NOT use the
   word "unavailable", which Home Assistant reserves to mean that the
-  entity's data cannot currently be reached. The response shape of the
-  property calendar endpoint has not been examined; if it does not
-  carry per-day availability and rate in the assumed form, this
-  requirement MUST be revised before implementation. (UNVERIFIED
-  response shape — see OQ-010)
+  entity's data cannot currently be reached. The calendar is an
+  aggregate across all sales channels; response fields such as
+  `listing_id` and `provider` are cosmetic listing metadata, not a
+  scope selector. (CONFIRMED — see OQ-010)
 - **FR-059**: The integration MUST NOT issue any calendar modification
   request to Hospitable under any circumstance, even though a Personal
   Access Token is permitted to make them.
 - **FR-060**: Monetary values MUST be interpreted as integer minor
   currency units accompanied by a currency code, and MUST NOT be
   presented to the user as if they were major units. (CONFIRMED on
-  reservation financials; the calendar response has not been examined
-  — see OQ-010)
+  reservation financials and calendar day prices — see OQ-010)
 - **FR-061**: Calendar data MUST be refreshed on the property polling
   cadence, not the reservation cadence.
 
 #### Privacy, diagnostics, and platform
 
-- **FR-062**: Guest personal data — names, email addresses, phone
-  numbers, and message content — MUST NOT be written at debug level
-  and MUST be redacted from diagnostics output.
+- **FR-062**: Personal data from any endpoint — including names,
+  email addresses, phone numbers, profile pictures, co-host identities,
+  billing fields, and message content — MUST NOT be written to logs at
+  any level and MUST be redacted from diagnostics output.
 - **FR-063**: The integration MUST provide a Home Assistant
   diagnostics download containing enough detail to troubleshoot, with
-  all credentials and guest personal data redacted.
+  all credentials and all personal data redacted.
 - **FR-064**: Every user-facing error MUST state what failed and what
   the user should do about it. A bare HTTP status code is not an
   acceptable user-facing error.
@@ -800,24 +831,48 @@ false negative on the integration's primary sensor.
   intervals, window bounds, and property selection, so that the
   warnings required by FR-023 are actionable rather than abstract. The
   estimate MUST be labelled as an estimate.
-- **FR-073**: When the integration retrieves the account record in
-  order to obtain the account identifier of FR-013, it MUST retain
-  only that identifier. The personal, billing, and address fields
-  that the same response carries — the account holder's email
-  address, name, postal address, company name, VAT number, and tax
-  identifier — MUST NOT be persisted, MUST NOT be written to the log
-  at any level, and MUST be redacted from diagnostics output. This
-  applies the handling that FR-062 and FR-063 require for guest
-  personal data to the account holder's own personal and billing
-  data.
+- **FR-073**: The integration MUST treat personal data from every
+  Hospitable endpoint as sensitive by default. No personal data may
+  appear unredacted in diagnostics output, logs, or exception text,
+  whether the endpoint is already known to carry personal data or is
+  added in a later specification. Known non-exhaustive examples
+  include guest names, email addresses, phone numbers, and message
+  content; user endpoint fields such as email address, name, postal
+  address, company name, VAT number, and tax identifier; listing
+  fields such as `platform_email`, `platform_name`,
+  `platform_user_id`, `platform_picture`, and `co_hosts`; and the
+  `/channels` `login` field, which live testing found can contain a
+  clear-text email address. Diagnostics attached to a GitHub issue
+  would otherwise leak the user's email address and co-host
+  identities. (CONFIRMED risk from live payloads)
+- **FR-074**: The integration MUST assign each selected property an
+  effective IANA timezone for scheduled-time calculations. The default
+  MUST be the Home Assistant instance timezone. The user MUST be able
+  to set or clear an IANA timezone override per property during setup
+  or in the options flow, and the integration MUST validate overrides
+  against the runtime's available IANA timezone database before saving
+  them. The platform's fixed-offset `timezone` value MUST NOT be used
+  as the default, fallback, or persisted timezone value. (CONFIRMED
+  need — see OQ-002)
+- **FR-075**: The client MUST NOT treat HTTP 200 as proof that an
+  optional request parameter was honored. Whenever it requests an
+  expansion with `include=`, it MUST assert that the expected response
+  keys are present and MUST handle their absence explicitly rather
+  than silently degrading. This is a standing client rule because live
+  testing found Hospitable silently accepts invalid include names,
+  silently discards the calendar `listing_id` parameter, and returns
+  insecure pagination URLs that must not be followed verbatim.
+  (CONFIRMED)
 
 ### Key Entities
 
 - **Property**: Hospitable's core rental unit and the unit of
   selection in this integration. Identified by a stable universally
   unique identifier. Carries a name, an address, configured check-in
-  and check-out times, guest capacity, a timezone, and one or more
-  Listings. One Home Assistant device is created per selected
+  and check-out times, guest capacity, address coordinates, and one or
+  more Listings. The integration assigns an effective IANA timezone to
+  each selected Property rather than using Hospitable's fixed-offset
+  `timezone` field. One Home Assistant device is created per selected
   Property.
 - **Listing**: A channel-side mapping of a Property onto a booking
   platform such as Airbnb, Vrbo/HomeAway, Booking.com, or a direct
@@ -835,7 +890,8 @@ false negative on the integration's primary sensor.
 - **Guest**: The person or party on a Reservation. Hospitable exposes
   no standalone guest resource; guest data is reachable only as an
   include on a Reservation. Guest data is personal data and is subject
-  to the redaction requirements above.
+  to the same endpoint-agnostic redaction requirements as account,
+  listing, and channel personal data.
 - **Reservation status**: The structured status object on a
   Reservation, carrying a current value and a history. Its categories
   are request, accepted, cancelled, not accepted, unknown, and
@@ -844,14 +900,17 @@ false negative on the integration's primary sensor.
 - **Money amount**: Every monetary value the platform returns,
   expressed as an integer count of minor currency units together with
   a currency code and a preformatted display string.
+- **Channel**: An account-level Hospitable connection to a booking
+  platform or manual/direct source. Channels are not per-property
+  resources and are not entities in this specification.
 - **Account connection**: A single Home Assistant config entry
   representing one authenticated Hospitable account. Holds the
   Personal Access Token, the account namespace used to prevent
   duplicate entries and to namespace entity identifiers — the platform
   account identifier where one is available, otherwise the config
   entry's own identifier, per FR-055 — the selected Property
-  identifiers, the polling and window options, and the entry version
-  required by FR-070.
+  identifiers, optional per-property timezone overrides, the polling
+  and window options, and the entry version required by FR-070.
 
 ## Success Criteria *(mandatory)*
 
@@ -886,8 +945,8 @@ false negative on the integration's primary sensor.
   delay, without losing entity state and without a crash.
 - **SC-008**: An audit of all logs at every level and of a full
   diagnostics download finds zero occurrences of the Personal Access
-  Token and zero unredacted guest names, email addresses, or phone
-  numbers.
+  Token and zero unredacted personal data from any endpoint, including
+  guest, account, listing, and channel fields.
 - **SC-009**: A revoked or expired token produces a visible,
   actionable reauthentication prompt within one polling interval, and
   supplying a replacement restores polling with zero entity loss.
@@ -917,6 +976,10 @@ false negative on the integration's primary sensor.
 - The reservation resource is read-only. There is no update operation
   on a reservation in the Public API, so no reservation field can be
   written by this integration. (CONFIRMED)
+- A live census of 621 reservations in one account found 618 Airbnb,
+  2 direct, and 1 Booking.com reservation. This independently
+  corroborates that the property calendar aggregate covers multiple
+  sales channels. (CONFIRMED observation)
 - The enrichment resource, which carries Hospitable's writable
   per-reservation smart-lock code, is vendor-gated and unreachable
   with a Personal Access Token. This was verified empirically: on one
@@ -929,6 +992,26 @@ false negative on the integration's primary sensor.
 - Hospitable field naming is `snake_case` throughout, so unlike
   comparable platforms no field-name translation layer is needed.
   (CONFIRMED)
+- `GET /v2/properties` returns property objects with the fields `id`,
+  `name`, `public_name`, `picture`, `address`, `timezone`, `listed`,
+  `currency`, `summary`, `description`, `checkin`, `checkout`,
+  `amenities`, `capacity`, `room_details`, `property_type`,
+  `room_type`, `tags`, `house_rules`, `calendar_restricted`, and
+  `parent_child`. The `address` object carries `number`, `street`,
+  `city`, `state`, `postcode`, `country`, `country_name`,
+  `coordinates`, and `display`. The `checkin` and `checkout` fields
+  are strings and are the real scheduled-time sources for occupancy.
+  The `coordinates` object makes offline IANA-zone derivation feasible
+  in a future specification, but this feature does not derive or
+  suggest timezones automatically. (CONFIRMED)
+- `GET /properties?include=listings` returns four to five listing
+  objects per property in the tested account. Listing fields are
+  `platform`, `platform_id`, `platform_user_id`, `platform_picture`,
+  `co_hosts`, `platform_name`, and `platform_email`. The same include
+  also adds `ical_imports`, but that array was empty on all ten
+  tested properties, so whether it is ever populated remains
+  unverified. (CONFIRMED for listing shape; `ical_imports` content
+  UNVERIFIED)
 - Hospitable's list endpoints use a conventional page-and-page-size
   paginator with a maximum page size of one hundred and a response
   envelope carrying current page, last page, page size, and total.
@@ -946,6 +1029,39 @@ false negative on the integration's primary sensor.
 - Hospitable exposes no standalone guest resource. Guest data is
   reachable only as an include on a reservation or inquiry.
   (CONFIRMED)
+- Valid include expansions are endpoint-specific and were discovered
+  by diffing returned keys against a baseline response:
+
+  | Endpoint | Confirmed expansions | Tested no-ops or invalid names |
+  | --- | --- | --- |
+  | `/properties` | `listings`, `bookings`, `user` | `ical_imports`, `connections`, `channels`, `reviews`, `amenities` |
+  | `/reservations` | `listings`, `financials`, `properties`, `review` | `guests` |
+
+  Includes can be combined. Invalid include names can return HTTP 200
+  with no added keys and no error, so FR-075 requires explicit key
+  checks. On `/reservations`, `include=properties` is a material
+  performance optimization because it collapses an N+1 property lookup
+  pattern into the reservation list response. (CONFIRMED)
+- `GET /v2/properties/{id}/calendar` exists. It returns a top-level
+  `data` object with `listing_id`, `provider`, `start_date`,
+  `end_date`, and a `days` array. Each day carries `date`, `day`,
+  `min_stay`, `note`, `closed_for_checkin`, `closed_for_checkout`, a
+  `status` object containing `reason`, `source`, `source_type`, and
+  `available`, and a `price` object containing integer-minor-unit
+  `amount`, `currency`, and `formatted`. In the tested account this
+  calendar is an aggregate across Airbnb, Booking.com, and direct
+  bookings. `listing_id` and `provider` identify listing metadata but
+  do not scope or filter the calendar. Passing a bogus `listing_id`
+  parameter returned HTTP 200 with the baseline listing, so that
+  parameter is silently ignored and MUST NOT be used to infer
+  per-listing calendar behavior. (CONFIRMED)
+- `GET /v2/channels` exists and returns account-level connections, not
+  per-property data. The tested account returned seven rows with
+  `data` fields `user_id`, `name`, `login`, `platform`, and `picture`;
+  the platform census was four `airbnb`, one `booking`, one `direct`,
+  and one `manual`. Its `meta` value was null; whether the endpoint
+  paginates at larger scale is unverified. (CONFIRMED response shape;
+  pagination UNVERIFIED)
 - The Hospitable Public API surface remains at version two, carried in
   the request path.
 
@@ -988,31 +1104,30 @@ uncertainty.
   not affect the present specification, which writes nothing, but it
   must be resolved before any future door-code specification is
   written.
-- **OQ-002 — Property timezone format (LIKELY, needs verification).**
-  A third party reports that the property timezone field is a UTC
-  offset string such as `-0500` rather than a named IANA timezone. If
-  that is correct, the value cannot be used directly by Home Assistant
-  and must be mapped, and the mapping must account for a bare offset
-  carrying no daylight-saving information — so a property whose offset
-  was captured in one season will be an hour wrong in the other. This
-  question is load-bearing rather than cosmetic: FR-045 evaluates
-  occupancy against scheduled check-in and check-out moments in the
-  property's timezone, so an hour of error moves the exact instant at
-  which an arrival or departure automation fires. FR-045 already
-  mandates a fallback to the Home Assistant instance timezone, with
-  the choice logged, so the requirement is implementable either way,
-  but this must be verified against a live account before FR-045 is
-  implemented.
-- **OQ-003 — Reservation status filter semantics (UNVERIFIED).** It is
-  not confirmed that a status filter parameter exists on the
-  reservations endpoint at all; it is absent from Hospitable's own
-  published parameter list. A third party additionally reports that
-  the filter accepts an underscored form while responses return a
-  spaced form, and that one documented status value is rejected
-  outright as a filter. This specification therefore does not rely on
-  server-side status filtering; all status handling is performed
-  client-side after retrieval. If server-side filtering is later
-  confirmed to work, it becomes an optimization, not a correction.
+- **OQ-002 — Property timezone format (RESOLVED).** FR-045 depends
+  on evaluating scheduled check-in and check-out moments in a timezone
+  that observes the property's daylight-saving rules. **Answer:** a
+  live test against a real account found that all ten properties
+  returned `timezone` as `-0700`, a fixed UTC offset rather than an
+  IANA zone. That value is DST-blind and possibly time-varying if the
+  API renders the zone's current offset, so it is strictly worse than
+  either the Home Assistant instance timezone or a user-supplied IANA
+  override and is dropped from the design. The same property payload
+  confirmed that `checkin` and `checkout` are string fields that
+  generally provide the scheduled times FR-045 needs. It also carries
+  `address.coordinates`, so a future specification could derive or
+  suggest an IANA zone offline from latitude and longitude, but that
+  is not in scope here.
+- **OQ-003 — Reservation status filter semantics (RESOLVED).** The
+  original uncertainty was whether a status filter parameter exists at
+  all, because it is absent from Hospitable's own published parameter
+  list and other parameters are silently ignored. **Answer:** a live
+  test of `status[]=accepted` genuinely applied the filter: all 20 of
+  20 returned rows had category accepted. This confirms the filter can
+  be used as an optimization for known-good values, but the
+  integration still MUST NOT depend on server-side status filtering
+  for correctness; complete status handling remains client-side after
+  retrieval.
 - **OQ-004 — Reservations on unlisted listings (LIKELY, needs
   verification).** A third party reports that reservations belonging
   to unlisted or unpublished channel listings are absent entirely from
@@ -1041,13 +1156,17 @@ uncertainty.
   through the API. If it is, the integration could warn ahead of
   expiry instead of only reacting to rejection. If it is not, reactive
   handling under FR-065 is the only option.
-- **OQ-008 — Reservation status category coverage (CONFIRMED list,
-  coverage UNVERIFIED).** The published status categories are known,
-  but the sub-category values beneath them are numerous and it is
-  unverified whether the published list is exhaustive. FR-048's
-  unknown-state fallback exists precisely to absorb this uncertainty.
-  This is also why FR-045 claims only that no checked-in status
-  appears in the published list, not that none exists.
+- **OQ-008 — Reservation status category coverage (RESOLVED).** The
+  published reservation status categories are known, but this question
+  asked whether live data would reveal categories outside that list or
+  a hidden checked-in category that would change FR-043 or FR-045.
+  **Answer:** a live census across 621 reservations in the window
+  2025-01-01 through 2026-12-31 found 480 accepted, 112 cancelled, 21
+  not accepted, and 8 checkpoint reservations. No categories outside
+  the documented six were observed, and no checked-in status was
+  observed. FR-043 still retains request and unknown because they are
+  documented categories; their absence from this one account is
+  absence of evidence, not evidence of absence.
 - **OQ-009 — Stable account identifier (RESOLVED).** FR-013 and
   FR-055 both depend on the platform exposing a stable, immutable
   account identifier that a Personal Access Token can retrieve. This
@@ -1061,16 +1180,42 @@ uncertainty.
   FR-055 therefore rest on confirmed behavior. FR-055 keeps the
   config entry identifier as a defensive fallback, which is no longer
   expected to be taken. The same response also carries personal and
-  billing fields, which FR-073 requires be discarded rather than
-  persisted, logged, or included in diagnostics.
-- **OQ-010 — Property calendar response shape (UNVERIFIED).** US7 and
+  billing fields, which FR-073 covers under the general rule against
+  logging or diagnosing personal data from any endpoint.
+- **OQ-010 — Property calendar response shape (RESOLVED).** US7 and
   FR-058 assume the property calendar endpoint returns per-day
-  availability together with a nightly rate and currency. The endpoint
-  is confirmed to exist, but no response schema for it has been
-  examined, and FR-060's money shape was confirmed on reservation
-  financials rather than on calendar days. If the shape differs, US7
-  and FR-058 must be revised before implementation. This affects only
-  the lowest-priority user story.
+  availability together with a nightly rate and currency. **Answer:**
+  live route discovery found `GET /v2/properties/{id}/calendar`
+  returns HTTP 200; `GET /v2/calendars/{id}`,
+  `GET /v2/properties/{id}/availability`,
+  `GET /v2/properties/{id}/listings`, and
+  `GET /v2/properties/{id}/channels` returned HTTP 404. The response
+  `data` is
+  an object with `listing_id`, `provider`, `start_date`, `end_date`,
+  and a `days` array whose entries carry date, check-in and checkout
+  closure flags, status, and integer-minor-unit price data. Account
+  owner observation confirmed this calendar is an aggregate across
+  Airbnb, Booking.com, and direct guests, so `listing_id` and
+  `provider` are cosmetic listing metadata, not a scope or filter.
+  Passing a bogus `listing_id` parameter returned HTTP 200 with the
+  baseline listing, proving the parameter is silently discarded; that
+  is harmless for this feature because the desired calendar is the
+  aggregate calendar.
+- **OQ-011 — Channels pagination at scale (UNVERIFIED).** A live test
+  found `GET /v2/channels` and observed `meta: null` with seven rows.
+  It is unknown whether larger accounts receive pagination metadata or
+  whether this endpoint remains unpaginated at scale.
+- **OQ-012 — iCal import population (UNVERIFIED).** The properties
+  endpoint adds `ical_imports` when `include=listings` is requested,
+  but all ten tested properties returned an empty array. It is unknown
+  whether accounts that actually configure iCal imports ever receive
+  populated entries, and no behavior in this specification depends on
+  that array.
+- **OQ-013 — Request and unknown status occurrence (UNVERIFIED).** The
+  documented reservation categories include request and unknown, but a
+  621-reservation live census did not observe either one. They remain
+  in FR-043 because one account's absence of examples is not proof
+  that the platform cannot return them.
 
 ## Out of Scope
 
@@ -1099,6 +1244,10 @@ later specifications.
   even though a Personal Access Token is permitted to make them.
   Writing to a property's calendar has direct revenue consequences and
   deserves its own specification with its own safeguards.
+- **Automatic timezone derivation.** Property address coordinates make
+  offline IANA-zone derivation feasible, but this specification does
+  not add the dependency or bundled data needed to implement it. The
+  user supplies any per-property override explicitly.
 - **Tasks, teammates, and team groups.** These resources are not
   present in Hospitable's published Public API surface. They may exist
   but be vendor-gated or non-public, so no comparable feature from
