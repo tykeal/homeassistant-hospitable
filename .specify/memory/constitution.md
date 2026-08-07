@@ -416,10 +416,12 @@ actually changed behavior.
     `custom_components/hospitable/brand/**`.
 - Python files carrying inline headers MUST use:
 
+  <!-- REUSE-IgnoreStart -->
   ```python
   # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
   # SPDX-License-Identifier: Apache-2.0
   ```
+  <!-- REUSE-IgnoreEnd -->
 
 - Markdown, XML, and other block-comment formats MUST use the
   equivalent block-comment form.
