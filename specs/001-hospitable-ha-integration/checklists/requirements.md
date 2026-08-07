@@ -112,7 +112,9 @@ This specification uses a four-tier evidence legend (CONFIRMED,
 DOCUMENTED, LIKELY, UNVERIFIED) rather than [NEEDS CLARIFICATION]
 markers, because the unresolved items are questions about a third
 party's undocumented API rather than questions the user can answer.
-Ten Open Questions (OQ-001 through OQ-010) carry them.
+Ten Open Questions (OQ-001 through OQ-010) carry them. OQ-009 has
+since been resolved by live test and is retained, restated as
+RESOLVED, for the historical record.
 
 Two marking rules are enforced and were re-audited on 2026-08-07:
 
