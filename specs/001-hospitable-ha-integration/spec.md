@@ -803,12 +803,13 @@ false negative on the integration's primary sensor.
 - **FR-073**: When the integration retrieves the account record in
   order to obtain the account identifier of FR-013, it MUST retain
   only that identifier. The personal, billing, and address fields
-  the same response carries — the account holder's email address,
-  name, postal address, company name, VAT number, and tax identifier
-  — MUST NOT be persisted, MUST NOT be written to the log at any
-  level, and MUST be redacted from diagnostics output. This applies
-  the handling FR-062 and FR-063 require for guest personal data to
-  the account holder's own personal and billing data.
+  that the same response carries — the account holder's email
+  address, name, postal address, company name, VAT number, and tax
+  identifier — MUST NOT be persisted, MUST NOT be written to the log
+  at any level, and MUST be redacted from diagnostics output. This
+  applies the handling that FR-062 and FR-063 require for guest
+  personal data to the account holder's own personal and billing
+  data.
 
 ### Key Entities
 
