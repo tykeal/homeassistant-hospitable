@@ -453,9 +453,10 @@ capable of modifying the Hospitable calendar.
 - **FR-013**: The integration MUST prevent the same Hospitable account
   from being configured twice, identifying the account by a stable
   account identifier obtained from the platform rather than by the
-  token value. Whether the platform exposes such an identifier to a
-  Personal Access Token is not established; FR-055 defines the
-  fallback that applies if it does not. (UNVERIFIED — see OQ-009)
+  token value. The platform exposes such an identifier to a Personal
+  Access Token as a UUID returned by the user endpoint; FR-055
+  retains the fallback that applies if it is ever unavailable.
+  (CONFIRMED — see OQ-009)
 - **FR-014**: The integration MUST provide a reauthentication flow
   that accepts a replacement token in place of a rejected one and
   preserves all existing entities, entity identifiers, and recorded
@@ -703,14 +704,18 @@ false negative on the integration's primary sensor.
   immutable identifiers, specifically an account namespace, the
   property identifier, and the entity's own key. The account namespace
   MUST be the stable platform account identifier of FR-013 where one
-  is available; where none is available, it MUST be the config entry's
+  is available, which is confirmed to be a UUID returned by the user
+  endpoint; where none is available, it MUST be the config entry's
   own immutable entry identifier, which Home Assistant guarantees is
-  stable for the life of the entry. Whichever namespace is chosen MUST
-  be recorded in the config entry when it is created and MUST NOT
-  change thereafter, because changing it would orphan every entity and
-  destroy its recorded history. Renaming a property in Hospitable MUST
-  NOT orphan entities or destroy recorded history. (Availability of a
-  platform account identifier: UNVERIFIED — see OQ-009)
+  stable for the life of the entry. That fallback is retained as a
+  defensive branch and is not expected to be taken now that the
+  platform identifier is confirmed. Whichever namespace is chosen
+  MUST be recorded in the config entry when it is created and MUST
+  NOT change thereafter, because changing it would orphan every
+  entity and destroy its recorded history. Renaming a property in
+  Hospitable MUST NOT orphan entities or destroy recorded history.
+  (Availability of a platform account identifier: CONFIRMED — see
+  OQ-009)
 - **FR-056**: When a monitored property disappears from the account,
   its entities MUST become unavailable with an explanatory reason
   rather than being silently deleted.
@@ -795,6 +800,15 @@ false negative on the integration's primary sensor.
   intervals, window bounds, and property selection, so that the
   warnings required by FR-023 are actionable rather than abstract. The
   estimate MUST be labelled as an estimate.
+- **FR-073**: When the integration retrieves the account record in
+  order to obtain the account identifier of FR-013, it MUST retain
+  only that identifier. The personal, billing, and address fields
+  the same response carries — the account holder's email address,
+  name, postal address, company name, VAT number, and tax identifier
+  — MUST NOT be persisted, MUST NOT be written to the log at any
+  level, and MUST be redacted from diagnostics output. This applies
+  the handling FR-062 and FR-063 require for guest personal data to
+  the account holder's own personal and billing data.
 
 ### Key Entities
 
@@ -960,7 +974,10 @@ false negative on the integration's primary sensor.
 
 These are unresolved at specification time. Each one must be settled
 during implementation or planning, and none of them may be treated as
-settled by assumption.
+settled by assumption. A question that has since been settled is kept
+here for the historical record, restated as **RESOLVED**, with the
+answer and how it was obtained recorded in place of the original
+uncertainty.
 
 - **OQ-001 — Smart-lock code interaction (UNVERIFIED).** Hospitable
   automatically generates smart-lock codes for accepted reservations
@@ -1030,19 +1047,21 @@ settled by assumption.
   unknown-state fallback exists precisely to absorb this uncertainty.
   This is also why FR-045 claims only that no checked-in status
   appears in the published list, not that none exists.
-- **OQ-009 — Stable account identifier (UNVERIFIED).** FR-013 and
+- **OQ-009 — Stable account identifier (RESOLVED).** FR-013 and
   FR-055 both depend on the platform exposing a stable, immutable
-  account identifier that a Personal Access Token can retrieve. The
-  user and billing endpoint is documented to exist, but its response
-  fields have not been examined, so it is not established that any
-  such identifier is available. This is the most irreversible open
-  question in the specification: the account namespace is baked into
-  every entity's unique identifier and cannot be changed later without
-  orphaning every entity and destroying its recorded history. FR-055
-  therefore mandates the config entry identifier as a fallback, so the
-  requirement is implementable either way. Settling this needs one
-  request against a live account and should be done before any entity
-  is created.
+  account identifier that a Personal Access Token can retrieve. This
+  was the most irreversible open question in the specification: the
+  account namespace is baked into every entity's unique identifier
+  and cannot be changed later without orphaning every entity and
+  destroying its recorded history. **Answer:** a live test against a
+  real account established that the user endpoint is reachable with a
+  Personal Access Token and returns a stable UUID account identifier,
+  held in a field distinct from the mutable email field. FR-013 and
+  FR-055 therefore rest on confirmed behavior. FR-055 keeps the
+  config entry identifier as a defensive fallback, which is no longer
+  expected to be taken. The same response also carries personal and
+  billing fields, which FR-073 requires be discarded rather than
+  persisted, logged, or included in diagnostics.
 - **OQ-010 — Property calendar response shape (UNVERIFIED).** US7 and
   FR-058 assume the property calendar endpoint returns per-day
   availability together with a nightly rate and currency. The endpoint
