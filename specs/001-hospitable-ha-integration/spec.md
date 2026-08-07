@@ -198,6 +198,10 @@ channel listings.
    Hospitable, **When** the next poll runs, **Then** its entities
    become unavailable with an explanatory reason and are not silently
    removed.
+6. **Given** a property needs a timezone different from the Home
+   Assistant instance timezone, **When** the manager sets a
+   per-property IANA timezone override, **Then** subsequent arrival
+   and departure timestamps use that override.
 
 ---
 
@@ -391,10 +395,16 @@ integration is capable of modifying the Hospitable calendar.
   deselected by the manager.** In both cases its entities become
   unavailable with an explanatory reason and its registry entries are
   retained, so nothing is destroyed and reselection restores history.
-- **A reservation is on its arrival or departure date but carries no
-  usable scheduled check-in or check-out time.** Occupancy cannot be
-  determined, so the sensor reports unknown and logs the defect. No
-  midnight or other default time is substituted.
+- **A property's upstream timezone is a fixed UTC offset.** Verified
+  live: all ten tested properties returned `timezone: "-0700"`. The
+  integration does not use that value, because it is DST-blind and may
+  change seasonally. It uses the Home Assistant instance timezone by
+  default and accepts a per-property IANA override.
+- **A reservation is on its arrival or departure date but no usable
+  scheduled check-in or check-out time exists on either the
+  reservation or property.** Occupancy cannot be determined, so the
+  sensor reports unknown and logs the defect. No midnight or other
+  default time is substituted.
 - **Home Assistant restarts mid-window.** State is rebuilt entirely
   from the next poll; no local state is assumed to have survived.
 - **Two accounts contain properties with the same name.** Entity
@@ -468,7 +478,8 @@ integration is capable of modifying the Hospitable calendar.
 - **FR-015**: The integration MUST provide an options flow exposing,
   at minimum: the reservation polling interval, the property polling
   interval, the reservation lookback window in days, the reservation
-  lookahead window in days, and the set of selected properties.
+  lookahead window in days, the set of selected properties, and each
+  selected property's optional timezone override.
 - **FR-016**: The options flow MUST validate every value against a
   documented minimum and maximum, and MUST reject an out-of-range
   value with a message naming the permitted bound.
@@ -643,33 +654,35 @@ false negative on the integration's primary sensor.
   deterministic. The reservations not selected MUST be exposed as an
   upcoming-reservations attribute.
 - **FR-045**: Hospitable publishes no checked-in status, so the
-  integration MUST derive occupancy itself. It MUST do so from the
-  reservation's scheduled check-in and check-out moments, never from
-  calendar-day boundaries. Specifically:
+  integration MUST derive occupancy itself. It MUST do so from
+  scheduled check-in and check-out moments, never from calendar-day
+  boundaries. The moment is formed from the reservation date and the
+  best available scheduled time: a reservation-specific time when one
+  exists, otherwise the property's `checkin` or `checkout` string.
+  Specifically:
   - A reservation is occupied from its scheduled check-in moment until
     its scheduled check-out moment.
   - Before the scheduled check-in moment, including earlier on the
     arrival date itself, the state is awaiting check-in.
   - At or after the scheduled check-out moment, including later on the
     departure date itself, the state is checked out.
-  - All comparisons MUST be evaluated in the property's own timezone.
-    Where the property timezone is absent or cannot be interpreted as
-    a usable timezone, the integration MUST fall back to the Home
-    Assistant instance timezone and MUST log which timezone it chose,
-    at most once per property. See OQ-002, which records that the
-    platform's timezone field may be a UTC offset string rather than a
-    named timezone.
+  - All comparisons MUST be evaluated in the configured IANA timezone
+    for that property, as defined by FR-074. The integration MUST NOT
+    use the platform's `timezone` field as a timezone source, because
+    live testing found it to be a fixed UTC offset rather than an IANA
+    zone. See OQ-002.
   - A missing or uninterpretable scheduled check-in or check-out time
-    is a data error, not a case to work around. On the arrival or
-    departure date of an affected reservation the entity MUST report
-    the unknown state and MUST log a warning naming the reservation
-    and the missing field. It MUST NOT report the property as
-    occupied, and it MUST NOT substitute midnight or any other assumed
-    time. Away from those two boundary dates the state is unaffected,
-    because no scheduled time is needed to evaluate it.
+    on both the reservation and property is a data error, not a case
+    to work around. On the arrival or departure date of an affected
+    reservation the entity MUST report the unknown state and MUST log
+    a warning naming the reservation and the missing field. It MUST
+    NOT report the property as occupied, and it MUST NOT substitute
+    midnight or any other assumed time. Away from those two boundary
+    dates the state is unaffected, because no scheduled time is needed
+    to evaluate it.
 
-  (CONFIRMED that no checked-in status appears in the published status
-  list; see OQ-008 on whether that list is exhaustive)
+  (CONFIRMED that no checked-in status appeared in the live status
+  census; see OQ-008)
 - **FR-046**: The reservation status entity MUST expose, as
   attributes, at minimum: arrival date, departure date, number of
   nights, scheduled check-in and check-out times, total guest count
@@ -703,9 +716,9 @@ false negative on the integration's primary sensor.
   reservations within the configured window per property.
 - **FR-053**: The integration MUST expose a property information
   entity per property carrying, at minimum, the property address, its
-  configured check-in and check-out times, its guest capacity, its
-  timezone as reported by the platform, and its channel listings with
-  each listing's channel and channel identifier.
+  configured check-in and check-out times, its guest capacity, the
+  effective IANA timezone used by the integration, and its channel
+  listings with each listing's channel and channel identifier.
 - **FR-054**: Entity identifiers MUST follow the pattern
   `sensor.hospitable_<property>_<attribute>`. This specification
   creates entities on the sensor platform only; no other Home
@@ -819,14 +832,25 @@ false negative on the integration's primary sensor.
   applies the handling that FR-062 and FR-063 require for guest
   personal data to the account holder's own personal and billing
   data.
+- **FR-074**: The integration MUST assign each selected property an
+  effective IANA timezone for scheduled-time calculations. The default
+  MUST be the Home Assistant instance timezone. The user MUST be able
+  to set or clear an IANA timezone override per property during setup
+  or in the options flow, and the integration MUST validate overrides
+  against the runtime's available IANA timezone database before saving
+  them. The platform's fixed-offset `timezone` value MUST NOT be used
+  as the default, fallback, or persisted timezone value. (CONFIRMED
+  need — see OQ-002)
 
 ### Key Entities
 
 - **Property**: Hospitable's core rental unit and the unit of
   selection in this integration. Identified by a stable universally
   unique identifier. Carries a name, an address, configured check-in
-  and check-out times, guest capacity, a timezone, and one or more
-  Listings. One Home Assistant device is created per selected
+  and check-out times, guest capacity, address coordinates, and one or
+  more Listings. The integration assigns an effective IANA timezone to
+  each selected Property rather than using Hospitable's fixed-offset
+  `timezone` field. One Home Assistant device is created per selected
   Property.
 - **Listing**: A channel-side mapping of a Property onto a booking
   platform such as Airbnb, Vrbo/HomeAway, Booking.com, or a direct
@@ -862,8 +886,8 @@ false negative on the integration's primary sensor.
   duplicate entries and to namespace entity identifiers — the platform
   account identifier where one is available, otherwise the config
   entry's own identifier, per FR-055 — the selected Property
-  identifiers, the polling and window options, and the entry version
-  required by FR-070.
+  identifiers, optional per-property timezone overrides, the polling
+  and window options, and the entry version required by FR-070.
 
 ## Success Criteria *(mandatory)*
 
@@ -954,7 +978,9 @@ false negative on the integration's primary sensor.
   `city`, `state`, `postcode`, `country`, `country_name`,
   `coordinates`, and `display`. The `checkin` and `checkout` fields
   are strings and are the real scheduled-time sources for occupancy.
-  (CONFIRMED)
+  The `coordinates` object makes offline IANA-zone derivation feasible
+  in a future specification, but this feature does not derive or
+  suggest timezones automatically. (CONFIRMED)
 - `GET /properties?include=listings` returns four to five listing
   objects per property in the tested account. Listing fields are
   `platform`, `platform_id`, `platform_user_id`, `platform_picture`,
@@ -1192,6 +1218,10 @@ later specifications.
   even though a Personal Access Token is permitted to make them.
   Writing to a property's calendar has direct revenue consequences and
   deserves its own specification with its own safeguards.
+- **Automatic timezone derivation.** Property address coordinates make
+  offline IANA-zone derivation feasible, but this specification does
+  not add the dependency or bundled data needed to implement it. The
+  user supplies any per-property override explicitly.
 - **Tasks, teammates, and team groups.** These resources are not
   present in Hospitable's published Public API surface. They may exist
   but be vendor-gated or non-public, so no comparable feature from
