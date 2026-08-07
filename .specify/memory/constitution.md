@@ -1129,4 +1129,4 @@ structurally impossible rather than merely discouraged.
 - Use `AGENTS.md` for day-to-day runtime development guidance that
   supplements, but never overrides, this constitution.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-06
+**Version**: 1.1.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-07
