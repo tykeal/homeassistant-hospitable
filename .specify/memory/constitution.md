@@ -1,76 +1,215 @@
 <!--
   Sync Impact Report
   ==================================================
-  Version change: 0.0.0 → 1.0.0
-  Change type: MAJOR - Initial constitution ratification
+  Version change: 1.0.0 → 1.1.0
+  Change type: MINOR - A mandate is materially relaxed and new
+  requirements are added. No principle is removed, renamed, or
+  renumbered; all twelve survive with their original numbering.
 
   Report scope: this block describes ONLY the most recent amendment.
   It is overwritten on every amendment; the full amendment history is
   the git history of this file.
 
-  Modified principles: N/A (initial creation)
+  Why this amendment exists
+  -------------------------------------------------
+  Version 1.0.0 was ratified before the Hospitable API had been
+  empirically probed. It treated the Personal Access Token and the
+  OAuth 2.0 authorization-code flow as two co-equal credential models
+  that a user might choose between. A live test against a real paid
+  Hospitable account disproved that assumption.
 
-  Added sections:
-    - I. Code Quality & Testing Standards (NON-NEGOTIABLE)
+  CONFIRMED-BY-TEST (live PAT against a real account, same reservation
+  UUID, same token):
+    - GET /v2/reservations/{uuid}             → HTTP 200
+    - GET /v2/reservations/{uuid}/enrichment  → HTTP 403,
+      {"status_code":403,"reason_phrase":"Invalid scope(s) provided."}
+
+  The `enrichment:read` / `enrichment:write` scopes cannot be granted
+  to a Personal Access Token. They require OAuth 2.0, which Hospitable
+  restricts to approved Vendors, which requires a Typeform application
+  (https://form.typeform.com/to/n8bZPJIm) plus Partner Portal
+  approval. There is no self-serve path to OAuth for a self-hosted
+  Home Assistant user, so v1.0.0's framing was factually wrong for
+  this integration's actual audience.
+
+  Also CONFIRMED-BY-TEST: Hospitable's paginator returns page links
+  carrying an `http://` scheme, e.g.
+  "url": "http://public.api.hospitable.com/v2/reservations?page=2".
+
+  Modified principles (all retain their number and title):
     - II. API Client Design
-    - III. Atomic Commit Discipline (NON-NEGOTIABLE)
-    - IV. Licensing & Attribution Standards (NON-NEGOTIABLE)
-    - V. Pre-Commit Integrity (NON-NEGOTIABLE)
-    - VI. Agent Co-Authorship & DCO Requirements (NON-NEGOTIABLE)
+      - The "MUST support both documented authentication models"
+        requirement is reframed: PAT is the primary, self-serve model
+        and MUST be supported now; OAuth is a future path that the
+        client MUST NOT preclude, not a currently-selectable peer.
+      - NEW BULLET: a separate bullet states that OAuth 2.0 support is
+        DEFERRED until Vendor access is obtained, MUST NOT be a
+        precondition for any release, and that every OAuth requirement
+        in this constitution is forward-looking — binding if and when
+        OAuth is added, imposing no obligation before then. This is
+        new normative text, not a rewording of the bullet above.
+      - OAuth renewal language becomes conditional ("when and if OAuth
+        support is added") and is updated with the now-known token
+        lifetimes.
+      - NEW: the vendor-gated-scope constraint is recorded here, with
+        the requirement that a scope-related 403 is a capability
+        limitation, never an authentication failure.
+      - The rate-limit bullet is MODIFIED, not merely reworded. It
+        gains a new MUST ("MUST NOT assume such headers are present
+        (their existence is UNVERIFIED)"), narrows "no numeric
+        rate-limit ceiling" to "no GENERAL numeric rate-limit
+        ceiling", and adds a new obligation: the documented messaging
+        limits — 2 messages per minute per reservation and 50 messages
+        per 5 minutes — "MUST be respected where the integration sends
+        messages." This is the normative half of the
+        HOSPITABLE_RATE_LIMIT_VALUES resolution below.
+      - Rationale updated: the two credential models are no longer
+        described as a user-facing choice.
     - VII. User Experience Consistency
-    - VIII. Performance Requirements
-    - IX. Phased Development
+      - The blocking change. The bullet mandating that the config flow
+        "MUST accommodate both supported Hospitable credential models"
+        is softened to a mandate that the design MUST NOT PRECLUDE
+        OAuth. As written in v1.0.0 it made the planned PAT-only first
+        release non-compliant. The existing intent that credential-
+        model jargon is not exposed to the user is preserved verbatim
+        in spirit.
+      - The error-message example is updated so it no longer implies a
+        403 scope failure is a credential problem.
     - X. Security & Credential Management (NON-NEGOTIABLE)
-    - XI. Webhook & Real-Time Event Handling
-    - XII. Red-Phase Commit Protocol (NON-NEGOTIABLE)
-    - Additional Constraints
-    - Development Workflow & Quality Gates
-    - Governance
+      - NOT WEAKENED. Every existing security requirement survives.
+        Phrasing that implied OAuth is presently in use became
+        conditional ("when and if OAuth support is added").
+      - NEW, inside that same OAuth-renewal bullet: because both the
+        access token and the refresh token rotate on refresh, a
+        renewed refresh token MUST replace the stored one atomically
+        and the superseded token MUST be discarded. This is an added
+        obligation, not a rewording — the v1.0.0 bullet said nothing
+        about rotation. The bullet also now marks the published
+        lifetimes and scope names as CONFIRMED-BY-SPEC only and
+        requires honoring the expiry metadata actually returned.
+      - NEW: reauthentication MUST be triggered by credential
+        rejection (401) but MUST NOT be triggered by a scope-related
+        403, since a config entry cannot escape that reauth loop.
+      - NEW: server-supplied pagination URLs MUST NOT be followed
+        verbatim; the client MUST construct page requests itself or
+        force the `https` scheme.
+      - CORRECTED: the rationale previously asserted that Personal
+        Access Tokens "carry access to all endpoints by default."
+        The live 403 disproves this, so the claim was removed. The
+        security argument is unchanged and, stated honestly, is
+        stronger: the enrichment gate narrows what a PAT can DO, not
+        the breadth of guest data it can READ — one PAT still exposes
+        every guest record across every property on the account.
 
-  Removed sections: None
+  Added sections: None. No new top-level principle or section was
+  added. New requirements landed as new bullets inside existing
+  Principles II and X, and as added sentences inside existing bullets
+  in Principles II, VII, and X.
 
-  Templates requiring updates:
-    - .specify/templates/plan-template.md ✅ no change needed
-      (verified: its "Constitution Check" section says "[Gates
-      determined based on constitution file]" at line 43, so gates are
-      read from this file at runtime; no hard-coded principle list)
-    - .specify/templates/spec-template.md ✅ no change needed
-      (verified: no constitution references, and its only testing
-      language concerns independently testable user stories, which
-      conflicts with no principle here)
-    - .specify/templates/tasks-template.md ✅ reconciled in a
-      follow-up change
-      (at ratification it declared tests "OPTIONAL - only include them
-      if explicitly requested" at line 12 and again at lines 83, 109,
-      and 131, which contradicted Principle I's mandatory TDD and
-      Principle IX's never-deferred unit TDD; and line 182 required
-      tests to "MUST be written and FAIL before implementation", where
-      Principle XII requires red-phase tests to report XFAIL, never a
-      red suite. It was left unmodified at ratification to keep that
-      change atomic, and has since been brought into compliance by a
-      dedicated follow-up commit that makes test tasks mandatory,
-      adopts the XFAIL red-phase wording, and labels the red-phase and
-      green-phase commit split)
-    - .specify/templates/checklist-template.md ✅ no change needed
-      (verified: no constitution, testing, licensing, or commit
-      references)
+  Removed sections: None.
+
+  Renumbered principles: None.
+
+  Template propagation status
+  -------------------------------------------------
+  All five files in .specify/templates/ were opened and inspected for
+  this amendment. Findings, stated as checked rather than assumed:
+
+    - .specify/templates/plan-template.md — CHECKED, no change needed.
+      Its "Constitution Check" heading at line 39 is followed at line
+      43 by the literal placeholder "[Gates determined based on
+      constitution file]". Gates are therefore resolved from this file
+      at runtime and no principle text, number, or credential-model
+      claim is hard-coded in the template.
+    - .specify/templates/spec-template.md — CHECKED, no change needed.
+      Its only authentication-related line is 98, a generic sample
+      requirement ("FR-006: System MUST authenticate users via [NEEDS
+      CLARIFICATION: auth method not specified - email/password, SSO,
+      OAuth?]"). That is upstream Spec Kit boilerplate illustrating a
+      clarification marker; it makes no claim about Hospitable and is
+      unaffected by this amendment.
+    - .specify/templates/tasks-template.md — CHECKED, no change needed
+      for THIS amendment. It does cite the constitution by number at
+      line 26, but only Principles I, IX, and XII (mandatory test
+      tasks, no deferred unit TDD, the XFAIL red-phase protocol). This
+      amendment touches only II, VII, and X and renumbers nothing, so
+      those citations remain accurate. (Its earlier drift against
+      Principles I/IX/XII was reconciled under v1.0.0 and remains
+      reconciled.)
+    - .specify/templates/checklist-template.md — CHECKED, no change
+      needed. Full file read (40 lines); it contains no constitution,
+      credential, authentication, testing, licensing, or commit
+      references at all — only placeholder categories and sample CHK
+      items.
+    - .specify/templates/constitution-template.md — CHECKED, no change
+      needed. It is the unfilled upstream scaffold (50 lines) whose
+      only relevant line is the version footer placeholder at line 49,
+      "**Version**: [CONSTITUTION_VERSION] | **Ratified**:
+      [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]".
+      That is a placeholder, not a version claim, so a version bump in
+      this file does not stale it.
+
+  NOTE for future amendments: v1.0.0's report asserted "no change
+  needed" for templates in a form that was later found to have been
+  claimed without inspection. Every line above was verified by reading
+  the file named. Do not copy these claims forward without re-reading.
 
   Follow-up TODOs:
-    - TODO(HOSPITABLE_WEBHOOK_SIGNATURE): The exact webhook authenticity
-      mechanism (signature header name and algorithm) is not confirmable
-      from publicly readable Hospitable documentation. Principle XI is
-      written to mandate verification without depending on a specific
-      header name. Record the concrete mechanism in `plan.md` once it is
-      confirmed against the authenticated developer portal.
-    - TODO(HOSPITABLE_OAUTH_TOKEN_LIFETIMES): OAuth access/refresh token
-      lifetimes and named scopes are not confirmable from publicly
-      readable Hospitable documentation. Principles II and X are written
-      to be lifetime-agnostic. Record concrete values in `plan.md` once
-      confirmed.
-    - TODO(HOSPITABLE_RATE_LIMIT_VALUES): Hospitable publishes no numeric
-      rate-limit ceiling. Principles II and VIII therefore mandate
-      adaptive, header-driven backoff rather than hard-coded quotas.
-      Revisit if Hospitable publishes numeric limits.
+    - TODO(HOSPITABLE_WEBHOOK_SIGNATURE): STILL OPEN, but now better
+      characterized. Best available information, all marked
+      LIKELY / UNVERIFIED because it comes from secondary sources
+      rather than an observed delivery: the signature header is named
+      `Signature`; the value is an HMAC-SHA256 hex digest computed
+      over the RAW request body; webhooks are dashboard-registered
+      only, with no registration API; delivery source IPs fall in
+      38.80.170.0/24; failed deliveries are retried 5 times with
+      1s → 5s → 10s → 1hr → 6hr backoff. Principle XI remains written
+      to mandate verification WITHOUT depending on a specific header
+      name, so none of the above is load-bearing yet. This TODO closes
+      only when the mechanism is confirmed against a real delivery or
+      the authenticated developer portal. Do not implement signature
+      verification against the unverified header name alone.
+    - TODO(HOSPITABLE_OAUTH_TOKEN_LIFETIMES): ANSWERED
+      (CONFIRMED-BY-SPEC, not CONFIRMED-BY-TEST — these values are
+      derived from Hospitable's own Stoplight OpenAPI export, and no
+      live OAuth grant was performed, because obtaining one requires
+      Vendor approval this project does not hold):
+        - Access token lifetime: 12 hours (`expires_in: 43200`).
+        - Refresh token lifetime: 90 days.
+        - BOTH tokens rotate on refresh — a refresh returns a new
+          refresh token, and the old one must be discarded.
+        - Observed scopes: listing:read, property:read,
+          financials:read, message:read, message:write,
+          transaction:read, enrichment:read, enrichment:write.
+        - Token endpoint: POST https://auth.hospitable.com/oauth/token
+          and it takes a JSON body, NOT form-encoded. This differs
+          from the common OAuth 2.0 convention and will silently fail
+          if implemented from habit.
+        - Authorize endpoint:
+          https://auth.hospitable.com/oauth/authorize
+        - Scopes are configured in the Partner Portal and are NOT
+          passed in the authorize URL.
+        - There is NO client-credentials grant; authorization_code is
+          the only supported grant type.
+      These values are recorded here for whenever OAuth becomes
+      reachable. Both Principles II and X were edited in this
+      amendment to cite them, and both were deliberately written so
+      that no implementation obligation depends on them today.
+    - TODO(HOSPITABLE_RATE_LIMIT_VALUES): RESOLVED AS GENUINELY
+      UNPUBLISHED — closed, not deferred. Hospitable publishes no
+      general numeric rate-limit ceiling. The only documented limits
+      are for messaging: 2 messages per minute per reservation, and 50
+      messages per 5 minutes. The existence of `X-RateLimit-*`
+      response headers is UNVERIFIED; it rests on SDK-author prose,
+      not on documentation or an observed response, so the client MUST
+      NOT assume those headers are present. Practical consequence:
+      because no ceiling is discoverable, poll cadence is
+      user-configurable with conservative defaults plus 429 backoff,
+      rather than derived from a published quota. Principle VIII
+      already carried that requirement and is UNCHANGED by this
+      amendment; Principle II's rate-limit bullet WAS edited here to
+      add the no-assumed-headers MUST and the messaging limits.
+      Reopen only if Hospitable publishes numbers.
   ==================================================
 -->
 
@@ -131,22 +270,57 @@ codebase.
   Hospitable carries its API version in the URL path, the targeted
   version MUST be a single documented constant and MUST NOT be
   scattered across call sites.
-- The client MUST support both documented Hospitable authentication
-  models: Personal Access Tokens (sent as HTTP Bearer credentials) and
-  the OAuth 2.0 authorization-code flow used for vendor/connected
-  applications. Both MUST be handled behind one interface so callers do
-  not branch on credential type.
-- OAuth credential renewal MUST be handled transparently inside the
-  client; callers MUST NOT manage token lifecycle. Because Hospitable
-  does not publish token lifetimes, the client MUST detect expiry
-  reactively (from authentication failures) as well as proactively
-  (from any expiry metadata returned at grant time), and MUST NOT
-  hard-code an assumed lifetime.
+- The client MUST support the Personal Access Token model (sent as
+  HTTP Bearer credentials) as the primary, self-serve credential
+  model. It MUST NOT be designed in a way that precludes adding the
+  OAuth 2.0 authorization-code flow later. Credential handling MUST
+  sit behind one interface so that callers never branch on credential
+  type and so that adding OAuth is an internal change to the client
+  rather than a change rippling through coordinators.
+- OAuth 2.0 support is DEFERRED until Hospitable Vendor access is
+  actually obtained, and it MUST NOT be a precondition for any
+  release. Hospitable grants OAuth only to approved Vendors, via an
+  application-and-approval process with no self-serve path, so a
+  self-hosted Home Assistant user cannot obtain it. Requirements in
+  this constitution that describe OAuth behavior are forward-looking:
+  they bind the implementation if and when OAuth is added, and they
+  impose no obligation before then.
+- When and if OAuth support is added, credential renewal MUST be
+  handled transparently inside the client; callers MUST NOT manage
+  token lifecycle. The client MUST detect expiry reactively (from
+  authentication failures) as well as proactively (from expiry
+  metadata returned at grant time). Published lifetimes — a 12-hour
+  access token and a 90-day refresh token, with both rotating on
+  refresh — are CONFIRMED-BY-SPEC from Hospitable's OpenAPI export and
+  NOT confirmed by a live grant, so the client MUST treat the metadata
+  on the actual response as authoritative and MUST NOT hard-code an
+  assumed lifetime.
+- **Vendor-gated scopes are a capability boundary, not an auth
+  failure.** CONFIRMED-BY-TEST: with a valid Personal Access Token,
+  `GET /v2/reservations/{uuid}` returns HTTP 200 while
+  `GET /v2/reservations/{uuid}/enrichment` returns HTTP 403 with the
+  reason phrase "Invalid scope(s) provided." Reservation enrichment —
+  which carries the `smartlock_code` shortcode used for door codes —
+  and any other endpoint requiring `enrichment:read`,
+  `enrichment:write`, or another Vendor-only scope is UNREACHABLE with
+  a Personal Access Token. Therefore:
+  - A scope-related HTTP 403 MUST be treated as a permanent capability
+    limitation, distinct from the HTTP 401 that signals an invalid or
+    expired credential.
+  - Such a 403 MUST NOT be retried, and MUST NOT trigger the
+    reauthentication flow. Placing a valid config entry into a reauth
+    loop that the user can never satisfy is a PROHIBITED failure mode.
+  - Features that depend on vendor-gated scopes MUST be omitted or
+    disabled rather than surfaced to the user as failing.
 - The client MUST implement rate-limit awareness. Hospitable publishes
-  no numeric rate-limit ceiling, so the client MUST NOT hard-code
-  quotas. It MUST treat HTTP 429 as authoritative, MUST honor any
-  `Retry-After` or rate-limit headers present on the response, and MUST
-  otherwise apply exponential backoff with jitter.
+  no general numeric rate-limit ceiling, so the client MUST NOT
+  hard-code quotas. It MUST treat HTTP 429 as authoritative, MUST
+  honor any `Retry-After` or rate-limit headers present on the
+  response, MUST NOT assume such headers are present (their existence
+  is UNVERIFIED), and MUST otherwise apply exponential backoff with
+  jitter. The only documented Hospitable limits are for messaging — 2
+  messages per minute per reservation and 50 messages per 5 minutes —
+  and those MUST be respected where the integration sends messages.
 - The client MUST handle pagination for all list endpoints (Hospitable
   v2 list endpoints accept `page` and `per_page` and return items under
   a `data` key), exposing async iterators or an equivalent pattern so
@@ -168,9 +342,16 @@ reservations, guests, messages, and reviews — each with its own shape
 and its own failure modes. Folding HTTP concerns into entity code would
 make every one of those domains untestable without a live paid
 Hospitable account and would let an upstream schema change break
-unrelated platforms. Isolating the client also keeps the two very
-different credential models (a single-account Personal Access Token
-versus a multi-account OAuth grant) from leaking into every coordinator.
+unrelated platforms. Isolating the client also means the credential
+model stays a client-internal detail: today every user authenticates
+with a single-account Personal Access Token, and if a multi-account
+OAuth grant ever becomes obtainable it can be added behind the same
+interface without leaking into every coordinator. Recording the
+vendor-scope boundary here matters just as much, because the failure it
+produces looks exactly like an auth failure and is not one — a 403 on
+enrichment is the API saying "this token will never be allowed to do
+this," and treating it as a credential problem would push a correctly
+configured user into an endless reauthentication loop.
 
 ### III. Atomic Commit Discipline (NON-NEGOTIABLE)
 
@@ -362,10 +543,14 @@ decorative.
 - Configuration MUST use Home Assistant config flow patterns and MUST
   implement, at minimum, the user (initial setup) step, a reauth flow,
   and an options flow.
-- The config flow MUST accommodate both supported Hospitable credential
-  models — Personal Access Token entry for single-account users and the
-  OAuth 2.0 authorization-code flow for connected applications —
-  without exposing the distinction as internal jargon to the user.
+- The config flow MUST support Personal Access Token entry as the
+  primary, self-serve Hospitable credential model. The config flow and
+  the credential handling behind it MUST NOT be designed in a way that
+  precludes adding the OAuth 2.0 authorization-code flow later. OAuth
+  support is DEFERRED until Hospitable Vendor access is actually
+  obtained and MUST NOT be a precondition for any release. Whichever
+  credential models are supported, the distinction between them MUST
+  NOT be exposed to the user as internal jargon.
 - Entity naming MUST follow Home Assistant conventions, using the
   pattern `sensor.hospitable_<property>_<attribute>` and its
   per-platform equivalents. Ad hoc naming is PROHIBITED.
@@ -378,7 +563,10 @@ decorative.
   MUST state what failed and what the user should do about it (for
   example, "the Personal Access Token was rejected; generate a new
   token in Hospitable under Apps and reauthenticate"). Raw HTTP status
-  codes alone are not acceptable user-facing errors.
+  codes alone are not acceptable user-facing errors. A message MUST
+  NOT direct the user to fix a credential when the underlying failure
+  is a scope limitation their credential type cannot satisfy; that
+  case MUST be described as an unavailable capability instead.
 - Breaking changes to entity structure, service calls, or configuration
   options MUST be documented in release notes and versioned before
   release.
@@ -454,16 +642,37 @@ checkpoints also give a solo maintainer a safe place to stop.
 - Credentials MUST be stored exclusively in Home Assistant's config
   entry storage. Writing credentials to integration-managed files,
   environment variables, or custom storage is PROHIBITED.
-- OAuth renewal MUST be handled inside the API client and MUST be
-  invisible to callers. Because Hospitable does not publish token
-  lifetimes or scope names, the implementation MUST NOT depend on
-  assumed values; it MUST react to authentication failures as a
-  first-class case.
+- When and if OAuth support is added, OAuth renewal MUST be handled
+  inside the API client and MUST be invisible to callers. Hospitable's
+  published lifetimes and scope names are CONFIRMED-BY-SPEC only (from
+  its OpenAPI export, not from a live grant), so the implementation
+  MUST NOT depend on those values as if observed; it MUST react to
+  authentication failures as a first-class case and MUST honor the
+  expiry metadata actually returned. Because both the access token and
+  the refresh token rotate on refresh, a renewed refresh token MUST
+  replace the stored one atomically and the superseded token MUST be
+  discarded.
 - Personal Access Tokens MUST be treated as expiring credentials that
   can also be revoked at any time from the Hospitable account.
 - A reauthentication path MUST exist and MUST be triggered
-  automatically whenever credentials are rejected, for both credential
-  models. Silent, permanent failure of a config entry is PROHIBITED.
+  automatically whenever credentials are rejected, for every supported
+  credential model. Silent, permanent failure of a config entry is
+  PROHIBITED.
+- Reauthentication MUST NOT be triggered by a scope-related HTTP 403.
+  A credential rejection (HTTP 401) and a capability limitation (a 403
+  reporting insufficient scope) are different conditions and MUST be
+  distinguished before any recovery action is taken. Driving a valid
+  config entry into a reauthentication loop that the user has no way
+  to satisfy is a PROHIBITED failure mode.
+- **Server-supplied pagination URLs MUST NOT be followed verbatim.**
+  CONFIRMED-BY-TEST: Hospitable's paginator returns page links with an
+  `http://` scheme, for example
+  `"url": "http://public.api.hospitable.com/v2/reservations?page=2"`.
+  Requesting such a link as given would silently downgrade transport
+  security and expose the Bearer credential in cleartext. The client
+  MUST construct page requests itself from a known-good base URL, or
+  MUST force the `https` scheme on any URL it takes from a response
+  body, before issuing the request.
 - Credentials MUST be redacted from all logs, diagnostics downloads,
   and exception messages, including inside captured HTTP request and
   response bodies.
@@ -476,8 +685,11 @@ checkpoints also give a solo maintainer a safe place to stop.
 
 **Rationale**: A Hospitable credential is not a read-only convenience —
 it reaches reservations, guest contact details, and guest messaging for
-an entire property portfolio, and Personal Access Tokens carry access
-to all endpoints by default. A token leaked into a log file, a
+an entire property portfolio. A Personal Access Token does not reach
+every endpoint (vendor-gated scopes such as enrichment refuse it), but
+that limit narrows only what a token can *do*, not the breadth of
+personal data it can *read*: one PAT still exposes every guest record
+across every property on the account. A token leaked into a log file, a
 diagnostics bundle attached to a public GitHub issue, or a committed
 test fixture is a direct privacy breach for people who never agreed to
 use Home Assistant at all. Guest PII deserves the same treatment for
@@ -917,4 +1129,4 @@ structurally impossible rather than merely discouraged.
 - Use `AGENTS.md` for day-to-day runtime development guidance that
   supplements, but never overrides, this constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-06
+**Version**: 1.1.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-06
