@@ -1,4 +1,10 @@
 <!--
+SPDX-FileCopyrightText: Delimarsky, D., & Riem, M. (2026)
+SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+SPDX-License-Identifier: MIT
+-->
+
+<!--
   Sync Impact Report
   ==================================================
   Version change: 1.0.0 → 1.1.0
