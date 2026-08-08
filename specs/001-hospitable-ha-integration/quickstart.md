@@ -13,10 +13,17 @@ the implementation phase.
 
 ## Prerequisites
 
+This guide applies from **US1 onward**. None of it is runnable at the
+point the plan is merged: at that moment the repository holds
+specification documents only, with no Python source, no
+`pyproject.toml` and no `uv.lock`. US1 creates the project scaffolding
+described here; every row below is a prerequisite for running the
+checks, not a claim about the current tree.
+
 | Requirement | Notes |
 | --- | --- |
 | Python 3.14 | Constitution, Additional Constraints |
-| `uv` | The only supported dependency manager; `uv.lock` is committed |
+| `uv` | The only supported dependency manager; `uv.lock` is committed from US1 onward |
 | A checkout with pre-commit installed | `uv run pre-commit install` |
 | Nothing else | **No live Hospitable account is needed or permitted for the test suite.** Every outbound HTTP call is mocked with `respx` (Principle II) |
 

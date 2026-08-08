@@ -47,6 +47,14 @@ refresh.
 
 ## Technical Context
 
+Everything in this section describes the **target state established by
+US1 and maintained thereafter**, not the current tree. At the time this
+plan is written the repository contains specification documents only —
+no Python source, no `pyproject.toml`, no `uv.lock`. Each item below is
+an implementation target that the phases in
+[Phase breakdown](#phase-breakdown) are responsible for
+reaching.
+
 **Language/Version**: Python 3.14, fully type annotated, `mypy` at
 `python3.14` with zero errors.
 
