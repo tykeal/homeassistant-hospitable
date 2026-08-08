@@ -1,0 +1,107 @@
+---
+# SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+# SPDX-License-Identifier: Apache-2.0
+
+name: 'Type and Quality Gates'
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  pre-commit-gates:
+    name: 'mypy and aislop'
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    env:
+      PRE_COMMIT_VERSION: '4.1.0'
+      UV_VERSION: '0.11.11'
+      MYPY_VERSION: '2.3.0'
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
+        with:
+          egress-policy: 'audit'
+
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: 'Set up Python'
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        with:
+          python-version: '3.14'
+
+      - name: 'Set up Node.js'
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903  # v6.0.0
+        with:
+          node-version: '24'
+
+      - name: 'Install CI tooling'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "pre-commit==${PRE_COMMIT_VERSION}" \
+            "uv==${UV_VERSION}"
+
+      - name: 'Inspect Python project metadata'
+        id: project-metadata
+        run: |
+          python_files=$(git ls-files '*.py' | wc -l | tr -d ' ')
+          if [ "${python_files}" -gt 0 ]; then
+            echo "has-python=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "has-python=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+          if [ -f pyproject.toml ] && [ -f uv.lock ]; then
+            echo "has-uv-project=true" >> "${GITHUB_OUTPUT}"
+            uv sync --locked --all-extras --dev
+          else
+            echo "has-uv-project=false" >> "${GITHUB_OUTPUT}"
+            if [ "${python_files}" -gt 0 ]; then
+              echo "::warning::No complete uv project metadata found;" \
+                "mypy will rely on the pre-commit hook environment."
+            else
+              echo "No Python source or uv project metadata found;" \
+                "skipping uv dependency sync."
+            fi
+          fi
+
+      - name: 'Run mypy with uv project environment'
+        if: >-
+          steps.project-metadata.outputs.has-python == 'true' &&
+          steps.project-metadata.outputs.has-uv-project == 'true'
+        run: |
+          mapfile -t python_files < <(git ls-files '*.py')
+          uv run --with "mypy==${MYPY_VERSION}" mypy \
+            --show-error-codes \
+            --install-types \
+            --non-interactive \
+            "${python_files[@]}"
+
+      - name: 'Run mypy pre-commit hook'
+        if: >-
+          steps.project-metadata.outputs.has-python != 'true' ||
+          steps.project-metadata.outputs.has-uv-project != 'true'
+        run: pre-commit run mypy --all-files --show-diff-on-failure
+
+      - name: 'Run aislop pre-commit hook'
+        run: pre-commit run aislop --all-files --show-diff-on-failure
