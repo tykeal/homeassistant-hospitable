@@ -99,8 +99,9 @@ red/green pair.
       `iot_class: cloud_polling`, `config_flow: true`,
       `integration_type: hub`, `documentation` and `issue_tracker` URLs,
       `codeowners`, `version`, a pinned `httpx` entry in `requirements`,
-      and `min_ha_version`/`homeassistant` of `2026.8.0`.
-      (FR-066, FR-067)
+      and `homeassistant: "2026.8.0"` as the minimum supported Home
+      Assistant version (the manifest key is `homeassistant`; there is
+      no `min_ha_version` manifest key). (FR-066, FR-067)
 - [ ] T004 [P] Create `hacs.json` at the repository root with `name`,
       `homeassistant` minimum `2026.8.0`, `render_readme: true`, and
       `zip_release: false`. (FR-066)
