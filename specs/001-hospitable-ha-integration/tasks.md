@@ -674,8 +674,8 @@ while remaining available.
       (FR-042, FR-043, FR-046, FR-049, FR-062, FR-073)
 - [ ] T085 [US2] Wire the reservations coordinator into
       `async_setup_entry` in `custom_components/hospitable/__init__.py`,
-      and forward the sensor platform after
-      `sensor/__init__.py` exists. Satisfies T077.
+      and forward the sensor platform after T082 implements
+      `sensor/__init__.py`. Satisfies T077.
       (FR-071)
 - [ ] T086 [US2] Add the reservation sensor's entity name and enum
       state translations to `strings.json` and `translations/en.json`,

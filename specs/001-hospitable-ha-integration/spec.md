@@ -40,7 +40,7 @@ unverified behavior say so explicitly rather than asserting it.
 
 | Marker | Meaning |
 | --- | --- |
-| **CONFIRMED-BY-TEST** | Verified empirically against a live Hospitable account. Bare **CONFIRMED** is valid shorthand for this tier. |
+| **CONFIRMED-BY-TEST** | Verified empirically against a live Hospitable account. Bare **CONFIRMED** is valid shorthand for this tier only when it appears without an inline qualifier; phrases such as "CONFIRMED by absence" carry their stated evidence. |
 | **CONFIRMED-BY-SPEC** | Read directly from Hospitable's own OpenAPI export, but not confirmed by a live grant. These facts carry the constitution's obligation to treat the live response as authoritative and not hard-code export-derived values. |
 | **DOCUMENTED** | Stated in Hospitable's own user-facing documentation or account interface, but not verified empirically. This tier is not equivalent to CONFIRMED: one claim from this source — that a Personal Access Token reaches every Public API endpoint by default — has already been disproved by live test. |
 | **LIKELY** | Reported by an independent third party who claims live verification, but not reproduced by this project. |
