@@ -894,10 +894,14 @@ false negative on the integration's primary sensor.
   from owner stays, and a conversation identifier. Reservations are
   never modeled as individual Home Assistant entities.
 - **Guest**: The person or party on a Reservation. Hospitable exposes
-  no standalone guest resource; guest data is reachable only as an
-  include on a Reservation. Guest data is personal data and is subject
-  to the same endpoint-agnostic redaction requirements as account,
-  listing, and channel personal data.
+  no standalone guest resource; guest identity data — names, contact
+  details, messages — is reachable only as an include on a
+  Reservation, and this feature reads none of it. Guest count data
+  (`guests.{total, adult_count, child_count, infant_count, pet_count}`)
+  is present on the base reservation payload and requires no include.
+  Guest identity data is personal data and is subject to the same
+  endpoint-agnostic redaction requirements as account, listing, and
+  channel personal data.
 - **Reservation status**: The structured status object on a
   Reservation, carrying a current value and a history. Its categories
   are request, accepted, cancelled, not accepted, unknown, and
@@ -1032,8 +1036,11 @@ false negative on the integration's primary sensor.
   published specification is not proof of non-existence, so no
   comparable feature from another platform integration is specified
   here. (UNVERIFIED)
-- Hospitable exposes no standalone guest resource. Guest data is
-  reachable only as an include on a reservation or inquiry.
+- Hospitable exposes no standalone guest resource. Guest identity data
+  — names, contact details, messages — is reachable only as an include
+  on a Reservation, and this feature reads none of it. Guest count data
+  (`guests.{total, adult_count, child_count, infant_count, pet_count}`)
+  is present on the base reservation payload and requires no include.
   (CONFIRMED)
 - Valid include expansions are endpoint-specific and were discovered
   by diffing returned keys against a baseline response:
@@ -1042,6 +1049,10 @@ false negative on the integration's primary sensor.
   | --- | --- | --- |
   | `/properties` | `listings`, `bookings`, `user` | `ical_imports`, `connections`, `channels`, `reviews`, `amenities` |
   | `/reservations` | `listings`, `financials`, `properties`, `review` | `guests` |
+
+  The `guests` **include** and the `guests` **base-payload object** are
+  different things that share a name; the include being a no-op is
+  consistent with the object already being present.
 
   Includes can be combined. Invalid include names can return HTTP 200
   with no added keys and no error, so FR-075 requires explicit key

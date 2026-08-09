@@ -132,7 +132,7 @@ Built from an item of `GET /reservations`.
 | `nights` | `int \| None` | `nights` | UNVERIFIED key name | FR-046 |
 | `scheduled_checkin_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
 | `scheduled_checkout_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
-| `guests` | `GuestBreakdown` | `guests` | CONFIRMED | Counts only |
+| `guests` | `GuestBreakdown` | `guests` | CONFIRMED | Counts only; base payload, OpenAPI `ReservationFull` — not the `include=guests` expansion, which is a separate, unrelated no-op |
 | `channel` | `str \| None` | `platform` | CONFIRMED | FR-046 booking channel; upstream key is `platform`; live-probe confirmed the reservation payload has no `channel` key |
 | `channel_confirmation` | `str \| None` | `platform_id` | UNVERIFIED key name | FR-046; probe in T020 |
 | `booking_date` | `datetime \| None` | `booking_date` | UNVERIFIED key name | FR-046 |
