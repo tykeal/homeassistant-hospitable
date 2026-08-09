@@ -227,8 +227,8 @@ candidate is present.
 | Reservation arrival datetime | `arrival_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
 | Reservation departure datetime | `departure_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` |
 | Reservation nights | `nights` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
-| Reservation scheduled check-in time | `check_in` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Fall through to `property.checkin` |
-| Reservation scheduled check-out time | `check_out` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Fall through to `property.checkout` |
+| Reservation scheduled check-in time | `check_in` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; boundary occupancy becomes `unknown` (FR-045) |
+| Reservation scheduled check-out time | `check_out` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; boundary occupancy becomes `unknown` (FR-045) |
 | Reservation channel confirmation identifier | `platform_id` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
 | Reservation booking date | `booking_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
 | Stay type | `stay_type` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-049) |
@@ -288,10 +288,10 @@ Governed by FR-045. Hospitable publishes no checked-in status
 (CONFIRMED by census, OQ-008), so occupancy is derived.
 
 ```text
-tz            = effective IANA zone for the property (FR-074)
 checkin_at    = parse_moment(res.check_in)
 checkout_at   = parse_moment(res.check_out)
-now           = current time in tz
+now           = current instant
+today         = current date in the property's effective IANA zone (FR-074)
 
 if checkin_at is None or checkout_at is None:
     if today is local_date(arrival_date) or
@@ -305,9 +305,11 @@ else:                                                      -> checked_out
 Four properties of this algorithm are load-bearing and each is
 separately required:
 
-1. **All comparisons are moment comparisons in the property's effective
-   IANA zone.** Never a calendar-day comparison, never UTC, never a
-   fixed offset.
+1. **All occupancy comparisons are instant comparisons using the
+   reservation's own offset-aware timestamps.** Never reinterpret
+   `check_in` or `check_out` in the configured timezone. The effective
+   IANA zone of FR-074 is only for the boundary-date `today` test and
+   date-relative presentation.
 2. **A missing time is a data error, not a case to smooth over.** No
    midnight fallback exists anywhere in the code. This is stated as a
    negative requirement in FR-045 and is tested as one: a test asserts
@@ -358,8 +360,9 @@ section's explicit rejection).
 
 `next_arrival` and `next_departure` report `None` when there is no
 applicable future reservation, never a stale value (US3 acceptance
-scenario 2). Their timestamps are timezone-aware in the property's
-effective IANA zone.
+scenario 2). Reservation instants retain their own offset-aware
+timestamps; the property's effective IANA zone is only for day-boundary
+and date-relative presentation.
 
 `property_info` is `EntityCategory.DIAGNOSTIC`. Its state is the
 property's display name; its attributes carry the FR-053 payload.

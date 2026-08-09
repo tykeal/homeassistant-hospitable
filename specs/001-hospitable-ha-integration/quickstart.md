@@ -179,7 +179,7 @@ Requirements: FR-050 to FR-056, FR-074.
 | Property renamed upstream | Display name updates; entity identifiers and history preserved |
 | Property with several channel listings | All represented with channel and channel identifier |
 | Property deleted or unshared upstream | Entities unavailable with a reason; registry entries retained |
-| Per-property IANA override set | Arrival and departure timestamps use the override; `timezone_source` reports `override` |
+| Per-property IANA override set | Day-boundary presentation uses the override; `timezone_source` reports `override` |
 | No override set | The Home Assistant instance timezone is used; `timezone_source` reports `instance` |
 | Fixture property carries `timezone: "-0700"` | That value influences nothing; the model has no such attribute |
 | Invalid IANA override submitted | Rejected with a message naming the expected form |

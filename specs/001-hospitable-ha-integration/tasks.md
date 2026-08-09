@@ -589,15 +589,16 @@ while remaining available.
       only, never a deprecated flat field.
       (FR-032, FR-043, FR-048)
 - [ ] T070 [P] [US2] `tests/services/test_occupancy.py`: assert
-      transitions happen at STRICT SCHEDULED TIMES in the property's
-      effective IANA zone. Three boundary cases: a missing check-in
-      time, a missing check-out time, and an unparsable time — each
-      yields `unknown` plus a warning naming the reservation and the
-      field, degraded ONLY on the two boundary dates. **Assert
-      `unknown` POSITIVELY**, never merely "not occupied":
+      transitions happen at STRICT SCHEDULED TIMES using the
+      reservation's own offset-aware `check_in` and `check_out`
+      instants, with no configured-timezone dependency. Three boundary
+      cases: a missing check-in time, a missing check-out time, and an
+      unparsable time — each yields `unknown` plus a warning naming the
+      reservation and the field, degraded ONLY on the two boundary
+      dates. **Assert `unknown` POSITIVELY**, never merely "not occupied":
       `awaiting_checkin` satisfies the weaker assertion and IS the
       midnight-fallback bug this test exists to prevent. Assert NO
-      midnight fallback exists anywhere. (FR-045, FR-047, FR-074)
+      midnight fallback exists anywhere. (FR-045, FR-047)
 - [ ] T071 [P] [US2] `tests/services/test_selection.py`: assert that
       when a property has more than one reservation in the window the
       chosen one is deterministic across repeated refreshes and across
@@ -615,8 +616,9 @@ while remaining available.
       assert the attribute contract from `contracts/entities.md` —
       guest COUNTS only (never names or contact details), scheduled
       check-in and check-out, reservation identifier, stay type, and
-      the effective timezone. Assert no personal data appears in any
-      attribute. (FR-046, FR-049, FR-062, FR-073)
+      the reservation's own offset-aware timestamps. Assert no personal
+      data appears in any attribute.
+      (FR-046, FR-049, FR-062, FR-073)
 - [ ] T074 [P] [US2] `tests/sensor/test_availability_mixin.py`: assert
       the custom availability mixin keeps the last known state and
       stays AVAILABLE after one and after two consecutive poll
@@ -648,7 +650,7 @@ while remaining available.
       `custom_components/hospitable/services/occupancy.py` — strict
       scheduled moments, `unknown` plus a warning on a missing or
       unparsable boundary time, no midnight fallback. Satisfies T070,
-      T076. (FR-045, FR-047, FR-049, FR-074)
+      T076. No configured timezone dependency. (FR-045, FR-047, FR-049)
 - [ ] T081 [P] [US2] Implement
       `custom_components/hospitable/services/selection.py`. Satisfies
       T071. (FR-044)
@@ -712,8 +714,8 @@ specification says so explicitly.
 
 - [ ] T089 [P] [US3] `tests/sensor/test_property_timestamps.py`: assert
       `next_arrival` and `next_departure` are timestamp sensors
-      rendered in the property's effective IANA timezone, and that a
-      property with no upcoming reservation reports `unknown` rather
+      preserving the reservation's own offset-aware instants, and that
+      a property with no upcoming reservation reports `unknown` rather
       than a sentinel date. (FR-051)
 - [ ] T090 [P] [US3] `tests/sensor/test_upcoming_count.py`: assert the
       upcoming-reservation count sensor counts only reservations in
@@ -738,12 +740,13 @@ specification says so explicitly.
       and history are RETAINED, and a single explanatory warning is
       logged. (FR-056)
 - [ ] T094 [P] [US3] `tests/services/test_timezone_override.py`: assert
-      a per-property IANA override changes rendered timestamps; that
-      `effective_timezone` and `timezone_source` attributes report the
-      zone in use and whether it came from the instance default or an
-      override; that an invalid IANA name is rejected at the options
-      step; and the **D-11 guard at the sensor layer** — no sensor
-      reads any upstream `timezone` value. (FR-074)
+      a per-property IANA override changes day-boundary and
+      date-relative presentation only; that `effective_timezone` and
+      `timezone_source` attributes report the zone in use and whether
+      it came from the instance default or an override; that an invalid
+      IANA name is rejected at the options step; and the **D-11 guard
+      at the sensor layer** — no sensor reads any upstream `timezone`
+      value. (FR-074)
 - [ ] T095 [US3] Run `uv run pytest --runxfail` scoped to T089–T094 and
       commit the red phase.
 
@@ -1382,5 +1385,5 @@ it; it does not follow that the task fully discharges it.
 | FR-071 | T038, T040, T061, T065, T077, T085, T139, T141, T145, T150 |
 | FR-072 | T037, T059, T105, T112 |
 | FR-073 | T031, T043, T053, T073, T084 |
-| FR-074 | T036, T058, T070, T080, T094, T098 |
+| FR-074 | T036, T058, T094, T098 |
 | FR-075 | T011, T013, T019, T027, T030, T032, T052, T055, T138, T143, T154 |

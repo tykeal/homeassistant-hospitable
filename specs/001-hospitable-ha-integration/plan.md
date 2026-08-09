@@ -35,9 +35,10 @@ The technical approach is shaped by three forces:
    allowlist because FR-073 explicitly binds endpoints added by later
    specifications.
 3. **Occupancy has to be derived, and derived exactly.** Hospitable
-   publishes no checked-in status. Occupancy comes from scheduled
-   moments in a real IANA timezone, and a missing scheduled time is a
-   data error that produces `unknown`, never a midnight fallback.
+   publishes no checked-in status. Occupancy comes from the
+   reservation's own offset-aware scheduled moments, and a missing
+   scheduled time is a data error that produces `unknown`, never a
+   midnight fallback.
 
 Three coordinators run on two user-facing intervals. Reservations
 refresh on their own interval; properties and the calendar share the
@@ -389,9 +390,11 @@ stay can independently be in any of those conditions (FR-049).
 
 **Occupancy is derived from scheduled moments, never calendar days.**
 The check-in and check-out moments come from the reservation's
-`check_in` and `check_out` datetimes when they are usable, falling back
-to the property's configured `checkin` and `checkout` strings only if
-needed. All comparisons happen in the property's effective IANA zone.
+offset-aware `check_in` and `check_out` datetimes. All occupancy
+comparisons use those instants directly; the reservations coordinator
+and occupancy logic have no timezone dependency. The effective IANA
+timezone of FR-074 is retained for day-boundary determinations and
+date-relative presentation only.
 **A missing or uninterpretable time is a data error**: on the affected
 boundary date the sensor reports `unknown` and logs a warning naming
 the reservation and the field. No midnight substitution exists
@@ -809,8 +812,9 @@ statuses logged once without raising.
 
 **Delivers**: `sensor/property.py` — `next_arrival`, `next_departure`,
 `upcoming_reservations`, `property_info`; FR-056 disappeared-property
-handling; per-property timezone overrides applied to timestamps and
-surfaced through `effective_timezone` and `timezone_source`.
+handling; per-property timezone overrides applied to day-boundary and
+date-relative presentation and surfaced through `effective_timezone`
+and `timezone_source`.
 
 **Requirements**: FR-051 to FR-056, and the FR-074 user-facing
 completion.

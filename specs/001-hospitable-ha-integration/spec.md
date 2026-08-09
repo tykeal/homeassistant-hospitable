@@ -201,8 +201,8 @@ channel listings.
    removed.
 6. **Given** a property needs a timezone different from the Home
    Assistant instance timezone, **When** the manager sets a
-   per-property IANA timezone override, **Then** subsequent arrival
-   and departure timestamps use that override.
+   per-property IANA timezone override, **Then** subsequent
+   day-boundary and date-relative presentation uses that override.
 
 ---
 
@@ -668,10 +668,11 @@ false negative on the integration's primary sensor.
 - **FR-045**: Hospitable publishes no checked-in status, so the
   integration MUST derive occupancy itself. It MUST do so from
   scheduled check-in and check-out moments, never from calendar-day
-  boundaries. The check-in and check-out moments are parsed from the
-  reservation's `check_in` and `check_out` datetimes when those fields
-  are usable; otherwise the property's `checkin` or `checkout` string
-  is combined with the corresponding arrival or departure local date.
+  boundaries. The check-in and check-out moments MUST be parsed from
+  the reservation's own offset-aware `check_in` and `check_out`
+  datetimes. The integration MUST NOT apply any configured timezone
+  when evaluating occupancy and MUST NOT reinterpret these timestamps
+  in another zone.
   Specifically:
   - A reservation is occupied from its scheduled check-in moment until
     its scheduled check-out moment.
@@ -679,11 +680,11 @@ false negative on the integration's primary sensor.
     arrival date itself, the state is awaiting check-in.
   - At or after the scheduled check-out moment, including later on the
     departure date itself, the state is checked out.
-  - All comparisons MUST be evaluated in the configured IANA timezone
-    for that property, as defined by FR-074. The integration MUST NOT
-    use the platform's `timezone` field as a timezone source, because
-    live testing found it to be a fixed UTC offset rather than an IANA
-    zone. See OQ-002.
+  - All occupancy comparisons MUST be exact instant comparisons using
+    the offsets carried by `check_in` and `check_out`. A live probe on
+    2026-08-09 found both `-07:00` and `-08:00` offsets in a
+    50-reservation sample, confirming those timestamps are DST-correct
+    at their own instants.
   - A missing or uninterpretable scheduled check-in or check-out time
     on both the reservation and property is a data error, not a case
     to work around. On the arrival or departure date of an affected
@@ -730,8 +731,9 @@ false negative on the integration's primary sensor.
 - **FR-053**: The integration MUST expose a property information
   entity per property carrying, at minimum, the property address, its
   configured check-in and check-out times, its guest capacity, the
-  effective IANA timezone used by the integration, and its channel
-  listings with each listing's channel and channel identifier.
+  effective IANA timezone used by the integration for day-boundary
+  logic, and its channel listings with each listing's channel and
+  channel identifier.
 - **FR-054**: Entity identifiers MUST follow the pattern
   `sensor.hospitable_<property>_<attribute>`. This specification
   creates entities on the sensor platform only; no other Home
@@ -851,14 +853,19 @@ false negative on the integration's primary sensor.
   would otherwise leak the user's email address and co-host
   identities. (CONFIRMED risk from live payloads)
 - **FR-074**: The integration MUST assign each selected property an
-  effective IANA timezone for scheduled-time calculations. The default
-  MUST be the Home Assistant instance timezone. The user MUST be able
-  to set or clear an IANA timezone override per property during setup
-  or in the options flow, and the integration MUST validate overrides
-  against the runtime's available IANA timezone database before saving
-  them. The platform's fixed-offset `timezone` value MUST NOT be used
-  as the default, fallback, or persisted timezone value. (CONFIRMED
-  need — see OQ-002)
+  effective IANA timezone for day-boundary determinations only: which
+  calendar day "today" is at a property, and date-relative
+  presentation such as whether an arrival falls today or tomorrow. The
+  default MUST be the Home Assistant instance timezone. The user MUST
+  be able to set or clear an IANA timezone override per property during
+  setup or in the options flow, and the integration MUST validate
+  overrides against the runtime's available IANA timezone database
+  before saving them. The platform's fixed-offset `timezone` value MUST
+  NOT be used as the default, fallback, or persisted timezone value.
+  Reservation occupancy and all reservation instant comparisons MUST
+  use the reservation's own offset-aware `check_in` and `check_out`
+  timestamps directly, without applying the effective timezone.
+  (CONFIRMED need — see OQ-002)
 - **FR-075**: The client MUST NOT treat HTTP 200 as proof that an
   optional request parameter was honored. Whenever it requests an
   expansion with `include=`, it MUST assert that the expected response
@@ -1120,17 +1127,18 @@ uncertainty.
   not affect the present specification, which writes nothing, but it
   must be resolved before any future door-code specification is
   written.
-- **OQ-002 — Property timezone format (RESOLVED).** FR-045 depends
-  on evaluating scheduled check-in and check-out moments in a timezone
-  that observes the property's daylight-saving rules. **Answer:** a
-  live test against a real account found that all ten properties
-  returned `timezone` as `-0700`, a fixed UTC offset rather than an
-  IANA zone. That value is DST-blind and possibly time-varying if the
-  API renders the zone's current offset, so it is strictly worse than
-  either the Home Assistant instance timezone or a user-supplied IANA
-  override and is dropped from the design. The same property payload
-  confirmed that `checkin` and `checkout` are string fields that
-  generally provide the scheduled times FR-045 needs. It also carries
+- **OQ-002 — Property timezone format (RESOLVED).** FR-074 depends on
+  evaluating property-local day boundaries in a timezone that observes
+  the property's daylight-saving rules. **Answer:** a live test against
+  a real account found that all ten properties returned `timezone` as
+  `-0700`, a fixed UTC offset rather than an IANA zone. That value is
+  DST-blind and possibly time-varying if the API renders the zone's
+  current offset, so it is strictly worse than either the Home
+  Assistant instance timezone or a user-supplied IANA override and is
+  dropped from the design. Reservation occupancy instead uses the
+  reservation's own offset-aware `check_in` and `check_out` timestamps.
+  The same property payload confirmed that `checkin` and `checkout` are
+  string fields. It also carries
   `address.coordinates`, so a future specification could derive or
   suggest an IANA zone offline from latitude and longitude, but that
   is not in scope here.

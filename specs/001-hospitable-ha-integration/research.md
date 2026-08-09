@@ -598,8 +598,7 @@ Across a 50-reservation sample spanning the year, offsets varied
 between `-07:00` and `-08:00` (9 and 41 samples respectively), so the
 reservation timestamps are DST-aware at their own instants. Consequence:
 reservation occupancy is an exact instant comparison and needs no
-timezone configuration for those reservation instants. This records the
-fact only; it does not alter any timezone requirement.
+configured timezone for those reservation instants.
 
 ### A-4: Reservation window filter fidelity
 
