@@ -127,14 +127,14 @@ Built from an item of `GET /reservations`.
 | `property_id` | `str` | property reference | CONFIRMED | Asserted to be in the requested set (D-05) |
 | `status_category` | `ReservationStatusCategory` | `reservation_status.current` | CONFIRMED-BY-TEST | FR-032; live probe 2026-08-09 confirmed `reservation_status` has `{current, history}` |
 | `raw_status` | `str` | `status` | CONFIRMED-BY-TEST | Retained for the FR-048 log-once path |
-| `arrival_date` | `datetime` | `arrival_date` | CONFIRMED-BY-TEST | Upstream key name says date, but live probe 2026-08-09 confirmed an ISO 8601 datetime with UTC offset |
-| `departure_date` | `datetime` | `departure_date` | CONFIRMED-BY-TEST | Upstream key name says date, but live probe 2026-08-09 confirmed an ISO 8601 datetime with UTC offset |
+| `arrival_date` | `datetime` | `arrival_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
+| `departure_date` | `datetime` | `departure_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
 | `nights` | `int \| None` | `nights` | CONFIRMED-BY-TEST | FR-046; live probe 2026-08-09 |
 | `scheduled_checkin_raw` | `str \| None` | `check_in` | CONFIRMED-BY-TEST | ISO 8601 datetime with UTC offset; live probe 2026-08-09 |
 | `scheduled_checkout_raw` | `str \| None` | `check_out` | CONFIRMED-BY-TEST | ISO 8601 datetime with UTC offset; live probe 2026-08-09 |
 | `guests` | `GuestBreakdown` | `guests` | CONFIRMED-BY-TEST | Counts only; base payload confirmed by live probe 2026-08-09 — not the `include=guests` expansion, which is a separate, unrelated no-op |
 | `channel` | `str \| None` | `platform` | CONFIRMED-BY-TEST | FR-046 booking channel; live probe 2026-08-09 confirmed the reservation payload has no `channel` key |
-| `channel_confirmation` | `str \| None` | `platform_id` | CONFIRMED-BY-TEST | FR-046 confirmation code; live probe 2026-08-09; do not bind top-level `code` unless a later probe establishes its relationship |
+| `channel_confirmation` | `str \| None` | `platform_id` | CONFIRMED-BY-TEST | FR-046 confirmation code; live probe 2026-08-09; `code` matched `platform_id` in 50/50 samples but is an alias and MUST NOT be relied on independently |
 | `booking_date` | `datetime \| None` | `booking_date` | CONFIRMED-BY-TEST | FR-046; UTC timestamp with trailing `Z`; live probe 2026-08-09 |
 | `stay_type` | `str \| None` | `stay_type` | CONFIRMED-BY-TEST | FR-049; orthogonal to status |
 
@@ -142,6 +142,14 @@ Built from an item of `GET /reservations`.
 picture, or conversation content is read. `conversation_id` is not read
 either, because nothing displays it and it is a handle to message
 content.
+
+`arrival_date` and `departure_date` are midnight-anchored dates
+serialized as offset-aware datetimes. Parse each as an offset-aware
+datetime, then take the date component in the reservation's own offset.
+Never convert to another zone before taking the date — the value is
+midnight-anchored, so an eastward conversion can roll it to the
+following day. `check_in` and `check_out` carry the real scheduled
+times and are not equal to the midnight anchors.
 
 ### `GuestBreakdown`
 
@@ -227,10 +235,10 @@ candidate is present.
 
 **Rule**: a required-role binding that resolves to nothing raises. An
 optional-role binding that resolves to nothing degrades an attribute.
-The two scheduled-time roles are neither — they degrade to the
-property-level source, and only if *that* is also unusable does FR-045's
-`unknown` path fire. Silent substitution of a default time is
-prohibited at every tier.
+The two scheduled-time roles are confirmed top-level datetimes, not a
+candidate search. If either is absent or unusable, FR-045's `unknown`
+path fires on the affected boundary date. Silent substitution of a
+default time is prohibited at every tier.
 
 ## Reservation status mapping
 
@@ -281,10 +289,8 @@ Governed by FR-045. Hospitable publishes no checked-in status
 
 ```text
 tz            = effective IANA zone for the property (FR-074)
-checkin_at    = parse_moment(res.check_in) ??
-                combine(local_date(arrival_date),   parse_time(prop.checkin))
-checkout_at   = parse_moment(res.check_out) ??
-                combine(local_date(departure_date), parse_time(prop.checkout))
+checkin_at    = parse_moment(res.check_in)
+checkout_at   = parse_moment(res.check_out)
 now           = current time in tz
 
 if checkin_at is None or checkout_at is None:

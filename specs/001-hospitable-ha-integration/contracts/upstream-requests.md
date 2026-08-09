@@ -44,7 +44,7 @@ post-condition or a prohibition.
 | `properties[]` on `/reservations` | Required | CONFIRMED | SEND always; assert every returned reservation belongs to the requested set |
 | `start_date`, `end_date` on `/reservations` | Effectively required | CONFIRMED | SEND always; re-filter locally |
 | `status[]` on `/reservations` | Honored | CONFIRMED (OQ-003) | NEVER SEND; status handling stays client-side |
-| `date_query` mode | Parameter exists and validates values; accepted value semantics pending | CONFIRMED-BY-TEST name and validation; value semantics UNVERIFIED (A-1) | SEND `date_query` with the value resolved by A-1; fallback branch documented by FR-030 but not taken |
+| `date_query=checkin` | Real, honored, and validated; value set is exactly `checkin` or `checkout`; platform default is currently `checkin` | CONFIRMED-BY-TEST; live probe 2026-08-09 | SEND always, even though it matches the current default, so a future platform default change cannot silently alter window semantics |
 
 A post-condition failure raises `HospitableIncludeMissingError` or
 `HospitableResponseError`, never a silent degradation (FR-075).

@@ -217,17 +217,15 @@ US1 green phase, because the field bindings they pin appear in
       fixtures live in `tests/fixtures/` and NOT `tests/resources/`,
       which the existing top-level `exclude: ^tests/resources` would
       silently disable, taking `check-json` and this guard with it.
-- [ ] T019 **LIVE PROBE (A-1)** Determine the reservation date-filter
-      mode value semantics on `GET /reservations`. The parameter name
-      `date_query` is CONFIRMED-BY-TEST to exist and validate its
-      values: `date_query=bogus_value` returned empty/error, while
-      `date_type=` and `filter_date_type=` were silently ignored. Do
-      not yet assert whether `checkin` or `checkout` is the value to
-      send; issue a narrow-window probe that can distinguish them and
-      record the outcome in `research.md` under A-1. If the value
-      semantics remain unresolved, block the US1 green phase rather
-      than guessing. Client-side filtering of the returned window is
-      authoritative in every case. (FR-030, FR-075)
+- [ ] T019 [P] **REGRESSION ASSERTION (A-1 RESOLVED)** Assert
+      reservation queries always send `date_query=checkin`, and that
+      the client can emit only the confirmed upstream values `checkin`
+      or `checkout`. This is CONFIRMED-BY-TEST from the 2026-08-09
+      narrow-window probe: baseline matched `date_query=checkin`,
+      `date_query=checkout` returned a different result set, and a
+      bogus value returned HTTP 400 naming exactly those two allowed
+      values. Client-side filtering of the returned window remains
+      authoritative. (FR-030, FR-075)
 - [ ] T020 **LIVE PROBE (capacity)** In the same live session, pin the
       inner key names of the `capacity` object. Record each in
       `data-model.md`'s field binding table, replacing the UNVERIFIED
@@ -353,7 +351,10 @@ nothing.
       discarded; and the **D-11 regression guard** —
       `HospitableProperty` has NO `timezone` attribute at all, so the
       fixed UTC offset upstream publishes cannot be consumed by
-      accident. (FR-024, FR-039, FR-062, FR-073)
+      accident. Also assert `arrival_date` and `departure_date` parse
+      from offset-aware midnight datetimes and take their date
+      component in the reservation's own offset, never after converting
+      to another zone. (FR-024, FR-039, FR-062, FR-073)
 - [ ] T032 [P] [US1] `tests/api/test_properties.py`: assert
       `GET /properties` pages correctly, sends `include=listings` and
       asserts the key, and returns models keyed by `property_id`.
@@ -361,10 +362,9 @@ nothing.
 - [ ] T033 [P] [US1] `tests/api/test_reservations.py`: assert
       `GET /reservations` ALWAYS sends `properties[]` and
       `start_date`/`end_date`; that property IDs are batched at no more
-      than fifty per request; that the A-1 date-filter mode parameter
-      is sent only if T019 confirmed it and is otherwise absent; and
-      that the returned window is re-filtered client-side regardless,
-      so correctness never depends on the parameter.
+      than fifty per request; that `date_query=checkin` is always sent;
+      and that the returned window is re-filtered client-side
+      regardless, so correctness never depends on the parameter.
       (FR-028, FR-029, FR-030, FR-031)
 - [ ] T034 [P] [US1] `tests/api/test_client_methods.py`: assert every
       client entry point is `async`, that the client exposes no
@@ -479,7 +479,9 @@ nothing.
 - [ ] T053 [US1] Implement `custom_components/hospitable/api/models.py`
       — property, reservation, calendar day, money, and user models;
       personal fields dropped at the boundary; NO `timezone` attribute
-      on the property model. Satisfies T031.
+      on the property model; parse `arrival_date` and `departure_date`
+      as offset-aware midnight datetimes before taking the local date
+      in the reservation's own offset. Satisfies T031.
       (FR-024, FR-039, FR-060, FR-062, FR-073)
 - [ ] T054 [US1] Implement `custom_components/hospitable/api/client.py`
       — `get_async_client`-backed transport, GET-only surface,
@@ -492,8 +494,8 @@ nothing.
       (FR-025, FR-075)
 - [ ] T056 [P] [US1] Implement
       `custom_components/hospitable/api/reservations.py` — mandatory
-      `properties[]` and date filters, 50-ID batching, the A-1
-      parameter per T019's outcome, and authoritative client-side
+      `properties[]` and date filters, 50-ID batching,
+      `date_query=checkin`, and authoritative client-side
       re-filtering. Satisfies T033.
       (FR-028, FR-029, FR-030, FR-031, FR-032)
 - [ ] T057 [P] [US1] Implement
@@ -550,9 +552,8 @@ nothing.
 property; the `http://` guard test passing; the scope-403 classifier
 tested including the unparsable-body default; a diagnostics dump
 containing no token and no personal data; the PII guard proven to fail
-on a deliberately poisoned fixture; A-1 resolved (or explicitly falling
-back to never sending the parameter) and the field-binding table
-updated.
+on a deliberately poisoned fixture; `date_query=checkin` asserted, and
+the field-binding table updated.
 
 **Independently shippable because**: a manager can install it, paste a
 token, pick properties, and get a verified connection plus devices.
@@ -1282,13 +1283,11 @@ Read this section before trusting any count elsewhere in this file.
   `include=guests` is NEVER SENT. T030 asserts the prohibition rather
   than the include. If a future feature surfaces guest detail, FR-033
   must be revisited.
-- **One A-1 detail remains UNVERIFIED at the time of writing**: the
-  reservation date-filter mode parameter is `date_query` and is
-  validated, but the accepted value semantics are still pending the
-  narrow-window probe in T019. A-2 and A-3 are resolved by the live
-  reservation-field probe. T020 remains only for the property-capacity
-  inner keys. Client-side filtering remains authoritative regardless
-  of the A-1 value.
+- **A-1, A-2, and A-3 are RESOLVED at the time of writing** by the
+  2026-08-09 live probes. T019 is now a regression assertion for
+  `date_query=checkin`, not discovery. T020 remains only for the
+  property-capacity inner keys. Client-side filtering remains
+  authoritative regardless of the upstream parameter.
 - **T100 (OQ-004) and T156 (live success-criteria validation) cannot
   be completed without a real Hospitable account.** They are specified
   as verification obligations, not as things this task list can

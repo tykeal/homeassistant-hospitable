@@ -984,11 +984,10 @@ never called — that is stated, because "not implemented" and
 | OQ-012 | UNVERIFIED | `ical_imports` discarded at the model boundary (A-5) |
 | OQ-013 | UNVERIFIED | `request` and `unknown` fully mapped and fixture-exercised (A-6) |
 
-One planning-time assumption remains to be resolved before the US1
-green phase: the A-1 `date_query` value semantics. The parameter name
-and validation are confirmed, and A-2/A-3 were resolved by the
-2026-08-09 live reservation-field probe. The remaining probe can change
-only the constant value sent with `date_query`.
+A-1, A-2, and A-3 are resolved by the 2026-08-09 live probes.
+`date_query=checkin` is sent explicitly, even though it matches the
+current platform default, and `check_in`/`check_out` are the confirmed
+scheduled-time fields.
 
 ## Complexity Tracking
 
