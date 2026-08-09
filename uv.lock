@@ -1164,6 +1164,7 @@ name = "homeassistant-hospitable"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
+    { name = "voluptuous" },
 ]
 
 [package.optional-dependencies]
@@ -1177,6 +1178,7 @@ test = [
     { name = "pytest-cov" },
     { name = "pytest-homeassistant-custom-component" },
     { name = "respx" },
+    { name = "voluptuous" },
 ]
 
 [package.dev-dependencies]
@@ -1191,6 +1193,7 @@ dev = [
     { name = "pytest-homeassistant-custom-component" },
     { name = "respx" },
     { name = "ruff" },
+    { name = "voluptuous" },
 ]
 
 [package.metadata]
@@ -1205,6 +1208,8 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=6.0" },
     { name = "pytest-homeassistant-custom-component", marker = "extra == 'test'", specifier = ">=0.13.340" },
     { name = "respx", marker = "extra == 'test'", specifier = ">=0.22" },
+    { name = "voluptuous", specifier = ">=0.15.2" },
+    { name = "voluptuous", marker = "extra == 'test'", specifier = ">=0.15.2" },
 ]
 provides-extras = ["test"]
 
@@ -1220,6 +1225,7 @@ dev = [
     { name = "pytest-homeassistant-custom-component", specifier = ">=0.13.340" },
     { name = "respx", specifier = ">=0.22" },
     { name = "ruff", specifier = ">=0.15.21" },
+    { name = "voluptuous", specifier = ">=0.15.2" },
 ]
 
 [[package]]

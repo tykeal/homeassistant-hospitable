@@ -17,7 +17,11 @@ from custom_components.hospitable.api.const import (
     USER_PATH,
 )
 from custom_components.hospitable.api.exceptions import (
+    HospitableAuthError,
+    HospitableConnectionError,
     HospitableForbiddenError,
+    HospitableNotFoundError,
+    HospitableRateLimitError,
     HospitableScopeError,
 )
 from custom_components.hospitable.api.models import (
@@ -70,11 +74,43 @@ class HospitableApiClient:
             params=params,
             headers=await build_auth_headers(self._token_provider),
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            self._raise_for_status(exc.response, path)
         data = response.json()
         if not isinstance(data, dict):
             return {}
         return data
+
+    def _raise_for_status(self, response: httpx.Response, path: str) -> None:
+        """Translate HTTP failures into typed Hospitable errors."""
+        body: dict[str, Any] | None
+        try:
+            parsed = response.json()
+        except ValueError:
+            parsed = None
+        body = parsed if isinstance(parsed, dict) else None
+        if response.status_code == 401:
+            raise HospitableAuthError(
+                "Hospitable token was rejected", status=401, endpoint=path
+            )
+        if response.status_code == 403:
+            error_type = classify_403(body)
+            raise error_type(
+                "Hospitable request is forbidden", status=403, endpoint=path
+            )
+        if response.status_code == 404:
+            raise HospitableNotFoundError(
+                "Hospitable resource was not found", status=404, endpoint=path
+            )
+        if response.status_code == 429:
+            raise HospitableRateLimitError(
+                "Hospitable rate limit reached", endpoint=path
+            )
+        raise HospitableConnectionError(
+            "Hospitable API request failed", status=response.status_code, endpoint=path
+        )
 
     async def get_user(self) -> HospitableAccount:
         """Return the authenticated account identifier."""

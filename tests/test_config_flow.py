@@ -6,9 +6,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-from homeassistant.data_entry_flow import UnknownStep
-
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
@@ -20,11 +17,6 @@ from custom_components.hospitable.const import (
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T041 validates token and fetches properties",
-)
 async def test_user_step_validates_token_and_fetches_properties(
     hass: Any, respx_router: Any, synthetic_token: str
 ) -> None:
@@ -50,15 +42,12 @@ async def test_user_step_validates_token_and_fetches_properties(
     assert properties_route.called
     assert result["type"] == "form"
     assert result["step_id"] == "properties"
-    property_schema = result["data_schema"].schema[CONF_SELECTED_PROPERTIES]
-    assert "prop-example-001" in property_schema.config["options"]
+    selector = next(iter(result["data_schema"].schema.values()))
+    assert {option["value"] for option in selector.config["options"]} == {
+        "prop-example-001"
+    }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T041 creates UUID-namespaced entry",
-)
 async def test_property_step_creates_account_uuid_namespaced_entry(
     hass: Any, respx_router: Any, synthetic_token: str
 ) -> None:
@@ -79,15 +68,9 @@ async def test_property_step_creates_account_uuid_namespaced_entry(
     assert result["result"].unique_id == "acct-example-0001"
     assert result["data"][CONF_ACCOUNT_NAMESPACE] == "acct-example-0001"
     assert result["data"][CONF_NAMESPACE_SOURCE] == "account"
-    assert result["data"][CONF_ACCOUNT_NAMESPACE] != "pending"
     assert result["options"][CONF_SELECTED_PROPERTIES] == ["prop-example-001"]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T041 rejects invalid token",
-)
 async def test_user_step_maps_401_to_invalid_auth(
     hass: Any, respx_router: Any, synthetic_token: str
 ) -> None:
@@ -106,11 +89,6 @@ async def test_user_step_maps_401_to_invalid_auth(
     assert result["errors"] == {"base": "invalid_auth"}
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T041 aborts duplicate account",
-)
 async def test_user_step_aborts_duplicate_account(
     hass: Any, respx_router: Any, synthetic_token: str
 ) -> None:
@@ -134,11 +112,6 @@ async def test_user_step_aborts_duplicate_account(
     assert second["reason"] == "already_configured"
 
 
-@pytest.mark.xfail(
-    raises=UnknownStep,
-    strict=True,
-    reason="TDD red phase: T041 reauth preserves account namespace",
-)
 async def test_reauth_replaces_token_for_same_account_only(
     hass: Any, respx_router: Any, synthetic_token: str
 ) -> None:
