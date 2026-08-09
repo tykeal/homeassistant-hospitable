@@ -127,8 +127,8 @@ Built from an item of `GET /reservations`.
 | `property_id` | `str` | property reference | CONFIRMED | Asserted to be in the requested set (D-05) |
 | `status_category` | `ReservationStatusCategory` | `status.current.category` | CONFIRMED shape, UNVERIFIED path | FR-032; see field binding below |
 | `raw_status` | `str` | as returned | CONFIRMED | Retained for the FR-048 log-once path |
-| `arrival_date` | `date` | `arrival_date` | UNVERIFIED key name | |
-| `departure_date` | `date` | `departure_date` | UNVERIFIED key name | |
+| `arrival_date` | `datetime` | `arrival_date` | CONFIRMED-BY-TEST | Upstream key name says date, but live probe 2026-08-09 confirmed an ISO 8601 datetime with UTC offset |
+| `departure_date` | `datetime` | `departure_date` | CONFIRMED-BY-TEST | Upstream key name says date, but live probe 2026-08-09 confirmed an ISO 8601 datetime with UTC offset |
 | `nights` | `int \| None` | `nights` | UNVERIFIED key name | FR-046 |
 | `scheduled_checkin_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
 | `scheduled_checkout_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
@@ -214,8 +214,8 @@ UNVERIFIED row with a CONFIRMED one before the US1 green phase.
 | Role | Candidate keys, in order | Tier | Absent behavior |
 | --- | --- | --- | --- |
 | Reservation status category | `status.current.category`, `status.current` | CONFIRMED that a structured object with a current value exists; exact path UNVERIFIED | `HospitableResponseError` — FR-032 makes this load-bearing, so it must fail loudly |
-| Reservation arrival date | `arrival_date`, `check_in`, `checkin` | UNVERIFIED | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
-| Reservation departure date | `departure_date`, `check_out`, `checkout` | UNVERIFIED | `HospitableResponseError` |
+| Reservation arrival datetime | `arrival_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
+| Reservation departure datetime | `departure_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` |
 | Reservation nights | `nights`, `night_count` | UNVERIFIED | Attribute reports `None`; state is unaffected (FR-046) |
 | Reservation scheduled check-in time | `check_in_time`, `checkin_time`, or a time component of a datetime-valued arrival key | UNVERIFIED (A-2) | Fall through to `property.checkin` |
 | Reservation scheduled check-out time | `check_out_time`, `checkout_time`, or a time component of a datetime-valued departure key | UNVERIFIED (A-2) | Fall through to `property.checkout` |
@@ -395,9 +395,10 @@ a migration under FR-070 that preserves every existing identifier.
 Full attribute payloads are normative in
 [contracts/entities.md](./contracts/entities.md). Summarized here:
 
-`reservation_status` carries the FR-046 set — arrival date, departure
-date, nights, scheduled check-in and check-out times, total guest count
-with its adult, child, infant and pet breakdown, booking channel,
+`reservation_status` carries the FR-046 set — arrival datetime,
+departure datetime, nights, scheduled check-in and check-out times,
+total guest count with its adult, child, infant and pet breakdown,
+booking channel,
 channel confirmation identifier, booking date, stay type, reservation
 identifier — plus `upcoming_reservations` from FR-044.
 

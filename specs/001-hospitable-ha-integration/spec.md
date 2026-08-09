@@ -118,7 +118,7 @@ follow it.
 1. **Given** a property with an accepted reservation whose arrival
    date is in the future, **When** the integration polls, **Then** the
    property's reservation status sensor reports that it is awaiting
-   check-in and its attributes carry the arrival date, departure date,
+   check-in and its attributes carry the arrival datetime, departure datetime,
    nights, guest counts, booking channel, and channel confirmation
    code.
 2. **Given** a property whose accepted reservation has arrived and
@@ -698,7 +698,7 @@ false negative on the integration's primary sensor.
   (CONFIRMED that no checked-in status appeared in the live status
   census; see OQ-008)
 - **FR-046**: The reservation status entity MUST expose, as
-  attributes, at minimum: arrival date, departure date, number of
+  attributes, at minimum: arrival datetime, departure datetime, number of
   nights, scheduled check-in and check-out times, total guest count
   with its adult, child, infant, and pet breakdown, booking channel,
   channel confirmation identifier, booking date, stay type, and the
@@ -887,8 +887,8 @@ false negative on the integration's primary sensor.
   are never the unit of selection.
 - **Reservation**: A booking against a Property. Identified by a
   stable universally unique identifier. Carries a booking channel and
-  channel identifier, booking date, arrival and departure dates, night
-  count, scheduled check-in and check-out times, a structured status
+  channel identifier, booking date, arrival and departure datetimes,
+  night count, scheduled check-in and check-out times, a structured status
   with a current value and a history, a guest breakdown by adults,
   children, infants, and pets, a stay type distinguishing guest stays
   from owner stays, and a conversation identifier. Reservations are

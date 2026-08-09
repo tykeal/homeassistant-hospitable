@@ -79,8 +79,8 @@ entities are prohibited (FR-042).
 | Attribute | Type | Requirement |
 | --- | --- | --- |
 | `reservation_id` | `str \| None` | FR-046 |
-| `arrival_date` | `date \| None` | FR-046 |
-| `departure_date` | `date \| None` | FR-046 |
+| `arrival_date` | `datetime \| None` | FR-046 |
+| `departure_date` | `datetime \| None` | FR-046 |
 | `nights` | `int \| None` | FR-046 |
 | `scheduled_checkin` | `datetime \| None` | FR-046 |
 | `scheduled_checkout` | `datetime \| None` | FR-046 |
@@ -101,7 +101,7 @@ derivation. They are `None` when no usable scheduled time exists, which
 is exactly when the state is `unknown` on a boundary date.
 
 `upcoming_reservations` entries carry the reservation identifier,
-arrival date, departure date, status category, and stay type. They
+arrival datetime, departure datetime, status category, and stay type. They
 carry no guest identity.
 
 `stay_type` is an attribute and never part of the state. An owner stay
