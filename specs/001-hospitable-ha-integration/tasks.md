@@ -716,10 +716,14 @@ specification says so explicitly.
       the configured forward window and only those in a status that
       represents a real forthcoming stay. (FR-052)
 - [ ] T091 [P] [US3] `tests/sensor/test_property_info.py`: assert the
-      property-information sensor exposes the attributes named in
-      `contracts/entities.md` — name, capacity fields, listing
-      references, and the effective timezone — and NO address, no
-      coordinates, and no owner contact details. (FR-053, FR-062)
+      property-information sensor's state is the display name, and
+      that it exposes exactly the attributes in
+      `contracts/entities.md` — `address` (the upstream-composed
+      `address.display` only), `checkin_time`, `checkout_time`,
+      `max_guests`, `effective_timezone`, `timezone_source`,
+      `listings`, and `listings_available` — and that no coordinates,
+      no street number or postcode, and no owner contact details
+      appear. (FR-053, FR-062)
 - [ ] T092 [P] [US3] `tests/sensor/test_rename_stability.py`: assert
       renaming a property upstream changes the display name but leaves
       the unique ID and therefore the entity registry entry and its
