@@ -576,7 +576,12 @@ false negative on the integration's primary sensor.
   dates returned no results. The underlying cause is not established.
   (CONFIRMED observation; mechanism UNVERIFIED)
 - **FR-030**: The integration MUST send the reservation date-filter
-  mode explicitly rather than relying on the platform default.
+  mode explicitly, rather than relying on the platform default, if the
+  platform exposes such a parameter. If the A-1 probe (T019) shows
+  that no such parameter exists or that it is silently ignored, the
+  parameter MUST NOT be sent, the client-side re-filter (FR-031)
+  becomes the sole authority, and this requirement is discharged
+  vacuously. The outcome MUST be recorded in `research.md`.
 - **FR-031**: The integration MUST send no more than fifty property
   identifiers in a single reservation query, splitting a larger
   selection across multiple batched requests and merging them into a

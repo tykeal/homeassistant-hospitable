@@ -44,7 +44,7 @@ post-condition or a prohibition.
 | `properties[]` on `/reservations` | Required | CONFIRMED | SEND always; assert every returned reservation belongs to the requested set |
 | `start_date`, `end_date` on `/reservations` | Effectively required | CONFIRMED | SEND always; re-filter locally |
 | `status[]` on `/reservations` | Honored | CONFIRMED (OQ-003) | NEVER SEND; status handling stays client-side |
-| date-filter mode | Parameter name unknown | UNVERIFIED (A-1) | SEND the assumed parameter; probe in US1 before the green phase |
+| date-filter mode | Parameter name unknown | UNVERIFIED (A-1) | SEND the assumed parameter only if the A-1 probe shows the platform exposes and honors it; otherwise NEVER SEND and make the client-side re-filter authoritative |
 
 A post-condition failure raises `HospitableIncludeMissingError` or
 `HospitableResponseError`, never a silent degradation (FR-075).
