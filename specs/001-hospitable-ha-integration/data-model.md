@@ -133,8 +133,8 @@ Built from an item of `GET /reservations`.
 | `scheduled_checkin_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
 | `scheduled_checkout_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
 | `guests` | `GuestBreakdown` | `guests` | CONFIRMED | Counts only |
-| `channel` | `str \| None` | `channel` | CONFIRMED | FR-046 booking channel |
-| `channel_confirmation` | `str \| None` | `channel_id` | UNVERIFIED key name | FR-046 |
+| `channel` | `str \| None` | `platform` | CONFIRMED | FR-046 booking channel; upstream key is `platform`; live-probe confirmed the reservation payload has no `channel` key |
+| `channel_confirmation` | `str \| None` | `platform_id` | UNVERIFIED key name | FR-046; probe in T020 |
 | `booking_date` | `datetime \| None` | `booking_date` | UNVERIFIED key name | FR-046 |
 | `stay_type` | `str \| None` | stay-type field | CONFIRMED exists | FR-049; orthogonal to status |
 
