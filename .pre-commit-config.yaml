@@ -129,6 +129,15 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-fixture-pii
+        name: check fixture PII
+        entry: python scripts/check_fixture_pii.py
+        language: python
+        files: ^tests/.*\.json$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
       - id: aislop
         name: aislop ci
         entry: aislop
