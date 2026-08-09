@@ -4,16 +4,11 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T029 redaction"
-)
 def test_redaction_removes_private_values(synthetic_token: str) -> None:
     """Assert token and personal fields are redacted."""
     from custom_components.hospitable.api.redaction import (
-        redact,  # type: ignore[import-not-found, import-untyped, unused-ignore]
+        redact,
     )
 
     text = redact(

@@ -7,13 +7,10 @@ from __future__ import annotations
 import pytest
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T035 window"
-)
 def test_window_bounds() -> None:
     """Assert reservation window defaults and bounds."""
     from custom_components.hospitable.services.window import (
-        validate_window,  # type: ignore[import-not-found, import-untyped, unused-ignore]
+        validate_window,
     )
 
     assert validate_window(90, 90) == (90, 90)

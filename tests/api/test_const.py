@@ -4,15 +4,10 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T023 constants"
-)
 def test_api_constants() -> None:
     """Assert API constants are centralized."""
-    from custom_components.hospitable.api.const import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.const import (
         BASE_URL,
         CALENDAR_PATH,
         PROPERTIES_PATH,

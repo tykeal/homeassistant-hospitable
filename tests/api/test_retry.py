@@ -4,15 +4,10 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T028 retry"
-)
 def test_retry_policy_bounds_backoff() -> None:
     """Assert retry policy is bounded and retry-after aware."""
-    from custom_components.hospitable.api.retry import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.retry import (
         MAX_BACKOFF,
         parse_retry_after,
         should_retry,

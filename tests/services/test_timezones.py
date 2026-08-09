@@ -4,16 +4,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T036 timezones"
-)
-async def test_timezone_resolution_uses_ha_helper(hass) -> None:
+async def test_timezone_resolution_uses_ha_helper(hass: Any) -> None:
     """Assert effective timezone validates IANA names."""
     from custom_components.hospitable.services.timezones import (
-        resolve_timezone,  # type: ignore[import-not-found, import-untyped, unused-ignore]
+        resolve_timezone,
     )
 
     assert await resolve_timezone(hass, None) == str(hass.config.time_zone)

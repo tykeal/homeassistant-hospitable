@@ -4,16 +4,11 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T042 diagnostics"
-)
 def test_diagnostics_are_allowlisted(synthetic_token: str) -> None:
     """Assert diagnostics omit credentials and personal data."""
     from custom_components.hospitable.diagnostics import (
-        redact_diagnostics,  # type: ignore[import-not-found, import-untyped, unused-ignore]
+        redact_diagnostics,
     )
 
     data = redact_diagnostics(

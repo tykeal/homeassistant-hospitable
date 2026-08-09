@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 import importlib
+import sys
 from collections.abc import AsyncIterator, Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -16,6 +18,11 @@ import respx
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable Home Assistant custom integration loading for every test."""
+    module = sys.modules.get("custom_components")
+    if module is not None and hasattr(module, "__path__"):
+        local_path = str(Path.cwd() / "custom_components")
+        if local_path not in module.__path__:
+            module.__path__.append(local_path)
 
 
 @pytest.fixture

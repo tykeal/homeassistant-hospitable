@@ -4,15 +4,10 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T024 exceptions"
-)
 def test_exception_hierarchy() -> None:
     """Assert typed Hospitable exceptions carry context."""
-    from custom_components.hospitable.api.exceptions import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.exceptions import (
         HospitableAuthError,
         HospitableConnectionError,
         HospitableError,

@@ -4,15 +4,10 @@
 
 from __future__ import annotations
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T043 privacy"
-)
 def test_privacy_audit_helpers(synthetic_token: str) -> None:
     """Assert lifecycle privacy audit has no leaks and no channels call."""
-    from custom_components.hospitable.api.redaction import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.redaction import (
         contains_private_data,
         redact,
     )

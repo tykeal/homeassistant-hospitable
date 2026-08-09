@@ -9,15 +9,12 @@ import pytest
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T030 responses"
-)
 def test_response_validators_assert_honored_requests() -> None:
     """Assert envelope and include post-conditions."""
     from custom_components.hospitable.api.exceptions import (
-        HospitableIncludeMissingError,  # type: ignore[import-not-found, import-untyped, unused-ignore]
+        HospitableIncludeMissingError,
     )
-    from custom_components.hospitable.api.responses import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.responses import (
         assert_include,
         validate_list_envelope,
     )

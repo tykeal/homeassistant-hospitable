@@ -6,15 +6,10 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
 
-
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError, strict=True, reason="TDD red phase: T033 reservations"
-)
 def test_reservation_query_contract() -> None:
     """Assert reservations send required filters."""
-    from custom_components.hospitable.api.reservations import (  # type: ignore[import-not-found, import-untyped, unused-ignore]
+    from custom_components.hospitable.api.reservations import (
         build_reservation_params,
         chunk_property_ids,
     )
