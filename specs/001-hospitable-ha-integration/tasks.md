@@ -113,8 +113,9 @@ red/green pair.
       config-flow, options-flow, reauth, error, and entity-name keys
       enumerated in `contracts/config-entry.md`. All user-facing text
       says "property", never "listing"; token help text explains where
-      to obtain a Personal Access Token and what scopes it needs.
-      (FR-007, FR-064, FR-068)
+      to obtain a Personal Access Token, that it requires a paid
+      Hospitable plan with Essentials excluded, and what scopes it
+      needs. (FR-007, FR-064, FR-068)
 - [ ] T007 [P] Create the package skeleton: empty
       `custom_components/hospitable/api/__init__.py`,
       `custom_components/hospitable/services/__init__.py`, and
@@ -216,23 +217,21 @@ US1 green phase, because the field bindings they pin appear in
       fixtures live in `tests/fixtures/` and NOT `tests/resources/`,
       which the existing top-level `exclude: ^tests/resources` would
       silently disable, taking `check-json` and this guard with it.
-- [ ] T019 **LIVE PROBE (A-1)** Determine the reservation date-filter
-      mode parameter on `GET /reservations`. `research.md` assumes
-      `date_query=checkin`; this is UNVERIFIED. Issue two live requests
-      differing only in that parameter against a real PAT and compare
-      the returned sets. Record the outcome in `research.md` under A-1.
-      **Fallback if unconfirmed or if the parameter proves to be
-      silently ignored: NEVER SEND IT.** Client-side filtering of the
-      returned window is authoritative in either case. This task gates
-      the US1 green phase because `api/reservations.py` encodes the
-      answer. (FR-030, FR-075)
-- [ ] T020 **LIVE PROBE (A-2, A-3)** In the same live session, pin the
-      scheduled check-in/check-out field names (A-2), the time-string
-      format (A-3), and the inner key names of the `capacity` object.
-      Record each in `data-model.md`'s field binding table, replacing
-      the UNVERIFIED confidence marker with the observed value. Any
-      binding still unconfirmed stays UNVERIFIED and its consumer MUST
-      degrade to `unknown` with a warning rather than guess.
+- [ ] T019 [P] **REGRESSION ASSERTION (A-1 RESOLVED)** Assert
+      reservation queries always send `date_query=checkin`, and that
+      the client can emit only the confirmed upstream values `checkin`
+      or `checkout`. This is CONFIRMED-BY-TEST from the 2026-08-09
+      narrow-window probe: baseline matched `date_query=checkin`,
+      `date_query=checkout` returned a different result set, and a
+      bogus value returned HTTP 400 naming exactly those two allowed
+      values. Client-side filtering of the returned window remains
+      authoritative. (FR-030, FR-075)
+- [ ] T020 **LIVE PROBE (capacity)** In the same live session, pin the
+      inner key names of the `capacity` object. Record each in
+      `data-model.md`'s field binding table, replacing the UNVERIFIED
+      confidence marker with the observed value. Any binding still
+      unconfirmed stays UNVERIFIED and its consumer MUST degrade to
+      `unknown` with a warning rather than guess.
       (FR-024, FR-034)
 - [ ] T021 Update `research.md` (A-1..A-3 outcomes) and `data-model.md`
       (field binding table) with the probe results, and note in
@@ -324,8 +323,10 @@ nothing.
       authoritative and its `Retry-After` is honored when present;
       that `X-RateLimit-*` headers are read if present but that their
       absence changes nothing and no code path depends on them; that
-      retries are bounded with jittered backoff; and that exhausting
-      retries raises rather than looping. (FR-036, FR-037)
+      retries are bounded with jittered backoff; that no computed
+      delay, including maximum jitter, can exceed `MAX_BACKOFF`, which
+      is ≤ 300 s per SC-007; and that exhausting retries raises rather
+      than looping. (FR-036, FR-037, SC-007)
 - [ ] T029 [P] [US1] `tests/api/test_redaction.py`: assert the token,
       any bearer-shaped string, and every personal field are redacted
       from exception text, log records, and body excerpts. (FR-006)
@@ -350,7 +351,10 @@ nothing.
       discarded; and the **D-11 regression guard** —
       `HospitableProperty` has NO `timezone` attribute at all, so the
       fixed UTC offset upstream publishes cannot be consumed by
-      accident. (FR-024, FR-039, FR-062, FR-073)
+      accident. Also assert `arrival_date` and `departure_date` parse
+      from offset-aware midnight datetimes and take their date
+      component in the reservation's own offset, never after converting
+      to another zone. (FR-024, FR-039, FR-062, FR-073)
 - [ ] T032 [P] [US1] `tests/api/test_properties.py`: assert
       `GET /properties` pages correctly, sends `include=listings` and
       asserts the key, and returns models keyed by `property_id`.
@@ -358,10 +362,9 @@ nothing.
 - [ ] T033 [P] [US1] `tests/api/test_reservations.py`: assert
       `GET /reservations` ALWAYS sends `properties[]` and
       `start_date`/`end_date`; that property IDs are batched at no more
-      than fifty per request; that the A-1 date-filter mode parameter
-      is sent only if T019 confirmed it and is otherwise absent; and
-      that the returned window is re-filtered client-side regardless,
-      so correctness never depends on the parameter.
+      than fifty per request; that `date_query=checkin` is always sent;
+      and that the returned window is re-filtered client-side
+      regardless, so correctness never depends on the parameter.
       (FR-028, FR-029, FR-030, FR-031)
 - [ ] T034 [P] [US1] `tests/api/test_client_methods.py`: assert every
       client entry point is `async`, that the client exposes no
@@ -406,12 +409,12 @@ nothing.
 - [ ] T040 [P] [US1] `tests/test_init.py`: assert `async_setup_entry`
       instantiates ONLY the properties coordinator in US1 (a positive
       assertion that the reservations and calendar coordinators are
-      NOT instantiated); that the sensor platform — and no other
-      platform — is forwarded; that `async_unload_entry` tears down
-      every HTTP client, listener, and coordinator; that
-      `async_migrate_entry` exists with `VERSION = 1` and
-      `MINOR_VERSION = 1`; and that a setup failure never fails
-      silently. (FR-041, FR-065, FR-070, FR-071)
+      NOT instantiated); that no Home Assistant platform is forwarded
+      during US1; that `async_unload_entry` tears down every HTTP
+      client, listener, and coordinator; that `async_migrate_entry`
+      exists with `VERSION = 1` and `MINOR_VERSION = 1`; and that a
+      setup failure never fails silently.
+      (FR-041, FR-065, FR-070, FR-071)
 - [ ] T041 [P] [US1] `tests/test_config_flow.py`: assert the `user` step
       validates the token with `GET /user` and stores `token`,
       `account_namespace`, and `namespace_source` in `entry.data`; the
@@ -476,7 +479,9 @@ nothing.
 - [ ] T053 [US1] Implement `custom_components/hospitable/api/models.py`
       — property, reservation, calendar day, money, and user models;
       personal fields dropped at the boundary; NO `timezone` attribute
-      on the property model. Satisfies T031.
+      on the property model; parse `arrival_date` and `departure_date`
+      as offset-aware midnight datetimes before taking the local date
+      in the reservation's own offset. Satisfies T031.
       (FR-024, FR-039, FR-060, FR-062, FR-073)
 - [ ] T054 [US1] Implement `custom_components/hospitable/api/client.py`
       — `get_async_client`-backed transport, GET-only surface,
@@ -489,8 +494,8 @@ nothing.
       (FR-025, FR-075)
 - [ ] T056 [P] [US1] Implement
       `custom_components/hospitable/api/reservations.py` — mandatory
-      `properties[]` and date filters, 50-ID batching, the A-1
-      parameter per T019's outcome, and authoritative client-side
+      `properties[]` and date filters, 50-ID batching,
+      `date_query=checkin`, and authoritative client-side
       re-filtering. Satisfies T033.
       (FR-028, FR-029, FR-030, FR-031, FR-032)
 - [ ] T057 [P] [US1] Implement
@@ -513,7 +518,10 @@ nothing.
       (FR-019, FR-020, FR-071)
 - [ ] T062 [US1] Implement `custom_components/hospitable/entity.py` —
       base entity, device construction, frozen unique ID,
-      `suggested_object_id`. Satisfies T039.
+      `suggested_object_id`, and an explicit
+      `device_registry.async_get_or_create` call for each selected
+      property so US1 creates devices without sensor entities.
+      Satisfies T039.
       (FR-050, FR-054, FR-055)
 - [ ] T063 [US1] Implement `custom_components/hospitable/config_flow.py`
       — `user`, `properties`, `reauth_confirm`, and options steps with
@@ -524,8 +532,8 @@ nothing.
       Satisfies T042, and contributes to T043. (FR-063)
 - [ ] T065 [US1] Implement `custom_components/hospitable/__init__.py` —
       `async_setup_entry` instantiating ONLY the properties
-      coordinator, sensor-platform forwarding, `async_unload_entry`
-      teardown, `async_migrate_entry`, and the options update listener
+      coordinator, `async_unload_entry` teardown,
+      `async_migrate_entry`, and the options update listener
       registration. Satisfies T040.
       (FR-041, FR-065, FR-067, FR-070, FR-071)
 - [ ] T066 [US1] Finalize `strings.json` and `translations/en.json`
@@ -544,9 +552,8 @@ nothing.
 property; the `http://` guard test passing; the scope-403 classifier
 tested including the unparsable-body default; a diagnostics dump
 containing no token and no personal data; the PII guard proven to fail
-on a deliberately poisoned fixture; A-1 resolved (or explicitly falling
-back to never sending the parameter) and the field-binding table
-updated.
+on a deliberately poisoned fixture; `date_query=checkin` asserted, and
+the field-binding table updated.
 
 **Independently shippable because**: a manager can install it, paste a
 token, pick properties, and get a verified connection plus devices.
@@ -582,15 +589,16 @@ while remaining available.
       only, never a deprecated flat field.
       (FR-032, FR-043, FR-048)
 - [ ] T070 [P] [US2] `tests/services/test_occupancy.py`: assert
-      transitions happen at STRICT SCHEDULED TIMES in the property's
-      effective IANA zone. Three boundary cases: a missing check-in
-      time, a missing check-out time, and an unparsable time — each
-      yields `unknown` plus a warning naming the reservation and the
-      field, degraded ONLY on the two boundary dates. **Assert
-      `unknown` POSITIVELY**, never merely "not occupied":
+      transitions happen at STRICT SCHEDULED TIMES using the
+      reservation's own offset-aware `check_in` and `check_out`
+      instants, with no configured-timezone dependency. Three boundary
+      cases: a missing check-in time, a missing check-out time, and an
+      unparsable time — each yields `unknown` plus a warning naming the
+      reservation and the field, degraded ONLY on the two boundary
+      dates. **Assert `unknown` POSITIVELY**, never merely "not occupied":
       `awaiting_checkin` satisfies the weaker assertion and IS the
       midnight-fallback bug this test exists to prevent. Assert NO
-      midnight fallback exists anywhere. (FR-045, FR-047, FR-074)
+      midnight fallback exists anywhere. (FR-045, FR-047)
 - [ ] T071 [P] [US2] `tests/services/test_selection.py`: assert that
       when a property has more than one reservation in the window the
       chosen one is deterministic across repeated refreshes and across
@@ -608,8 +616,9 @@ while remaining available.
       assert the attribute contract from `contracts/entities.md` —
       guest COUNTS only (never names or contact details), scheduled
       check-in and check-out, reservation identifier, stay type, and
-      the effective timezone. Assert no personal data appears in any
-      attribute. (FR-046, FR-049, FR-062, FR-073)
+      the reservation's own offset-aware timestamps. Assert no personal
+      data appears in any attribute.
+      (FR-046, FR-049, FR-062, FR-073)
 - [ ] T074 [P] [US2] `tests/sensor/test_availability_mixin.py`: assert
       the custom availability mixin keeps the last known state and
       stays AVAILABLE after one and after two consecutive poll
@@ -641,7 +650,7 @@ while remaining available.
       `custom_components/hospitable/services/occupancy.py` — strict
       scheduled moments, `unknown` plus a warning on a missing or
       unparsable boundary time, no midnight fallback. Satisfies T070,
-      T076. (FR-045, FR-047, FR-049, FR-074)
+      T076. No configured timezone dependency. (FR-045, FR-047, FR-049)
 - [ ] T081 [P] [US2] Implement
       `custom_components/hospitable/services/selection.py`. Satisfies
       T071. (FR-044)
@@ -650,7 +659,9 @@ while remaining available.
       and entity creation) and
       `custom_components/hospitable/sensor/helpers.py` (shared
       attribute and state helpers, including the single money
-      minor-unit-to-float conversion point). (FR-042, FR-060)
+      minor-unit-to-float conversion point). US3, US4, and US7 require
+      this module; if any ships before US2, pull this task forward into
+      that phase. (FR-042, FR-060)
 - [ ] T083 [US2] Implement the three-strike availability mixin in
       `custom_components/hospitable/entity.py`. Satisfies T074.
       (FR-057)
@@ -659,8 +670,10 @@ while remaining available.
       T072, T073, T075.
       (FR-042, FR-043, FR-046, FR-049, FR-062, FR-073)
 - [ ] T085 [US2] Wire the reservations coordinator into
-      `async_setup_entry` in `custom_components/hospitable/__init__.py`.
-      Satisfies T077. (FR-071)
+      `async_setup_entry` in `custom_components/hospitable/__init__.py`,
+      and forward the sensor platform after T082 implements
+      `sensor/__init__.py`. Satisfies T077.
+      (FR-071)
 - [ ] T086 [US2] Add the reservation sensor's entity name and enum
       state translations to `strings.json` and `translations/en.json`,
       using "property" throughout. (FR-064, FR-068)
@@ -701,18 +714,22 @@ specification says so explicitly.
 
 - [ ] T089 [P] [US3] `tests/sensor/test_property_timestamps.py`: assert
       `next_arrival` and `next_departure` are timestamp sensors
-      rendered in the property's effective IANA timezone, and that a
-      property with no upcoming reservation reports `unknown` rather
+      preserving the reservation's own offset-aware instants, and that
+      a property with no upcoming reservation reports `unknown` rather
       than a sentinel date. (FR-051)
 - [ ] T090 [P] [US3] `tests/sensor/test_upcoming_count.py`: assert the
       upcoming-reservation count sensor counts only reservations in
       the configured forward window and only those in a status that
       represents a real forthcoming stay. (FR-052)
 - [ ] T091 [P] [US3] `tests/sensor/test_property_info.py`: assert the
-      property-information sensor exposes the attributes named in
-      `contracts/entities.md` — name, capacity fields, listing
-      references, and the effective timezone — and NO address, no
-      coordinates, and no owner contact details. (FR-053, FR-062)
+      property-information sensor's state is the display name, and
+      that it exposes exactly the attributes in
+      `contracts/entities.md` — `address` (the upstream-composed
+      `address.display` only), `checkin_time`, `checkout_time`,
+      `max_guests`, `effective_timezone`, `timezone_source`,
+      `listings`, and `listings_available` — and that no coordinates,
+      no street number or postcode, and no owner contact details
+      appear. (FR-053, FR-062)
 - [ ] T092 [P] [US3] `tests/sensor/test_rename_stability.py`: assert
       renaming a property upstream changes the display name but leaves
       the unique ID and therefore the entity registry entry and its
@@ -723,12 +740,13 @@ specification says so explicitly.
       and history are RETAINED, and a single explanatory warning is
       logged. (FR-056)
 - [ ] T094 [P] [US3] `tests/services/test_timezone_override.py`: assert
-      a per-property IANA override changes rendered timestamps; that
-      `effective_timezone` and `timezone_source` attributes report the
-      zone in use and whether it came from the instance default or an
-      override; that an invalid IANA name is rejected at the options
-      step; and the **D-11 guard at the sensor layer** — no sensor
-      reads any upstream `timezone` value. (FR-074)
+      a per-property IANA override changes day-boundary and
+      date-relative presentation only; that `effective_timezone` and
+      `timezone_source` attributes report the zone in use and whether
+      it came from the instance default or an override; that an invalid
+      IANA name is rejected at the options step; and the **D-11 guard
+      at the sensor layer** — no sensor reads any upstream `timezone`
+      value. (FR-074)
 - [ ] T095 [US3] Run `uv run pytest --runxfail` scoped to T089–T094 and
       commit the red phase.
 
@@ -1132,21 +1150,30 @@ pair.
   story. T019–T021 (live probes) additionally BLOCK the US1 green
   phase.
 - **Phase 3 (US1)**: depends on Phases 1 and 2.
-- **Phases 4–9 (US2–US7)**: each depends on US1 only. They are ordered
-  by priority, not by technical need, except where noted below.
+- **Phases 4–9 (US2–US7)**: each depends on US1, with the additional
+  sensor-platform dependency noted below. They are ordered by priority,
+  not by technical need, except where noted below.
 - **Phase 10 (Polish)**: depends on every user story that is to ship.
 
 ### User story dependencies
 
 - **US1 (P1)**: the foundation. Everything else needs it.
 - **US2 (P2)**: needs US1. Nothing else.
-- **US3 (P3)**: needs US1. Explicitly does NOT need US2.
+- **US3 (P3)**: needs US1. It also needs the sensor platform setup and
+  entity-creation module introduced at T082 (US2), or must pull T082
+  forward if it ships before US2.
 - **US4 (P4)**: needs US1. Reuses the FR-056 mechanism introduced in
   US3 (T097) for non-destructive deselection; if US4 ships before US3
   that mechanism must be introduced in T113 instead.
 - **US5 (P5)**: needs US1. Predominantly evidence.
 - **US6 (P6)**: needs US1.
-- **US7 (P7)**: needs US1. Nothing depends on it.
+- **US7 (P7)**: needs US1 and the sensor platform setup and
+  entity-creation module introduced at T082 (US2), or must pull T082
+  forward if it ships before US2. Nothing depends on it.
+- **US3, US4, and US7 sensor caveat**: US3, US4 and US7 additionally
+  require the sensor platform setup and entity-creation module
+  introduced at T082 (US2). If any of them ships before US2, T082 must
+  be pulled forward into that phase.
 
 ### Within each user story
 
@@ -1170,7 +1197,8 @@ pair.
   `api/` package entirely.
 - Phases 4–9 red: every `[P]` test file within a phase is independent.
 - Once US1 has merged, US2 through US7 can be developed in parallel by
-  different contributors, subject to the US3/US4 note above.
+  different contributors, subject to the US3/US4 and sensor-platform
+  notes above.
 
 ---
 
@@ -1258,15 +1286,11 @@ Read this section before trusting any count elsewhere in this file.
   `include=guests` is NEVER SENT. T030 asserts the prohibition rather
   than the include. If a future feature surfaces guest detail, FR-033
   must be revisited.
-- **Three assumptions remain UNVERIFIED at the time of writing** and
-  make three tasks less concrete than the rest: A-1 (the reservation
-  date-filter mode parameter, assumed `date_query=checkin`), A-2 (the
-  scheduled-time field names), and A-3 (the time-string format). T019
-  and T020 are live probes that resolve them; T033 and T056 are
-  written to work under either outcome, with the fallback of never
-  sending the A-1 parameter and relying on authoritative client-side
-  filtering. Nothing in the design changes if the probes fail — only a
-  constant moves.
+- **A-1, A-2, and A-3 are RESOLVED at the time of writing** by the
+  2026-08-09 live probes. T019 is now a regression assertion for
+  `date_query=checkin`, not discovery. T020 remains only for the
+  property-capacity inner keys. Client-side filtering remains
+  authoritative regardless of the upstream parameter.
 - **T100 (OQ-004) and T156 (live success-criteria validation) cannot
   be completed without a real Hospitable account.** They are specified
   as verification obligations, not as things this task list can
@@ -1361,5 +1385,5 @@ it; it does not follow that the task fully discharges it.
 | FR-071 | T038, T040, T061, T065, T077, T085, T139, T141, T145, T150 |
 | FR-072 | T037, T059, T105, T112 |
 | FR-073 | T031, T043, T053, T073, T084 |
-| FR-074 | T036, T058, T070, T080, T094, T098 |
+| FR-074 | T036, T058, T094, T098 |
 | FR-075 | T011, T013, T019, T027, T030, T032, T052, T055, T138, T143, T154 |

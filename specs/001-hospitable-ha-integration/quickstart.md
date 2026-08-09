@@ -137,16 +137,10 @@ FR-063, FR-066, FR-069, FR-070, FR-073 to FR-075.
 
 **Live probe task, required before the US1 green phase.** Assumption
 A-1 in [research.md](./research.md#a-1-reservation-date-filter-mode-parameter)
-assumes the reservation date-filter mode parameter's name and value.
-Issue the same reservation query twice against a live account, once
-with a deliberately bogus mode value, and compare result sets.
-Identical results prove the parameter is silently ignored, which moves
-it to NEVER SENT in the
-[upstream-requests](./contracts/upstream-requests.md) register and
-makes the client's local window filter authoritative. Differing results
-confirm it is honored and pin the value in `api/const.py`. Record the
-outcome in `research.md`. The same session pins every UNVERIFIED row of
-the [field binding table](./data-model.md#field-binding-table).
+is resolved: `date_query=checkin` is sent explicitly on every
+reservation query, even though it currently matches the platform
+default. The same session pins any remaining UNVERIFIED rows of the
+[field binding table](./data-model.md#field-binding-table).
 
 ### US2 — Reservation status per property
 
@@ -185,7 +179,7 @@ Requirements: FR-050 to FR-056, FR-074.
 | Property renamed upstream | Display name updates; entity identifiers and history preserved |
 | Property with several channel listings | All represented with channel and channel identifier |
 | Property deleted or unshared upstream | Entities unavailable with a reason; registry entries retained |
-| Per-property IANA override set | Arrival and departure timestamps use the override; `timezone_source` reports `override` |
+| Per-property IANA override set | Day-boundary presentation uses the override; `timezone_source` reports `override` |
 | No override set | The Home Assistant instance timezone is used; `timezone_source` reports `instance` |
 | Fixture property carries `timezone: "-0700"` | That value influences nothing; the model has no such attribute |
 | Invalid IANA override submitted | Rejected with a message naming the expected form |

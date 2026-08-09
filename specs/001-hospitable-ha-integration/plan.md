@@ -35,9 +35,10 @@ The technical approach is shaped by three forces:
    allowlist because FR-073 explicitly binds endpoints added by later
    specifications.
 3. **Occupancy has to be derived, and derived exactly.** Hospitable
-   publishes no checked-in status. Occupancy comes from scheduled
-   moments in a real IANA timezone, and a missing scheduled time is a
-   data error that produces `unknown`, never a midnight fallback.
+   publishes no checked-in status. Occupancy comes from the
+   reservation's own offset-aware scheduled moments, and a missing
+   scheduled time is a data error that produces `unknown`, never a
+   midnight fallback.
 
 Three coordinators run on two user-facing intervals. Reservations
 refresh on their own interval; properties and the calendar share the
@@ -388,14 +389,17 @@ rejects the alternative as a design, not merely defers it.
 stay can independently be in any of those conditions (FR-049).
 
 **Occupancy is derived from scheduled moments, never calendar days.**
-The check-in moment is the arrival date combined with the best
-available scheduled check-in time — reservation-specific if one exists,
-otherwise the property's `checkin` string. All comparisons happen in
-the property's effective IANA zone. **A missing or uninterpretable time
-is a data error**: on the affected boundary date the sensor reports
-`unknown` and logs a warning naming the reservation and the field. No
-midnight substitution exists anywhere in the code, and the test for it
-asserts `unknown` specifically, because "not occupied" would also be
+The check-in and check-out moments come from the reservation's
+offset-aware `check_in` and `check_out` datetimes. All occupancy
+comparisons use those instants directly; the reservations coordinator
+and occupancy logic have no timezone dependency. The effective IANA
+timezone of FR-074 is retained for day-boundary determinations and
+date-relative presentation only.
+**A missing or uninterpretable time is a data error**: on the affected
+boundary date the sensor reports `unknown` and logs a warning naming
+the reservation and the field. No midnight substitution exists
+anywhere in the code, and the test for it asserts `unknown`
+specifically, because "not occupied" would also be
 satisfied by `awaiting_checkin` — which is exactly the midnight bug.
 
 **Calendar data becomes the `availability` sensor**, with rate,
@@ -808,15 +812,17 @@ statuses logged once without raising.
 
 **Delivers**: `sensor/property.py` — `next_arrival`, `next_departure`,
 `upcoming_reservations`, `property_info`; FR-056 disappeared-property
-handling; per-property timezone overrides applied to timestamps and
-surfaced through `effective_timezone` and `timezone_source`.
+handling; per-property timezone overrides applied to day-boundary and
+date-relative presentation and surfaced through `effective_timezone`
+and `timezone_source`.
 
 **Requirements**: FR-051 to FR-056, and the FR-074 user-facing
 completion.
 
 **Why independently shippable**: dashboards and schedule-driven
-automations become possible. It depends on US1 but not on US2 — the
-specification says so explicitly.
+automations become possible. It depends on US1 and on the sensor
+platform setup and entity-creation module introduced at T082 (US2). If
+US3 ships before US2, T082 must be pulled forward into US3.
 
 **Exit criteria**: every US3 acceptance scenario passing; the D-11
 regression guard asserting the model has no `timezone` attribute; the
@@ -833,7 +839,10 @@ messages.
 
 **Why independently shippable**: it converts fixed defaults into a
 supported tuning surface, which is what keeps the integration safe for
-a large portfolio. Nothing later depends on it.
+a large portfolio. It also touches `sensor/__init__.py`, so it requires
+the sensor platform setup and entity-creation module introduced at T082
+(US2), or must pull T082 forward if it ships before US2. Nothing later
+depends on it.
 
 **Exit criteria**: option changes take effect with no restart; the
 estimate reports 1,704 for ten properties at defaults with 500
@@ -885,7 +894,9 @@ zero-writes assertion.
 **Requirements**: FR-058 to FR-061.
 
 **Why independently shippable**: supplementary but self-contained, and
-last because nothing else depends on it.
+last because nothing else depends on it. It requires the sensor
+platform setup and entity-creation module introduced at T082 (US2), or
+must pull T082 forward if it ships before US2.
 
 **Exit criteria**: `booked` never rendered as `unavailable`;
 per-property calendar failure isolation proven; a full lifecycle
@@ -977,11 +988,10 @@ never called — that is stated, because "not implemented" and
 | OQ-012 | UNVERIFIED | `ical_imports` discarded at the model boundary (A-5) |
 | OQ-013 | UNVERIFIED | `request` and `unknown` fully mapped and fixture-exercised (A-6) |
 
-Three planning-time assumptions must be resolved before the US1 green
-phase, and they are the only items that could change code rather than
-documentation: the A-1 date-filter mode parameter, the A-2
-scheduled-time field names, and the A-3 time-string format. Each has a
-stated fallback that requires no design change — only a constant moves.
+A-1, A-2, and A-3 are resolved by the 2026-08-09 live probes.
+`date_query=checkin` is sent explicitly, even though it matches the
+current platform default, and `check_in`/`check_out` are the confirmed
+scheduled-time fields.
 
 ## Complexity Tracking
 

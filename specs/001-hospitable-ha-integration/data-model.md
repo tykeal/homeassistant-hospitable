@@ -125,35 +125,45 @@ Built from an item of `GET /reservations`.
 | --- | --- | --- | --- | --- |
 | `reservation_id` | `str` | `id` | CONFIRMED | FR-044 deterministic tiebreak; FR-046 attribute |
 | `property_id` | `str` | property reference | CONFIRMED | Asserted to be in the requested set (D-05) |
-| `status_category` | `ReservationStatusCategory` | `status.current.category` | CONFIRMED shape, UNVERIFIED path | FR-032; see field binding below |
-| `raw_status` | `str` | as returned | CONFIRMED | Retained for the FR-048 log-once path |
-| `arrival_date` | `date` | `arrival_date` | UNVERIFIED key name | |
-| `departure_date` | `date` | `departure_date` | UNVERIFIED key name | |
-| `nights` | `int \| None` | `nights` | UNVERIFIED key name | FR-046 |
-| `scheduled_checkin_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
-| `scheduled_checkout_raw` | `str \| None` | candidate list | UNVERIFIED | A-2 |
-| `guests` | `GuestBreakdown` | `guests` | CONFIRMED | Counts only |
-| `channel` | `str \| None` | `channel` | CONFIRMED | FR-046 booking channel |
-| `channel_confirmation` | `str \| None` | `channel_id` | UNVERIFIED key name | FR-046 |
-| `booking_date` | `datetime \| None` | `booking_date` | UNVERIFIED key name | FR-046 |
-| `stay_type` | `str \| None` | stay-type field | CONFIRMED exists | FR-049; orthogonal to status |
+| `status_category` | `ReservationStatusCategory` | `reservation_status.current` | CONFIRMED-BY-TEST | FR-032; live probe 2026-08-09 confirmed `reservation_status` has `{current, history}` |
+| `raw_status` | `str` | `status` | CONFIRMED-BY-TEST | Retained for the FR-048 log-once path |
+| `arrival_date` | `datetime` | `arrival_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
+| `departure_date` | `datetime` | `departure_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
+| `nights` | `int \| None` | `nights` | CONFIRMED-BY-TEST | FR-046; live probe 2026-08-09 |
+| `scheduled_checkin_raw` | `str \| None` | `check_in` | CONFIRMED-BY-TEST | ISO 8601 datetime with UTC offset; live probe 2026-08-09 |
+| `scheduled_checkout_raw` | `str \| None` | `check_out` | CONFIRMED-BY-TEST | ISO 8601 datetime with UTC offset; live probe 2026-08-09 |
+| `guests` | `GuestBreakdown` | `guests` | CONFIRMED-BY-TEST | Counts only; base payload confirmed by live probe 2026-08-09 — not the `include=guests` expansion, which is a separate, unrelated no-op |
+| `channel` | `str \| None` | `platform` | CONFIRMED-BY-TEST | FR-046 booking channel; live probe 2026-08-09 confirmed the reservation payload has no `channel` key |
+| `channel_confirmation` | `str \| None` | `platform_id` | CONFIRMED-BY-TEST | FR-046 confirmation code; live probe 2026-08-09; `code` matched `platform_id` in 50/50 samples but is an alias and MUST NOT be relied on independently |
+| `booking_date` | `datetime \| None` | `booking_date` | CONFIRMED-BY-TEST | FR-046; UTC timestamp with trailing `Z`; live probe 2026-08-09 |
+| `stay_type` | `str \| None` | `stay_type` | CONFIRMED-BY-TEST | FR-049; orthogonal to status |
 
 **Deliberately absent**: any guest identity. No name, email, phone,
 picture, or conversation content is read. `conversation_id` is not read
 either, because nothing displays it and it is a handle to message
 content.
 
+`arrival_date` and `departure_date` are midnight-anchored dates
+serialized as offset-aware datetimes. Parse each as an offset-aware
+datetime, then take the date component in the reservation's own offset.
+Never convert to another zone before taking the date — the value is
+midnight-anchored, so an eastward conversion can roll it to the
+following day. `check_in` and `check_out` carry the real scheduled
+times and are not equal to the midnight anchors.
+
 ### `GuestBreakdown`
 
 | Field | Type | Tier |
 | --- | --- | --- |
-| `total` | `int` | CONFIRMED |
-| `adults` | `int` | CONFIRMED |
-| `children` | `int` | CONFIRMED |
-| `infants` | `int` | CONFIRMED |
-| `pets` | `int` | CONFIRMED |
+| `total` | `int` | CONFIRMED-BY-TEST |
+| `adults` | `int` | CONFIRMED-BY-TEST |
+| `children` | `int` | CONFIRMED-BY-TEST |
+| `infants` | `int` | CONFIRMED-BY-TEST |
+| `pets` | `int` | CONFIRMED-BY-TEST |
 
 Counts are not personal data. Identities are, and are not modelled.
+The live probe on 2026-08-09 confirmed the upstream inner keys are
+`total`, `adult_count`, `child_count`, `infant_count`, and `pet_count`.
 
 ### `CalendarDay` and `PropertyCalendar`
 
@@ -206,26 +216,29 @@ never carries a float.
 
 ## Field binding table
 
-Bindings the specification does not pin. Each is resolved by a
-documented candidate list, and each has a defined behavior when no
-candidate is present. The US1 fixture-capture task replaces every
-UNVERIFIED row with a CONFIRMED one before the US1 green phase.
+Bindings the specification does not pin. Confirmed rows name the single
+key the live probe established. Remaining UNVERIFIED rows are resolved
+by a documented candidate list and have defined behavior when no
+candidate is present.
 
 | Role | Candidate keys, in order | Tier | Absent behavior |
 | --- | --- | --- | --- |
-| Reservation status category | `status.current.category`, `status.current` | CONFIRMED that a structured object with a current value exists; exact path UNVERIFIED | `HospitableResponseError` — FR-032 makes this load-bearing, so it must fail loudly |
-| Reservation arrival date | `arrival_date`, `check_in`, `checkin` | UNVERIFIED | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
-| Reservation departure date | `departure_date`, `check_out`, `checkout` | UNVERIFIED | `HospitableResponseError` |
-| Reservation scheduled check-in time | `check_in_time`, `checkin_time`, or a time component of a datetime-valued arrival key | UNVERIFIED (A-2) | Fall through to `property.checkin` |
-| Reservation scheduled check-out time | `check_out_time`, `checkout_time`, or a time component of a datetime-valued departure key | UNVERIFIED (A-2) | Fall through to `property.checkout` |
-| Stay type | `stay_type`, `reservation_type` | CONFIRMED that a stay-type field exists; name UNVERIFIED | Attribute reports `None`; state is unaffected (FR-049) |
+| Reservation status category | `reservation_status.current` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` — FR-032 makes this load-bearing, so it must fail loudly |
+| Reservation arrival datetime | `arrival_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
+| Reservation departure datetime | `departure_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` |
+| Reservation nights | `nights` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
+| Reservation scheduled check-in time | `check_in` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; boundary occupancy becomes `unknown` (FR-045) |
+| Reservation scheduled check-out time | `check_out` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; boundary occupancy becomes `unknown` (FR-045) |
+| Reservation channel confirmation identifier | `platform_id` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
+| Reservation booking date | `booking_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |
+| Stay type | `stay_type` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-049) |
 
 **Rule**: a required-role binding that resolves to nothing raises. An
 optional-role binding that resolves to nothing degrades an attribute.
-The two scheduled-time roles are neither — they degrade to the
-property-level source, and only if *that* is also unusable does FR-045's
-`unknown` path fire. Silent substitution of a default time is
-prohibited at every tier.
+The two scheduled-time roles are confirmed top-level datetimes, not a
+candidate search. If either is absent or unusable, FR-045's `unknown`
+path fires on the affected boundary date. Silent substitution of a
+default time is prohibited at every tier.
 
 ## Reservation status mapping
 
@@ -275,13 +288,14 @@ Governed by FR-045. Hospitable publishes no checked-in status
 (CONFIRMED by census, OQ-008), so occupancy is derived.
 
 ```text
-tz            = effective IANA zone for the property (FR-074)
-checkin_at    = combine(arrival_date,   resolve_time(res.checkin,  prop.checkin))
-checkout_at   = combine(departure_date, resolve_time(res.checkout, prop.checkout))
-now           = current time in tz
+checkin_at    = parse_moment(res.check_in)
+checkout_at   = parse_moment(res.check_out)
+now           = current instant
+today         = current date in the property's effective IANA zone (FR-074)
 
 if checkin_at is None or checkout_at is None:
-    if today is arrival_date or today is departure_date:  -> unknown + warn once
+    if today is local_date(arrival_date) or
+       today is local_date(departure_date):               -> unknown + warn once
     else:                                                 -> evaluate by date alone
 elif now <  checkin_at:                                    -> awaiting_checkin
 elif now <  checkout_at:                                   -> occupied
@@ -291,9 +305,11 @@ else:                                                      -> checked_out
 Four properties of this algorithm are load-bearing and each is
 separately required:
 
-1. **All comparisons are moment comparisons in the property's effective
-   IANA zone.** Never a calendar-day comparison, never UTC, never a
-   fixed offset.
+1. **All occupancy comparisons are instant comparisons using the
+   reservation's own offset-aware timestamps.** Never reinterpret
+   `check_in` or `check_out` in the configured timezone. The effective
+   IANA zone of FR-074 is only for the boundary-date `today` test and
+   date-relative presentation.
 2. **A missing time is a data error, not a case to smooth over.** No
    midnight fallback exists anywhere in the code. This is stated as a
    negative requirement in FR-045 and is tested as one: a test asserts
@@ -315,10 +331,10 @@ rest populate an `upcoming_reservations` attribute.
 Ordering, applied until one reservation is selected:
 
 1. A reservation currently in progress under the occupancy derivation.
-2. The soonest future arrival, by arrival date then scheduled check-in
-   time.
-3. The most recent past departure, by departure date then scheduled
-   check-out time.
+2. The soonest future arrival, by arrival datetime then scheduled
+   check-in moment.
+3. The most recent past departure, by departure datetime then scheduled
+   check-out moment.
 
 Within every tier, reservations whose category is `cancelled` or
 `not accepted` rank below all others. Any remaining tie breaks by
@@ -344,8 +360,9 @@ section's explicit rejection).
 
 `next_arrival` and `next_departure` report `None` when there is no
 applicable future reservation, never a stale value (US3 acceptance
-scenario 2). Their timestamps are timezone-aware in the property's
-effective IANA zone.
+scenario 2). Reservation instants retain their own offset-aware
+timestamps; the property's effective IANA zone is only for day-boundary
+and date-relative presentation.
 
 `property_info` is `EntityCategory.DIAGNOSTIC`. Its state is the
 property's display name; its attributes carry the FR-053 payload.
@@ -392,9 +409,10 @@ a migration under FR-070 that preserves every existing identifier.
 Full attribute payloads are normative in
 [contracts/entities.md](./contracts/entities.md). Summarized here:
 
-`reservation_status` carries the FR-046 set — arrival date, departure
-date, nights, scheduled check-in and check-out times, total guest count
-with its adult, child, infant and pet breakdown, booking channel,
+`reservation_status` carries the FR-046 set — arrival datetime,
+departure datetime, nights, scheduled check-in and check-out times,
+total guest count with its adult, child, infant and pet breakdown,
+booking channel,
 channel confirmation identifier, booking date, stay type, reservation
 identifier — plus `upcoming_reservations` from FR-044.
 

@@ -44,7 +44,7 @@ post-condition or a prohibition.
 | `properties[]` on `/reservations` | Required | CONFIRMED | SEND always; assert every returned reservation belongs to the requested set |
 | `start_date`, `end_date` on `/reservations` | Effectively required | CONFIRMED | SEND always; re-filter locally |
 | `status[]` on `/reservations` | Honored | CONFIRMED (OQ-003) | NEVER SEND; status handling stays client-side |
-| date-filter mode | Parameter name unknown | UNVERIFIED (A-1) | SEND the assumed parameter; probe in US1 before the green phase |
+| `date_query=checkin` | Real, honored, and validated; value set is exactly `checkin` or `checkout`; platform default is currently `checkin` | CONFIRMED-BY-TEST; live probe 2026-08-09 | SEND always, even though it matches the current default, so a future platform default change cannot silently alter window semantics |
 
 A post-condition failure raises `HospitableIncludeMissingError` or
 `HospitableResponseError`, never a silent degradation (FR-075).
@@ -207,7 +207,9 @@ Attempts are bounded; on exhaustion the last typed exception is raised
 with its context intact (FR-037). No quota is hard-coded and no
 rate-limit header is assumed to be present (FR-036, OQ-005, A-7).
 `Retry-After` is parsed in both delta-seconds and HTTP-date forms if it
-appears; absence is the expected case.
+appears; absence is the expected case. `MAX_BACKOFF = 300` seconds,
+chosen to satisfy SC-007's five-minute resumption bound even when the
+computed delay includes maximum jitter.
 
 ## Request budget
 

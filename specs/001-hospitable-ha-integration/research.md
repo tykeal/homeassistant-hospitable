@@ -209,7 +209,7 @@ carries normatively:
 | `page`, `per_page` | CONFIRMED honored | Assert `meta.current_page` equals the page requested |
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
-| date-filter mode | UNVERIFIED parameter name | Assumption A-3; probe task in US1 |
+| `date_query=checkin` | CONFIRMED-BY-TEST honored parameter and value | SEND; explicit even though it matches the current platform default |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
 reviewable checklist. A future contributor adding a query parameter
@@ -356,6 +356,8 @@ the client's request method.
 
 Backoff is `base * 2**attempt`, multiplied by a uniform jitter factor
 in `[0.75, 1.25]`, floored at 0.1 s and capped at `MAX_BACKOFF`.
+`MAX_BACKOFF = 300` seconds, chosen to satisfy SC-007's five-minute
+resumption bound even when the computed delay includes maximum jitter.
 Attempts are bounded; on exhaustion the last typed exception is raised
 with its context intact (FR-037).
 
@@ -543,75 +545,60 @@ availability is `data is present and consecutive_failures < 3`. Using
 the stock behavior would violate FR-057 quietly, since nothing about it
 looks wrong at a glance.
 
-## Assumptions on unverified upstream behavior
+## Assumptions and resolved upstream behavior
 
-Each row states the assumption, why it is needed, and the concrete
-fallback if a live probe disproves it. None of these is treated as
-CONFIRMED anywhere in the design.
+Each row states the assumption or resolved behavior, why it is needed,
+and any concrete fallback if a live probe disproves it. Resolved rows
+carry their evidence tier directly.
 
 ### A-1: Reservation date-filter mode parameter
 
-**Tier**: UNVERIFIED. **Governs**: FR-029, FR-030.
+**Tier**: RESOLVED, CONFIRMED-BY-TEST. **Governs**: FR-029, FR-030.
 
-FR-030 requires the date-filter mode to be sent explicitly, but neither
-the specification nor any confirmed observation names the parameter or
-its permitted values. The design assumes a parameter named
-`date_query` with a value selecting check-in-date filtering.
+FR-030 requires the date-filter mode to be sent explicitly when the
+platform exposes such a parameter. A live probe on 2026-08-09 confirmed
+`date_query` exists, is honored, and validates its value set. In a
+narrow window, baseline and `date_query=checkin` were byte-identical
+(`total=37`, hash `71b51035652a`), while `date_query=checkout`
+returned a different set (`total=35`, hash `e900025af453`). A bogus
+value returned HTTP 400 with "The date reference must be either
+'checkin' or 'checkout'." The complete value set is therefore exactly
+`checkin` or `checkout`; the platform default is currently `checkin`.
+The fallback branch in FR-030 is documented but not taken.
 
 **Why it matters**: the ninety-day lookback default exists specifically
 because filtering is by check-in date (FR-022, and the Edge Cases
 discussion of long stays). If the real filter mode were, say, overlap
 based, the lookback rationale changes.
 
-**Fallback**: US1 includes an explicit probe task. The probe issues the
-same query twice, once with a deliberately bogus mode value, and
-compares result sets. Identical results prove the parameter is silently
-ignored, which puts it in the D-05 register as NEVER SENT and makes the
-client's own client-side window filter authoritative. Non-identical
-results confirm it is honored, and the honored value is then pinned
-in `api/const.py` with the probe recorded in this document. Either
-outcome is handled without a design change; only the constant moves.
+**Decision**: send `date_query=checkin` on every reservation query,
+even though it matches the current platform default, so a future
+platform default change cannot silently alter window semantics. The
+client-side window filter remains authoritative.
 
 ### A-2: Scheduled time field names on a reservation
 
-**Tier**: UNVERIFIED. **Governs**: FR-045, FR-046.
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045, FR-046.
 
-The specification's Key Entities section states a reservation carries
-"scheduled check-in and check-out times", but no confirmed field name
-is recorded. The design binds these by *role*, not by name: the
-reservation model resolves a scheduled check-in from the first present
-key in a documented candidate list, and falls back to the property's
-`checkin` string (CONFIRMED to exist and to be the real scheduled-time
-source).
+The live reservation-field probe on 2026-08-09 confirmed the scheduled
+check-in and check-out fields are top-level `check_in` and `check_out`.
+They were present on 25 of 25 sampled reservations. No candidate-field
+list is needed.
 
-**Fallback**: if no candidate key is present on any live reservation,
-the property strings become the sole source. That is already the
-FR-045-sanctioned second tier, so the occupancy logic is unchanged; the
-candidate list simply resolves to empty. If a candidate key exists but
-carries a full datetime rather than a time, the resolver uses it
-directly and skips composition with the arrival date. The candidate
-list and its resolution order are in
-[data-model.md](./data-model.md#field-binding-table), which marks each
-binding's tier.
+### A-3: Format of reservation `check_in` and `check_out` strings
 
-### A-3: Format of the property `checkin` and `checkout` strings
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045.
 
-**Tier**: UNVERIFIED. **Governs**: FR-045.
+The live reservation-field probe on 2026-08-09 confirmed both fields
+are full ISO 8601 datetimes with UTC offsets, matching the mask
+`9999-99-99a99:99:99-99:99`. `booking_date` is different: it is a UTC
+timestamp with trailing `Z`, matching `9999-99-99a99:99:99a`.
 
-CONFIRMED: these are string fields and are the scheduled-time source.
-Their *format* is not confirmed. The parser accepts `HH:MM`,
-`H:MM`, `HH:MM:SS`, and 12-hour forms with a meridiem suffix.
-
-**Fallback**: anything else — including plausible free-text values such
-as `Flexible` or `Anytime` — parses to `None`. FR-045 then governs
-directly and unambiguously: on the arrival or departure date of an
-affected reservation the sensor reports `unknown` and logs a warning
-naming the reservation and the field; away from those two dates the
-state is unaffected. **No midnight or other default time is ever
-substituted.** This fallback is not a workaround bolted on for the
-unverified case; it is the specification's required behavior for a
-missing time, so an unparsable format is handled correctly by
-construction.
+Across a 50-reservation sample spanning the year, offsets varied
+between `-07:00` and `-08:00` (9 and 41 samples respectively), so the
+reservation timestamps are DST-aware at their own instants. Consequence:
+reservation occupancy is an exact instant comparison and needs no
+configured timezone for those reservation instants.
 
 ### A-4: Reservation window filter fidelity
 

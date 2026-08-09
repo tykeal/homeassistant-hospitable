@@ -79,8 +79,8 @@ entities are prohibited (FR-042).
 | Attribute | Type | Requirement |
 | --- | --- | --- |
 | `reservation_id` | `str \| None` | FR-046 |
-| `arrival_date` | `date \| None` | FR-046 |
-| `departure_date` | `date \| None` | FR-046 |
+| `arrival_date` | `datetime \| None` | FR-046 |
+| `departure_date` | `datetime \| None` | FR-046 |
 | `nights` | `int \| None` | FR-046 |
 | `scheduled_checkin` | `datetime \| None` | FR-046 |
 | `scheduled_checkout` | `datetime \| None` | FR-046 |
@@ -95,13 +95,14 @@ entities are prohibited (FR-042).
 | `stay_type` | `str \| None` | FR-049 |
 | `upcoming_reservations` | `list[dict]` | FR-044 |
 
-`scheduled_checkin` and `scheduled_checkout` are timezone-aware moments
-in the property's effective IANA zone, composed by the FR-045
-derivation. They are `None` when no usable scheduled time exists, which
-is exactly when the state is `unknown` on a boundary date.
+`scheduled_checkin` and `scheduled_checkout` are the reservation's own
+offset-aware moments from `check_in` and `check_out`. They are not
+reinterpreted in the property's effective timezone. They are `None`
+when no usable scheduled time exists, which is exactly when the state
+is `unknown` on a boundary date.
 
 `upcoming_reservations` entries carry the reservation identifier,
-arrival date, departure date, status category, and stay type. They
+arrival datetime, departure datetime, status category, and stay type. They
 carry no guest identity.
 
 `stay_type` is an attribute and never part of the state. An owner stay
@@ -119,7 +120,7 @@ Requirements: FR-051.
 | Property | Value |
 | --- | --- |
 | Device class | `SensorDeviceClass.TIMESTAMP` |
-| State | Timezone-aware moment in the property's effective IANA zone, or `None` |
+| State | Reservation offset-aware moment, or `None` |
 
 `None` when there is no applicable future reservation. Never a stale
 value (US3 acceptance scenario 2). A stale timestamp on a
@@ -167,7 +168,9 @@ into any model (FR-074).
 
 `timezone_source` exists so a user can see at a glance whether their
 per-property override took effect, which turns FR-074 into something a
-user can verify rather than trust.
+user can verify rather than trust. The effective timezone applies to
+day-boundary determinations and date-relative presentation; it is not
+applied to reservation occupancy instants.
 
 `listings_available` is `False` when the `include=listings` post-condition
 failed. It makes an FR-075 degradation visible on the entity instead of
