@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+# SPDX-License-Identifier: Apache-2.0
+
+# Keep CI's Grype invocation explicit while allowing repository-specific
+# ignores to be added in a reviewed configuration file later.
+ignore: []
