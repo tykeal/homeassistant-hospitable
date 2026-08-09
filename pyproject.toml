@@ -58,7 +58,6 @@ xfail_strict = true
 python_version = "3.14"
 strict = true
 warn_unused_ignores = true
-warn_unused_configs = true
 explicit_package_bases = true
 mypy_path = "."
 

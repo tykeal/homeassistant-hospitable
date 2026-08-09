@@ -1,0 +1,60 @@
+{
+  "data": [
+    {
+      "address": {
+        "city": "Example City",
+        "coordinates": {
+          "latitude": 37.1001,
+          "longitude": -122.1001
+        },
+        "country": "US",
+        "display": "100 Example Avenue, Example City, CA 90210, US",
+        "number": "100",
+        "postcode": "90210",
+        "state": "CA",
+        "street": "Example Avenue"
+      },
+      "capacity": {
+        "bathrooms": 2.5,
+        "bedrooms": 3,
+        "beds": 4,
+        "max": 6
+      },
+      "checkin": "16:00",
+      "checkout": "11:00",
+      "currency": "USD",
+      "ical_imports": [],
+      "id": "prop-example-001",
+      "listed": true,
+      "listings": [
+        {
+          "co_hosts": [],
+          "platform": "airbnb",
+          "platform_email": "host@example.com",
+          "platform_id": "AIR-EXAMPLE-1",
+          "platform_name": "Example Host",
+          "platform_picture": "https://example.com/pic.png",
+          "platform_user_id": "user-example"
+        }
+      ],
+      "name": "Example Beach House",
+      "property_type": "house",
+      "public_name": "Example Beach House",
+      "timezone": "-0700"
+    }
+  ],
+  "links": [
+    {
+      "active": true,
+      "label": "1",
+      "url": "http://public.api.hospitable.com/v2/properties?page=1"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 2,
+    "path": "http://public.api.hospitable.com/v2/properties",
+    "per_page": 100,
+    "total": 1
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "data": {
+    "days": [
+      {
+        "closed_for_checkin": false,
+        "closed_for_checkout": false,
+        "date": "2025-06-14",
+        "min_stay": 2,
+        "price": {
+          "amount": 12500,
+          "currency": "USD",
+          "formatted": "$125.00"
+        },
+        "status": {
+          "available": false,
+          "reason": "reservation"
+        }
+      },
+      {
+        "closed_for_checkin": false,
+        "closed_for_checkout": false,
+        "date": "2025-06-15",
+        "min_stay": 1,
+        "price": null,
+        "status": {
+          "available": true,
+          "reason": null
+        }
+      }
+    ],
+    "end_date": "2025-06-16",
+    "listing_id": "cosmetic-listing",
+    "provider": "airbnb",
+    "start_date": "2025-06-14"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "arrival_date": "2025-06-14T00:00:00-07:00",
+      "booking_date": "2025-01-10T12:00:00Z",
+      "check_in": "2025-06-14T16:00:00-07:00",
+      "check_out": "2025-06-16T11:00:00-07:00",
+      "code": "ABC123EXAMPLE",
+      "departure_date": "2025-06-16T00:00:00-07:00",
+      "guest": {
+        "email": "guest@example.com",
+        "name": "Example Guest",
+        "phone": "+15550101000"
+      },
+      "guests": {
+        "adult_count": 2,
+        "child_count": 1,
+        "infant_count": 0,
+        "pet_count": 0,
+        "total": 3
+      },
+      "id": "res-example-not-accepted",
+      "nights": 2,
+      "platform": "airbnb",
+      "platform_id": "ABC123EXAMPLE",
+      "properties": [
+        {
+          "id": "prop-example-001"
+        }
+      ],
+      "reservation_status": {
+        "current": "not accepted",
+        "history": []
+      },
+      "status": "not accepted",
+      "stay_type": "guest"
+    }
+  ],
+  "links": [
+    {
+      "active": true,
+      "label": "1",
+      "url": "http://public.api.hospitable.com/v2/reservations?page=1"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "path": "http://public.api.hospitable.com/v2/reservations",
+    "per_page": 100,
+    "total": 1
+  }
+}
