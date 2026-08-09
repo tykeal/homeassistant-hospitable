@@ -226,12 +226,12 @@ US1 green phase, because the field bindings they pin appear in
       bogus value returned HTTP 400 naming exactly those two allowed
       values. Client-side filtering of the returned window remains
       authoritative. (FR-030, FR-075)
-- [X] T020 **LIVE PROBE (capacity)** In the same live session, pin the
-      inner key names of the `capacity` object. Record each in
-      `data-model.md`'s field binding table, replacing the UNVERIFIED
-      confidence marker with the observed value. Any binding still
-      unconfirmed stays UNVERIFIED and its consumer MUST degrade to
-      `unknown` with a warning rather than guess.
+- [X] T020 **LIVE PROBE (capacity)** CONFIRMED-BY-TEST on
+      2026-08-09 across 13 properties: `capacity.max`, `bedrooms`,
+      `beds`, and `bathrooms` were present on every sampled property.
+      Property `checkin` and `checkout` were also confirmed as bare
+      `HH:MM` wall-clock strings. Recorded in `data-model.md` and
+      `research.md`; unexpected shapes degrade to `None`.
       (FR-024, FR-034)
 - [X] T021 Update `research.md` (A-1..A-3 outcomes) and `data-model.md`
       (field binding table) with the probe results, and note in

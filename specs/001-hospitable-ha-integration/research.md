@@ -585,20 +585,25 @@ check-in and check-out fields are top-level `check_in` and `check_out`.
 They were present on 25 of 25 sampled reservations. No candidate-field
 list is needed.
 
-### A-3: Format of reservation `check_in` and `check_out` strings
+### A-3: Format of property `checkin` and `checkout` strings
 
-**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045.
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-053, FR-074.
 
-The live reservation-field probe on 2026-08-09 confirmed both fields
-are full ISO 8601 datetimes with UTC offsets, matching the mask
-`9999-99-99a99:99:99-99:99`. `booking_date` is different: it is a UTC
-timestamp with trailing `Z`, matching `9999-99-99a99:99:99a`.
+The live property-field probe on 2026-08-09 confirmed `checkin` and
+`checkout` are bare `HH:MM` wall-clock policy strings. They are not
+instants: they contain no date, seconds, UTC offset, or timezone, and
+they must not be parsed into datetimes or used for arithmetic. Across
+13 sampled properties both fields were present, non-null, and matched
+the `99:99` mask.
 
-Across a 50-reservation sample spanning the year, offsets varied
-between `-07:00` and `-08:00` (9 and 41 samples respectively), so the
-reservation timestamps are DST-aware at their own instants. Consequence:
-reservation occupancy is an exact instant comparison and needs no
-configured timezone for those reservation instants.
+The integration carries these values as strings for property attributes
+and degrades malformed values to `None`. It must not combine them with
+`property.timezone`, because that upstream field is a fixed UTC offset
+(`-0700` in fixtures), not an IANA timezone, and is DST-blind.
+
+The reservation scheduled-time probe separately confirmed reservation
+`check_in` and `check_out` are top-level ISO 8601 datetimes with UTC
+offsets. Those reservation fields remain governed by A-2 and FR-045.
 
 ### A-4: Reservation window filter fidelity
 

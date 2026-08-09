@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -37,7 +38,7 @@ class PropertyAddress:
 class PropertyCapacity:
     """Optional property capacity details."""
 
-    max_guests: int | None
+    max: int | None
     bedrooms: int | None
     beds: int | None
     bathrooms: float | None
@@ -49,11 +50,21 @@ class PropertyCapacity:
             return None
         bathrooms = payload.get("bathrooms")
         return cls(
-            payload.get("max", payload.get("max_guests")),
+            payload.get("max"),
             payload.get("bedrooms"),
             payload.get("beds"),
             float(bathrooms) if bathrooms is not None else None,
         )
+
+
+PROPERTY_TIME_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+
+def _property_time(value: Any) -> str | None:
+    """Return a property wall-clock HH:MM string, or None if malformed."""
+    if isinstance(value, str) and PROPERTY_TIME_RE.fullmatch(value):
+        return value
+    return None
 
 
 @dataclass(frozen=True)
@@ -109,8 +120,8 @@ class HospitableProperty:
             name,
             payload.get("public_name"),
             PropertyAddress.from_api(payload.get("address")),
-            payload.get("checkin"),
-            payload.get("checkout"),
+            _property_time(payload.get("checkin")),
+            _property_time(payload.get("checkout")),
             PropertyCapacity.from_api(payload.get("capacity")),
             payload.get("currency"),
             bool(payload.get("listed", False)),
