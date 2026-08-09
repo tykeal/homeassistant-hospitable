@@ -10,7 +10,12 @@ from typing import Any
 import httpx
 
 from custom_components.hospitable.api.auth import TokenProvider, build_auth_headers
-from custom_components.hospitable.api.const import BASE_URL, PROPERTIES_PATH, USER_PATH
+from custom_components.hospitable.api.const import (
+    BASE_URL,
+    PER_PAGE_MAX,
+    PROPERTIES_PATH,
+    USER_PATH,
+)
 from custom_components.hospitable.api.exceptions import (
     HospitableForbiddenError,
     HospitableScopeError,
@@ -77,10 +82,21 @@ class HospitableApiClient:
 
     async def get_properties(self) -> dict[str, HospitableProperty]:
         """Return all properties keyed by immutable property identifier."""
-        payload = await self._get(
-            PROPERTIES_PATH, params=build_properties_params(page=1, per_page=100)
-        )
-        items = validate_list_envelope(payload, expected_page=1)
-        assert_include(items, "listings", endpoint=PROPERTIES_PATH)
-        properties = [HospitableProperty.from_api(item) for item in items]
-        return {item.property_id: item for item in properties}
+        page = 1
+        properties: dict[str, HospitableProperty] = {}
+        while True:
+            payload = await self._get(
+                PROPERTIES_PATH,
+                params=build_properties_params(page=page, per_page=PER_PAGE_MAX),
+            )
+            items = validate_list_envelope(payload, expected_page=page)
+            assert_include(items, "listings", endpoint=PROPERTIES_PATH)
+            for item in items:
+                model = HospitableProperty.from_api(item)
+                properties[model.property_id] = model
+            meta = payload.get("meta", {})
+            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
+            if page >= int(last_page):
+                break
+            page += 1
+        return properties

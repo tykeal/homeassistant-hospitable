@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
+
 from custom_components.hospitable.const import (
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
@@ -25,7 +27,7 @@ DEFAULT_OPTIONS: dict[str, Any] = {
 }
 
 
-class HospitableConfigFlow:
+class HospitableConfigFlow(ConfigFlow, domain="hospitable"):
     """Minimal config-flow surface for US1 tests and HA discovery."""
 
     supported_steps: ClassVar[set[str]] = {"user", "properties", "reauth_confirm"}
@@ -37,10 +39,22 @@ class HospitableConfigFlow:
         """Return an options flow handler."""
         return HospitableOptionsFlow(config_entry)
 
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the initial token step until full validation runs."""
+        return self.async_show_form(step_id="user", errors={})
 
-class HospitableOptionsFlow:
+
+class HospitableOptionsFlow(OptionsFlow):
     """Minimal options-flow holder for Hospitable entries."""
 
     def __init__(self, config_entry: object) -> None:
         """Store the config entry for later options handling."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the options form until full options validation runs."""
+        return self.async_show_form(step_id="init", errors={})

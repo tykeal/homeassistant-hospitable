@@ -21,8 +21,10 @@ class PropertyAddress:
     display: str | None
 
     @classmethod
-    def from_api(cls, payload: dict[str, Any]) -> PropertyAddress:
+    def from_api(cls, payload: dict[str, Any] | None) -> PropertyAddress:
         """Build an address from API data."""
+        if not isinstance(payload, dict):
+            payload = {}
         return cls(
             payload.get("city"),
             payload.get("state"),
@@ -94,14 +96,19 @@ class HospitableProperty:
             name = str(payload["name"])
         except KeyError as exc:
             raise HospitableResponseError("Property missing required key") from exc
+        raw_listings = payload.get("listings", [])
+        if not isinstance(raw_listings, list):
+            raw_listings = []
         listings = tuple(
-            HospitableListing.from_api(item) for item in payload.get("listings", [])
+            HospitableListing.from_api(item)
+            for item in raw_listings
+            if isinstance(item, dict)
         )
         return cls(
             property_id,
             name,
             payload.get("public_name"),
-            PropertyAddress.from_api(payload.get("address", {})),
+            PropertyAddress.from_api(payload.get("address")),
             payload.get("checkin"),
             payload.get("checkout"),
             PropertyCapacity.from_api(payload.get("capacity")),
@@ -126,6 +133,8 @@ class GuestBreakdown:
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> GuestBreakdown:
         """Build guest counts from API data."""
+        if not isinstance(payload, dict):
+            payload = {}
         return cls(
             int(payload.get("total", 0)),
             int(payload.get("adult_count", 0)),

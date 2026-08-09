@@ -14,6 +14,10 @@ def test_user_strings_use_property_not_listing() -> None:
         DOMAIN,
     )
 
-    strings = json.loads(Path(f"custom_components/{DOMAIN}/strings.json").read_text())
-    rendered = json.dumps(strings).casefold().replace('"listings"', '""')
+    base = Path(f"custom_components/{DOMAIN}")
+    payloads = [
+        json.loads((base / "strings.json").read_text()),
+        json.loads((base / "translations/en.json").read_text()),
+    ]
+    rendered = json.dumps(payloads).casefold().replace('"listings"', '""')
     assert "listing" not in rendered

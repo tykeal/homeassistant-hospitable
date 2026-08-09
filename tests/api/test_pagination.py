@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 from tests.helpers import load_fixture
 
 
@@ -24,7 +26,10 @@ async def test_pagination_constructs_https_pages(
     respx_router.get("http://public.api.hospitable.com/v2/properties?page=2").mock(
         side_effect=AssertionError("followed http link")
     )
-    respx_router.get(f"{BASE_URL}/properties").respond(
-        json=load_fixture("properties_page1.json")
+    respx_router.get(f"{BASE_URL}/properties").mock(
+        side_effect=[
+            httpx.Response(200, json=load_fixture("properties_page1.json")),
+            httpx.Response(200, json=load_fixture("properties_page2.json")),
+        ]
     )
     await client.get_properties()
