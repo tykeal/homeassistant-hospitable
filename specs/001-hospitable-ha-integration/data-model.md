@@ -216,8 +216,11 @@ UNVERIFIED row with a CONFIRMED one before the US1 green phase.
 | Reservation status category | `status.current.category`, `status.current` | CONFIRMED that a structured object with a current value exists; exact path UNVERIFIED | `HospitableResponseError` — FR-032 makes this load-bearing, so it must fail loudly |
 | Reservation arrival date | `arrival_date`, `check_in`, `checkin` | UNVERIFIED | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
 | Reservation departure date | `departure_date`, `check_out`, `checkout` | UNVERIFIED | `HospitableResponseError` |
+| Reservation nights | `nights`, `night_count` | UNVERIFIED | Attribute reports `None`; state is unaffected (FR-046) |
 | Reservation scheduled check-in time | `check_in_time`, `checkin_time`, or a time component of a datetime-valued arrival key | UNVERIFIED (A-2) | Fall through to `property.checkin` |
 | Reservation scheduled check-out time | `check_out_time`, `checkout_time`, or a time component of a datetime-valued departure key | UNVERIFIED (A-2) | Fall through to `property.checkout` |
+| Reservation channel confirmation identifier | `platform_id`, `channel_id`, `confirmation_code` | UNVERIFIED | Attribute reports `None`; state is unaffected (FR-046) |
+| Reservation booking date | `booking_date`, `booked_at`, `created_at` | UNVERIFIED | Attribute reports `None`; state is unaffected (FR-046) |
 | Stay type | `stay_type`, `reservation_type` | CONFIRMED that a stay-type field exists; name UNVERIFIED | Attribute reports `None`; state is unaffected (FR-049) |
 
 **Rule**: a required-role binding that resolves to nothing raises. An

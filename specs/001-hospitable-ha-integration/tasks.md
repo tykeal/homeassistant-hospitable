@@ -113,8 +113,9 @@ red/green pair.
       config-flow, options-flow, reauth, error, and entity-name keys
       enumerated in `contracts/config-entry.md`. All user-facing text
       says "property", never "listing"; token help text explains where
-      to obtain a Personal Access Token and what scopes it needs.
-      (FR-007, FR-064, FR-068)
+      to obtain a Personal Access Token, that it requires a paid
+      Hospitable plan with Essentials excluded, and what scopes it
+      needs. (FR-007, FR-064, FR-068)
 - [ ] T007 [P] Create the package skeleton: empty
       `custom_components/hospitable/api/__init__.py`,
       `custom_components/hospitable/services/__init__.py`, and
@@ -228,7 +229,13 @@ US1 green phase, because the field bindings they pin appear in
       answer. (FR-030, FR-075)
 - [ ] T020 **LIVE PROBE (A-2, A-3)** In the same live session, pin the
       scheduled check-in/check-out field names (A-2), the time-string
-      format (A-3), and the inner key names of the `capacity` object.
+      format (A-3), the inner key names of the `capacity` object, and
+      the key names for `nights`, the channel confirmation identifier,
+      and the booking date. As direct corroboration of the OpenAPI
+      `ReservationFull` schema rather than because it is in doubt,
+      record the observed inner key names of the base-payload `guests`
+      object (`total`, `adult_count`, `child_count`, `infant_count`,
+      `pet_count`).
       Record each in `data-model.md`'s field binding table, replacing
       the UNVERIFIED confidence marker with the observed value. Any
       binding still unconfirmed stays UNVERIFIED and its consumer MUST
@@ -324,8 +331,10 @@ nothing.
       authoritative and its `Retry-After` is honored when present;
       that `X-RateLimit-*` headers are read if present but that their
       absence changes nothing and no code path depends on them; that
-      retries are bounded with jittered backoff; and that exhausting
-      retries raises rather than looping. (FR-036, FR-037)
+      retries are bounded with jittered backoff; that no computed
+      delay, including maximum jitter, can exceed `MAX_BACKOFF`, which
+      is ≤ 300 s per SC-007; and that exhausting retries raises rather
+      than looping. (FR-036, FR-037, SC-007)
 - [ ] T029 [P] [US1] `tests/api/test_redaction.py`: assert the token,
       any bearer-shaped string, and every personal field are redacted
       from exception text, log records, and body excerpts. (FR-006)

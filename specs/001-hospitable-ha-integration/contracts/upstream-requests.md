@@ -207,7 +207,9 @@ Attempts are bounded; on exhaustion the last typed exception is raised
 with its context intact (FR-037). No quota is hard-coded and no
 rate-limit header is assumed to be present (FR-036, OQ-005, A-7).
 `Retry-After` is parsed in both delta-seconds and HTTP-date forms if it
-appears; absence is the expected case.
+appears; absence is the expected case. `MAX_BACKOFF = 300` seconds,
+chosen to satisfy SC-007's five-minute resumption bound even when the
+computed delay includes maximum jitter.
 
 ## Request budget
 

@@ -209,7 +209,7 @@ carries normatively:
 | `page`, `per_page` | CONFIRMED honored | Assert `meta.current_page` equals the page requested |
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
-| date-filter mode | UNVERIFIED parameter name | Assumption A-3; probe task in US1 |
+| date-filter mode | UNVERIFIED parameter name | Assumption A-1; probe task in US1 |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
 reviewable checklist. A future contributor adding a query parameter
@@ -356,6 +356,8 @@ the client's request method.
 
 Backoff is `base * 2**attempt`, multiplied by a uniform jitter factor
 in `[0.75, 1.25]`, floored at 0.1 s and capped at `MAX_BACKOFF`.
+`MAX_BACKOFF = 300` seconds, chosen to satisfy SC-007's five-minute
+resumption bound even when the computed delay includes maximum jitter.
 Attempts are bounded; on exhaustion the last typed exception is raised
 with its context intact (FR-037).
 
