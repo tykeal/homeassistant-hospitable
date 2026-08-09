@@ -18,7 +18,7 @@ def chunk_property_ids(property_ids: list[str]) -> Iterator[list[str]]:
 
 def build_reservation_params(
     property_ids: list[str], start: date, end: date
-) -> dict[str, object]:
+) -> dict[str, str | int | list[str]]:
     """Build query parameters for the reservations endpoint."""
     return {
         "properties[]": property_ids,

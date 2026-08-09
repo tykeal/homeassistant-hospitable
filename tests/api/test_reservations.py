@@ -8,7 +8,6 @@ from datetime import date
 from typing import Any
 
 import httpx
-import pytest
 
 from tests.helpers import assert_query_value, load_fixture
 
@@ -30,11 +29,6 @@ def test_reservation_query_contract() -> None:
     assert params["include"] == "properties"
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T033 reservations client sends honored filters",
-)
 async def test_client_reservations_send_filters_and_refilter(
     api_client_factory: Any,
     mock_httpx_client: Any,

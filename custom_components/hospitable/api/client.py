@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import date
 from typing import Any
 
 import httpx
@@ -14,6 +15,7 @@ from custom_components.hospitable.api.const import (
     BASE_URL,
     PER_PAGE_MAX,
     PROPERTIES_PATH,
+    RESERVATIONS_PATH,
     USER_PATH,
 )
 from custom_components.hospitable.api.exceptions import (
@@ -27,14 +29,19 @@ from custom_components.hospitable.api.exceptions import (
 from custom_components.hospitable.api.models import (
     HospitableAccount,
     HospitableProperty,
+    HospitableReservation,
 )
 from custom_components.hospitable.api.properties import build_properties_params
+from custom_components.hospitable.api.reservations import (
+    build_reservation_params,
+    chunk_property_ids,
+)
 from custom_components.hospitable.api.responses import (
     assert_include,
     validate_list_envelope,
 )
 
-QueryValue = str | int | float | bool | None
+QueryValue = str | int | float | bool | None | list[str]
 
 
 def classify_403(
@@ -136,3 +143,32 @@ class HospitableApiClient:
                 break
             page += 1
         return properties
+
+    async def get_reservations(
+        self, property_ids: list[str], start: date, end: date
+    ) -> list[HospitableReservation]:
+        """Return reservations for properties, locally enforcing the date window."""
+        reservations: list[HospitableReservation] = []
+        for batch in chunk_property_ids(property_ids):
+            page = 1
+            while True:
+                params = build_reservation_params(batch, start, end)
+                params["page"] = page
+                payload = await self._get(RESERVATIONS_PATH, params=params)
+                items = validate_list_envelope(payload, expected_page=page)
+                assert_include(items, "properties", endpoint=RESERVATIONS_PATH)
+                for item in items:
+                    model = HospitableReservation.from_api(item)
+                    if (
+                        model.property_id in batch
+                        and start <= model.arrival_date <= end
+                    ):
+                        reservations.append(model)
+                meta = payload.get("meta", {})
+                last_page = (
+                    meta.get("last_page", page) if isinstance(meta, dict) else page
+                )
+                if page >= int(last_page):
+                    break
+                page += 1
+        return reservations

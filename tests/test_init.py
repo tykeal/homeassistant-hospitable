@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import device_registry as dr
@@ -30,11 +29,6 @@ def test_setup_wires_only_properties_coordinator() -> None:
     assert integration.PLATFORMS == []
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T040 setup loads properties devices only",
-)
 async def test_setup_entry_loads_properties_and_devices(
     hass: Any,
     respx_router: Any,
@@ -78,4 +72,4 @@ async def test_setup_entry_loads_properties_and_devices(
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert entry.runtime_data is None
+    assert getattr(entry, "runtime_data", None) is None
