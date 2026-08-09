@@ -653,7 +653,9 @@ while remaining available.
       and entity creation) and
       `custom_components/hospitable/sensor/helpers.py` (shared
       attribute and state helpers, including the single money
-      minor-unit-to-float conversion point). (FR-042, FR-060)
+      minor-unit-to-float conversion point). US3, US4, and US7 require
+      this module; if any ships before US2, pull this task forward into
+      that phase. (FR-042, FR-060)
 - [ ] T083 [US2] Implement the three-strike availability mixin in
       `custom_components/hospitable/entity.py`. Satisfies T074.
       (FR-057)
@@ -1137,21 +1139,30 @@ pair.
   story. T019–T021 (live probes) additionally BLOCK the US1 green
   phase.
 - **Phase 3 (US1)**: depends on Phases 1 and 2.
-- **Phases 4–9 (US2–US7)**: each depends on US1 only. They are ordered
-  by priority, not by technical need, except where noted below.
+- **Phases 4–9 (US2–US7)**: each depends on US1, with the additional
+  sensor-platform dependency noted below. They are ordered by priority,
+  not by technical need, except where noted below.
 - **Phase 10 (Polish)**: depends on every user story that is to ship.
 
 ### User story dependencies
 
 - **US1 (P1)**: the foundation. Everything else needs it.
 - **US2 (P2)**: needs US1. Nothing else.
-- **US3 (P3)**: needs US1. Explicitly does NOT need US2.
+- **US3 (P3)**: needs US1. It also needs the sensor platform setup and
+  entity-creation module introduced at T082 (US2), or must pull T082
+  forward if it ships before US2.
 - **US4 (P4)**: needs US1. Reuses the FR-056 mechanism introduced in
   US3 (T097) for non-destructive deselection; if US4 ships before US3
   that mechanism must be introduced in T113 instead.
 - **US5 (P5)**: needs US1. Predominantly evidence.
 - **US6 (P6)**: needs US1.
-- **US7 (P7)**: needs US1. Nothing depends on it.
+- **US7 (P7)**: needs US1 and the sensor platform setup and
+  entity-creation module introduced at T082 (US2), or must pull T082
+  forward if it ships before US2. Nothing depends on it.
+- **US3, US4, and US7 sensor caveat**: US3, US4 and US7 additionally
+  require the sensor platform setup and entity-creation module
+  introduced at T082 (US2). If any of them ships before US2, T082 must
+  be pulled forward into that phase.
 
 ### Within each user story
 
@@ -1175,7 +1186,8 @@ pair.
   `api/` package entirely.
 - Phases 4–9 red: every `[P]` test file within a phase is independent.
 - Once US1 has merged, US2 through US7 can be developed in parallel by
-  different contributors, subject to the US3/US4 note above.
+  different contributors, subject to the US3/US4 and sensor-platform
+  notes above.
 
 ---
 

@@ -815,8 +815,9 @@ surfaced through `effective_timezone` and `timezone_source`.
 completion.
 
 **Why independently shippable**: dashboards and schedule-driven
-automations become possible. It depends on US1 but not on US2 — the
-specification says so explicitly.
+automations become possible. It depends on US1 and on the sensor
+platform setup and entity-creation module introduced at T082 (US2). If
+US3 ships before US2, T082 must be pulled forward into US3.
 
 **Exit criteria**: every US3 acceptance scenario passing; the D-11
 regression guard asserting the model has no `timezone` attribute; the
@@ -833,7 +834,10 @@ messages.
 
 **Why independently shippable**: it converts fixed defaults into a
 supported tuning surface, which is what keeps the integration safe for
-a large portfolio. Nothing later depends on it.
+a large portfolio. It also touches `sensor/__init__.py`, so it requires
+the sensor platform setup and entity-creation module introduced at T082
+(US2), or must pull T082 forward if it ships before US2. Nothing later
+depends on it.
 
 **Exit criteria**: option changes take effect with no restart; the
 estimate reports 1,704 for ten properties at defaults with 500
@@ -885,7 +889,9 @@ zero-writes assertion.
 **Requirements**: FR-058 to FR-061.
 
 **Why independently shippable**: supplementary but self-contained, and
-last because nothing else depends on it.
+last because nothing else depends on it. It requires the sensor
+platform setup and entity-creation module introduced at T082 (US2), or
+must pull T082 forward if it ships before US2.
 
 **Exit criteria**: `booked` never rendered as `unavailable`;
 per-property calendar failure isolation proven; a full lifecycle
