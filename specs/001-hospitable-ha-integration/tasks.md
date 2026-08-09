@@ -406,12 +406,12 @@ nothing.
 - [ ] T040 [P] [US1] `tests/test_init.py`: assert `async_setup_entry`
       instantiates ONLY the properties coordinator in US1 (a positive
       assertion that the reservations and calendar coordinators are
-      NOT instantiated); that the sensor platform — and no other
-      platform — is forwarded; that `async_unload_entry` tears down
-      every HTTP client, listener, and coordinator; that
-      `async_migrate_entry` exists with `VERSION = 1` and
-      `MINOR_VERSION = 1`; and that a setup failure never fails
-      silently. (FR-041, FR-065, FR-070, FR-071)
+      NOT instantiated); that no Home Assistant platform is forwarded
+      during US1; that `async_unload_entry` tears down every HTTP
+      client, listener, and coordinator; that `async_migrate_entry`
+      exists with `VERSION = 1` and `MINOR_VERSION = 1`; and that a
+      setup failure never fails silently.
+      (FR-041, FR-065, FR-070, FR-071)
 - [ ] T041 [P] [US1] `tests/test_config_flow.py`: assert the `user` step
       validates the token with `GET /user` and stores `token`,
       `account_namespace`, and `namespace_source` in `entry.data`; the
@@ -513,7 +513,10 @@ nothing.
       (FR-019, FR-020, FR-071)
 - [ ] T062 [US1] Implement `custom_components/hospitable/entity.py` —
       base entity, device construction, frozen unique ID,
-      `suggested_object_id`. Satisfies T039.
+      `suggested_object_id`, and an explicit
+      `device_registry.async_get_or_create` call for each selected
+      property so US1 creates devices without sensor entities.
+      Satisfies T039.
       (FR-050, FR-054, FR-055)
 - [ ] T063 [US1] Implement `custom_components/hospitable/config_flow.py`
       — `user`, `properties`, `reauth_confirm`, and options steps with
@@ -524,8 +527,8 @@ nothing.
       Satisfies T042, and contributes to T043. (FR-063)
 - [ ] T065 [US1] Implement `custom_components/hospitable/__init__.py` —
       `async_setup_entry` instantiating ONLY the properties
-      coordinator, sensor-platform forwarding, `async_unload_entry`
-      teardown, `async_migrate_entry`, and the options update listener
+      coordinator, `async_unload_entry` teardown,
+      `async_migrate_entry`, and the options update listener
       registration. Satisfies T040.
       (FR-041, FR-065, FR-067, FR-070, FR-071)
 - [ ] T066 [US1] Finalize `strings.json` and `translations/en.json`
@@ -659,8 +662,10 @@ while remaining available.
       T072, T073, T075.
       (FR-042, FR-043, FR-046, FR-049, FR-062, FR-073)
 - [ ] T085 [US2] Wire the reservations coordinator into
-      `async_setup_entry` in `custom_components/hospitable/__init__.py`.
-      Satisfies T077. (FR-071)
+      `async_setup_entry` in `custom_components/hospitable/__init__.py`,
+      and forward the sensor platform after
+      `sensor/__init__.py` exists. Satisfies T077.
+      (FR-071)
 - [ ] T086 [US2] Add the reservation sensor's entity name and enum
       state translations to `strings.json` and `translations/en.json`,
       using "property" throughout. (FR-064, FR-068)
