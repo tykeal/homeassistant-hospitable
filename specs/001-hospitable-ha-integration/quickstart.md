@@ -137,16 +137,14 @@ FR-063, FR-066, FR-069, FR-070, FR-073 to FR-075.
 
 **Live probe task, required before the US1 green phase.** Assumption
 A-1 in [research.md](./research.md#a-1-reservation-date-filter-mode-parameter)
-assumes the reservation date-filter mode parameter's name and value.
-Issue the same reservation query twice against a live account, once
-with a deliberately bogus mode value, and compare result sets.
-Identical results prove the parameter is silently ignored, which moves
-it to NEVER SENT in the
-[upstream-requests](./contracts/upstream-requests.md) register and
-makes the client's local window filter authoritative. Differing results
-confirm it is honored and pin the value in `api/const.py`. Record the
-outcome in `research.md`. The same session pins every UNVERIFIED row of
-the [field binding table](./data-model.md#field-binding-table).
+has a confirmed parameter name, `date_query`, but its accepted value
+semantics are still unresolved. Issue narrow-window reservation queries
+against a live account that distinguish `checkin` from `checkout`.
+The parameter's bogus-value rejection means it is real, not silently
+ignored; if value semantics remain unresolved, block US1 green rather
+than guessing. Record the outcome in `research.md`. The same session
+pins any remaining UNVERIFIED rows of the
+[field binding table](./data-model.md#field-binding-table).
 
 ### US2 — Reservation status per property
 

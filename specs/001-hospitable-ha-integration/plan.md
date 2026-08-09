@@ -388,14 +388,15 @@ rejects the alternative as a design, not merely defers it.
 stay can independently be in any of those conditions (FR-049).
 
 **Occupancy is derived from scheduled moments, never calendar days.**
-The check-in moment is the arrival date combined with the best
-available scheduled check-in time — reservation-specific if one exists,
-otherwise the property's `checkin` string. All comparisons happen in
-the property's effective IANA zone. **A missing or uninterpretable time
-is a data error**: on the affected boundary date the sensor reports
-`unknown` and logs a warning naming the reservation and the field. No
-midnight substitution exists anywhere in the code, and the test for it
-asserts `unknown` specifically, because "not occupied" would also be
+The check-in and check-out moments come from the reservation's
+`check_in` and `check_out` datetimes when they are usable, falling back
+to the property's configured `checkin` and `checkout` strings only if
+needed. All comparisons happen in the property's effective IANA zone.
+**A missing or uninterpretable time is a data error**: on the affected
+boundary date the sensor reports `unknown` and logs a warning naming
+the reservation and the field. No midnight substitution exists
+anywhere in the code, and the test for it asserts `unknown`
+specifically, because "not occupied" would also be
 satisfied by `awaiting_checkin` — which is exactly the midnight bug.
 
 **Calendar data becomes the `availability` sensor**, with rate,
@@ -983,11 +984,11 @@ never called — that is stated, because "not implemented" and
 | OQ-012 | UNVERIFIED | `ical_imports` discarded at the model boundary (A-5) |
 | OQ-013 | UNVERIFIED | `request` and `unknown` fully mapped and fixture-exercised (A-6) |
 
-Three planning-time assumptions must be resolved before the US1 green
-phase, and they are the only items that could change code rather than
-documentation: the A-1 date-filter mode parameter, the A-2
-scheduled-time field names, and the A-3 time-string format. Each has a
-stated fallback that requires no design change — only a constant moves.
+One planning-time assumption remains to be resolved before the US1
+green phase: the A-1 `date_query` value semantics. The parameter name
+and validation are confirmed, and A-2/A-3 were resolved by the
+2026-08-09 live reservation-field probe. The remaining probe can change
+only the constant value sent with `date_query`.
 
 ## Complexity Tracking
 

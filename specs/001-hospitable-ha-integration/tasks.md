@@ -218,28 +218,22 @@ US1 green phase, because the field bindings they pin appear in
       which the existing top-level `exclude: ^tests/resources` would
       silently disable, taking `check-json` and this guard with it.
 - [ ] T019 **LIVE PROBE (A-1)** Determine the reservation date-filter
-      mode parameter on `GET /reservations`. `research.md` assumes
-      `date_query=checkin`; this is UNVERIFIED. Issue two live requests
-      differing only in that parameter against a real PAT and compare
-      the returned sets. Record the outcome in `research.md` under A-1.
-      **Fallback if unconfirmed or if the parameter proves to be
-      silently ignored: NEVER SEND IT.** Client-side filtering of the
-      returned window is authoritative in either case. This task gates
-      the US1 green phase because `api/reservations.py` encodes the
-      answer. (FR-030, FR-075)
-- [ ] T020 **LIVE PROBE (A-2, A-3)** In the same live session, pin the
-      scheduled check-in/check-out field names (A-2), the time-string
-      format (A-3), the inner key names of the `capacity` object, and
-      the key names for `nights`, the channel confirmation identifier,
-      and the booking date. As direct corroboration of the OpenAPI
-      `ReservationFull` schema rather than because it is in doubt,
-      record the observed inner key names of the base-payload `guests`
-      object (`total`, `adult_count`, `child_count`, `infant_count`,
-      `pet_count`).
-      Record each in `data-model.md`'s field binding table, replacing
-      the UNVERIFIED confidence marker with the observed value. Any
-      binding still unconfirmed stays UNVERIFIED and its consumer MUST
-      degrade to `unknown` with a warning rather than guess.
+      mode value semantics on `GET /reservations`. The parameter name
+      `date_query` is CONFIRMED-BY-TEST to exist and validate its
+      values: `date_query=bogus_value` returned empty/error, while
+      `date_type=` and `filter_date_type=` were silently ignored. Do
+      not yet assert whether `checkin` or `checkout` is the value to
+      send; issue a narrow-window probe that can distinguish them and
+      record the outcome in `research.md` under A-1. If the value
+      semantics remain unresolved, block the US1 green phase rather
+      than guessing. Client-side filtering of the returned window is
+      authoritative in every case. (FR-030, FR-075)
+- [ ] T020 **LIVE PROBE (capacity)** In the same live session, pin the
+      inner key names of the `capacity` object. Record each in
+      `data-model.md`'s field binding table, replacing the UNVERIFIED
+      confidence marker with the observed value. Any binding still
+      unconfirmed stays UNVERIFIED and its consumer MUST degrade to
+      `unknown` with a warning rather than guess.
       (FR-024, FR-034)
 - [ ] T021 Update `research.md` (A-1..A-3 outcomes) and `data-model.md`
       (field binding table) with the probe results, and note in
@@ -1288,15 +1282,13 @@ Read this section before trusting any count elsewhere in this file.
   `include=guests` is NEVER SENT. T030 asserts the prohibition rather
   than the include. If a future feature surfaces guest detail, FR-033
   must be revisited.
-- **Three assumptions remain UNVERIFIED at the time of writing** and
-  make three tasks less concrete than the rest: A-1 (the reservation
-  date-filter mode parameter, assumed `date_query=checkin`), A-2 (the
-  scheduled-time field names), and A-3 (the time-string format). T019
-  and T020 are live probes that resolve them; T033 and T056 are
-  written to work under either outcome, with the fallback of never
-  sending the A-1 parameter and relying on authoritative client-side
-  filtering. Nothing in the design changes if the probes fail — only a
-  constant moves.
+- **One A-1 detail remains UNVERIFIED at the time of writing**: the
+  reservation date-filter mode parameter is `date_query` and is
+  validated, but the accepted value semantics are still pending the
+  narrow-window probe in T019. A-2 and A-3 are resolved by the live
+  reservation-field probe. T020 remains only for the property-capacity
+  inner keys. Client-side filtering remains authoritative regardless
+  of the A-1 value.
 - **T100 (OQ-004) and T156 (live success-criteria validation) cannot
   be completed without a real Hospitable account.** They are specified
   as verification obligations, not as things this task list can

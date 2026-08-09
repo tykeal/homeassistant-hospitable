@@ -209,7 +209,7 @@ carries normatively:
 | `page`, `per_page` | CONFIRMED honored | Assert `meta.current_page` equals the page requested |
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
-| date-filter mode | UNVERIFIED parameter name | Assumption A-1; probe task in US1 |
+| `date_query` mode | CONFIRMED-BY-TEST parameter name and validation; value semantics UNVERIFIED | Assumption A-1; narrow-window probe task in US1 |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
 reviewable checklist. A future contributor adding a query parameter
@@ -553,56 +553,49 @@ CONFIRMED anywhere in the design.
 
 ### A-1: Reservation date-filter mode parameter
 
-**Tier**: UNVERIFIED. **Governs**: FR-029, FR-030.
+**Tier**: CONFIRMED-BY-TEST parameter name and validation; value
+semantics UNVERIFIED. **Governs**: FR-029, FR-030.
 
-FR-030 requires the date-filter mode to be sent explicitly, but neither
-the specification nor any confirmed observation names the parameter or
-its permitted values. The design assumes a parameter named
-`date_query` with a value selecting check-in-date filtering.
+FR-030 requires the date-filter mode to be sent explicitly when the
+platform exposes such a parameter. A live probe on 2026-08-09 confirmed
+`date_query` exists and validates its value:
+`date_query=bogus_value` returned empty/error, while `date_type=` and
+`filter_date_type=` were silently ignored. The fallback branch in
+FR-030 is documented but not taken. The accepted value semantics remain
+UNVERIFIED because `date_query=checkin` and `date_query=checkout`
+matched the baseline in the sampled data.
 
 **Why it matters**: the ninety-day lookback default exists specifically
 because filtering is by check-in date (FR-022, and the Edge Cases
 discussion of long stays). If the real filter mode were, say, overlap
 based, the lookback rationale changes.
 
-**Fallback**: US1 includes an explicit probe task. The probe issues the
-same query twice, once with a deliberately bogus mode value, and
-compares result sets. Identical results prove the parameter is silently
-ignored, which puts it in the D-05 register as NEVER SENT and makes the
-client's own client-side window filter authoritative. Non-identical
-results confirm it is honored, and the honored value is then pinned
-in `api/const.py` with the probe recorded in this document. Either
-outcome is handled without a design change; only the constant moves.
+**Fallback**: US1 includes a narrow-window probe task to distinguish the
+accepted values before the green phase. If the value semantics remain
+unresolved, the green phase blocks rather than guessing. The
+client-side window filter remains authoritative regardless of which
+value is sent.
 
 ### A-2: Scheduled time field names on a reservation
 
-**Tier**: UNVERIFIED. **Governs**: FR-045, FR-046.
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045, FR-046.
 
-The specification's Key Entities section states a reservation carries
-"scheduled check-in and check-out times", but no confirmed field name
-is recorded. The design binds these by *role*, not by name: the
-reservation model resolves a scheduled check-in from the first present
-key in a documented candidate list, and falls back to the property's
-`checkin` string (CONFIRMED to exist and to be the real scheduled-time
-source).
+The live reservation-field probe on 2026-08-09 confirmed the scheduled
+check-in and check-out fields are top-level `check_in` and `check_out`.
 
-**Fallback**: if no candidate key is present on any live reservation,
-the property strings become the sole source. That is already the
-FR-045-sanctioned second tier, so the occupancy logic is unchanged; the
-candidate list simply resolves to empty. If a candidate key exists but
-carries a full datetime rather than a time, the resolver uses it
-directly and skips composition with the arrival date. The candidate
-list and its resolution order are in
-[data-model.md](./data-model.md#field-binding-table), which marks each
-binding's tier.
+**Fallback**: if either confirmed key is absent or unusable on a future
+payload, the property strings become the second-tier source. That is
+already the FR-045-sanctioned fallback, so the occupancy logic is
+unchanged.
 
-### A-3: Format of the property `checkin` and `checkout` strings
+### A-3: Format of reservation `check_in` and `check_out` strings
 
-**Tier**: UNVERIFIED. **Governs**: FR-045.
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045.
 
-CONFIRMED: these are string fields and are the scheduled-time source.
-Their *format* is not confirmed. The parser accepts `HH:MM`,
-`H:MM`, `HH:MM:SS`, and 12-hour forms with a meridiem suffix.
+The live reservation-field probe on 2026-08-09 confirmed both fields
+are full ISO 8601 datetimes with UTC offsets, matching the mask
+`9999-99-99a99:99:99-99:99`. `booking_date` is different: it is a UTC
+timestamp with trailing `Z`, matching `9999-99-99a99:99:99a`.
 
 **Fallback**: anything else — including plausible free-text values such
 as `Flexible` or `Anytime` — parses to `None`. FR-045 then governs

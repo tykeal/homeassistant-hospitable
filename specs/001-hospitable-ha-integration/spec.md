@@ -655,10 +655,10 @@ false negative on the integration's primary sensor.
   relevant reservation using this priority ordering, applied in order
   until one reservation is selected:
   1. A reservation that is currently in progress under FR-045.
-  2. The soonest future arrival, by arrival date then scheduled
-     check-in time.
-  3. The most recent past departure, by departure date then scheduled
-     check-out time.
+  2. The soonest future arrival, by arrival datetime then scheduled
+     check-in moment.
+  3. The most recent past departure, by departure datetime then
+     scheduled check-out moment.
 
   Reservations whose status category is cancelled or not accepted rank
   below all others within every tier. Any remaining tie MUST be broken
@@ -668,12 +668,11 @@ false negative on the integration's primary sensor.
 - **FR-045**: Hospitable publishes no checked-in status, so the
   integration MUST derive occupancy itself. It MUST do so from
   scheduled check-in and check-out moments, never from calendar-day
-  boundaries. The check-in moment is formed from the reservation's
-  arrival date and the best available scheduled check-in time. The
-  check-out moment is formed from the reservation's departure date and
-  the best available scheduled check-out time. A reservation-specific
-  time is used when one exists; otherwise the property's `checkin` or
-  `checkout` string is used. Specifically:
+  boundaries. The check-in and check-out moments are parsed from the
+  reservation's `check_in` and `check_out` datetimes when those fields
+  are usable; otherwise the property's `checkin` or `checkout` string
+  is combined with the corresponding arrival or departure local date.
+  Specifically:
   - A reservation is occupied from its scheduled check-in moment until
     its scheduled check-out moment.
   - Before the scheduled check-in moment, including earlier on the
