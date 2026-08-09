@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from tests.helpers import load_fixture
+from tests.helpers import assert_query_value, load_fixture
 
 
 async def test_pagination_constructs_https_pages(
@@ -33,3 +33,5 @@ async def test_pagination_constructs_https_pages(
         ]
     )
     await client.get_properties()
+    for call in respx_router.calls:
+        assert_query_value(call.request, "per_page", "100")
