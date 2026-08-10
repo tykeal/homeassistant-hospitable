@@ -7,10 +7,10 @@ SPDX-License-Identifier: MIT
 <!--
   Sync Impact Report
   ==================================================
-  Version change: 1.1.0 → 1.1.1
-  Change type: PATCH - a factual licensing correction and wording
-  refinement. No principle is added, removed, renamed, renumbered, or
-  materially expanded; all twelve retain their existing scope.
+  Version change: 1.1.1 → 1.1.2
+  Change type: PATCH - a governance-process clarification. No
+  principle is added, removed, renamed, renumbered, or materially
+  expanded; all twelve retain their existing scope.
 
   Report scope: this block describes ONLY the most recent amendment.
   It is overwritten on every amendment; the full amendment history is
@@ -18,26 +18,27 @@ SPDX-License-Identifier: MIT
 
   Why this amendment exists
   -------------------------------------------------
-  Version 1.1.0 still described Hospitable brand imagery as
-  CC-BY-SA-4.0 material copyrighted by the repository owner. That was
-  factually wrong: the images are third-party trademark assets for the
-  Hospitable service, and the Hospitable name and logo are trademarks
-  of Hospitable R&D BV. The project now annotates
-  `custom_components/hospitable/brand/**` as
-  `LicenseRef-Hospitable-Trademark` with Hospitable R&D BV as the
-  copyright holder, matching the trademark notice shipped under
-  `LICENSES/`.
+  The v1.1.1 amendment correctly overwrote the Sync Impact Report, but
+  the outgoing v1.1.0 report also contained live future-scope research
+  findings and an open webhook-signature TODO. Because the Governance
+  section described git history as the complete amendment history but
+  did not require relocating non-history content before overwrite,
+  those findings became invisible to normal repository readers. This
+  amendment adds that preservation check to Governance. The lost
+  webhook, OAuth, and rate-limit findings were moved into
+  `specs/001-hospitable-ha-integration/research.md` before this
+  amendment.
 
-  Modified principles (all retain their number and title):
-    - IV. Licensing & Attribution Standards
-      - The location-to-license enumeration now identifies Hospitable
-        brand assets as `LicenseRef-Hospitable-Trademark` material used
-        only for third-party service identification, not as
-        CC-BY-SA-4.0 material.
-      - The rationale now describes the brand imagery as third-party
-        trademark material rather than share-alike material, preserving
-        the same warning that downstream HACS users inherit licensing
-        defects.
+  Modified sections:
+    - Governance
+      - The Sync Impact Report rule now requires amenders to inspect
+        the outgoing report for still-open TODOs, deferred-scope
+        research findings, or operational notes that must remain
+        visible, and to relocate them to a durable artifact before the
+        report is overwritten.
+      - The template-review rule now explicitly says each template must
+        be re-read for every amendment and that prior "no drift" claims
+        must not be copied forward without inspection.
 
   Added sections: None.
 
@@ -53,26 +54,28 @@ SPDX-License-Identifier: MIT
     - .specify/templates/plan-template.md — CHECKED, no change needed.
       Its Constitution Check section delegates gates to the current
       constitution through the placeholder "[Gates determined based on
-      constitution file]" and contains no hard-coded license, brand, or
-      trademark enumeration.
+      constitution file]" and contains no Sync Impact Report,
+      amendment, migration, or template-review process text.
     - .specify/templates/tasks-template.md — CHECKED, no change needed.
-      Its project overlay references Principles I, IX, and XII for
-      mandatory red-phase testing only. It contains no Principle IV,
-      license, brand, trademark, or CC-BY-SA text.
+      Its project overlay discusses mandatory tests and red-phase
+      commits under Principles I, IX, and XII only. It contains no Sync
+      Impact Report, amendment, migration, or template-review process
+      text.
     - .specify/templates/spec-template.md — CHECKED, no change needed.
       The template is generic feature-spec boilerplate and contains no
-      license, brand, trademark, or CC-BY-SA text.
+      Sync Impact Report, amendment, migration, or template-review
+      process text.
     - .specify/templates/checklist-template.md — CHECKED, no change
-      needed. The checklist scaffold contains no constitution, license,
-      brand, trademark, or CC-BY-SA text.
+      needed. The checklist scaffold contains no constitution,
+      amendment, migration, or template-review process text.
     - .specify/templates/constitution-template.md — CHECKED, no change
       needed. It is the unfilled upstream scaffold with placeholder
-      principle and version fields only; it contains no project license
-      enumeration or Hospitable brand guidance.
+      governance and version fields only; it does not contain this
+      project's Sync Impact Report preservation rule.
 
-  Migration plan: No code migration is required. Existing brand files
-  are already covered by the corrected `REUSE.toml` annotation and the
-  new `LICENSES/LicenseRef-Hospitable-Trademark.txt` notice.
+  Migration plan: No code migration is required. Future-scope research
+  that would otherwise have been lost has already been preserved in the
+  durable research artifact for spec 001.
   ==================================================
 -->
 
@@ -980,15 +983,21 @@ structurally impossible rather than merely discouraged.
 - The Sync Impact Report comment at the top of this file records ONLY
   the most recent amendment; each `/speckit.constitution` run overwrites
   it. The authoritative, complete amendment history is the git history
-  of this file, which Principle III keeps atomic and bisectable.
-- All `.specify/templates/*.md` files MUST be reviewed for consistency
-  whenever this constitution is amended, and any drift MUST be
-  corrected — in the same change where doing so preserves commit
-  atomicity, otherwise under a follow-up TODO recorded in the Sync
-  Impact Report. Because `.specify/**` is MIT-licensed, upstream-owned
-  Spec Kit material (Principle IV), any such correction is a local
-  project overlay that a Spec Kit upgrade WILL overwrite and that MUST
-  therefore be re-applied after every upstream Spec Kit upgrade.
+  of this file, which Principle III keeps atomic and bisectable. Before
+  overwriting the report, amenders MUST inspect the outgoing report for
+  still-open TODOs, deferred-scope research findings, or operational
+  notes that must remain visible outside git history, and MUST relocate
+  any such material into a durable repository artifact.
+- All `.specify/templates/*.md` files MUST be re-read and reviewed for
+  consistency whenever this constitution is amended; prior claims that
+  no template drift exists MUST NOT be copied forward without fresh
+  inspection. Any drift MUST be corrected — in the same change where
+  doing so preserves commit atomicity, otherwise under a follow-up TODO
+  recorded in the Sync Impact Report. Because `.specify/**` is
+  MIT-licensed, upstream-owned Spec Kit material (Principle IV), any
+  such correction is a local project overlay that a Spec Kit upgrade
+  WILL overwrite and that MUST therefore be re-applied after every
+  upstream Spec Kit upgrade.
 - Claims about tooling in this document MUST match the repository's
   actual configuration. When `.pre-commit-config.yaml`, `.gitlint`,
   `REUSE.toml`, or the CI workflows change in a way that alters an
@@ -996,4 +1005,4 @@ structurally impossible rather than merely discouraged.
 - Use `AGENTS.md` for day-to-day runtime development guidance that
   supplements, but never overrides, this constitution.
 
-**Version**: 1.1.1 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-10
+**Version**: 1.1.2 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-10
