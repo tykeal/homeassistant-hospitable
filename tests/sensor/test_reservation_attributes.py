@@ -80,7 +80,9 @@ def test_scheduled_times_are_offset_aware() -> None:
     assert checkin.tzinfo is not None
     assert isinstance(checkout, datetime)
     assert checkout.tzinfo is not None
-    assert isinstance(attributes["arrival_date"], date)
+    assert type(attributes["arrival_date"]) is date
+    assert not isinstance(attributes["arrival_date"], datetime)
+    assert type(attributes["departure_date"]) is date
     assert attributes["reservation_id"] == "res-example-accepted"
 
 

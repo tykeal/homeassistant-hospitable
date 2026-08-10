@@ -79,8 +79,8 @@ entities are prohibited (FR-042).
 | Attribute | Type | Requirement |
 | --- | --- | --- |
 | `reservation_id` | `str \| None` | FR-046 |
-| `arrival_date` | `datetime \| None` | FR-046 |
-| `departure_date` | `datetime \| None` | FR-046 |
+| `arrival_date` | `date \| None` | FR-046 |
+| `departure_date` | `date \| None` | FR-046 |
 | `nights` | `int \| None` | FR-046 |
 | `scheduled_checkin` | `datetime \| None` | FR-046 |
 | `scheduled_checkout` | `datetime \| None` | FR-046 |
@@ -102,8 +102,12 @@ when no usable scheduled time exists, which is exactly when the state
 is `unknown` on a boundary date.
 
 `upcoming_reservations` entries carry the reservation identifier,
-arrival datetime, departure datetime, status category, and stay type. They
-carry no guest identity.
+arrival date, departure date, status category, and stay type. They
+carry no guest identity. `arrival_date` and `departure_date` are exposed
+as `date`, not a midnight-anchored `datetime`, because the upstream
+value is a midnight-anchored date taken in the reservation's own offset;
+re-anchoring it as a datetime would reintroduce the day-roll hazard that
+converting a midnight instant across zones causes.
 
 `stay_type` is an attribute and never part of the state. An owner stay
 can independently be awaiting check-in, occupied, checked out, or
