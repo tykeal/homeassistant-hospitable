@@ -8,8 +8,6 @@ from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 
-import pytest
-
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
 
@@ -96,22 +94,14 @@ def test_no_personal_data_in_any_attribute() -> None:
 
 def test_upcoming_reservations_carry_no_identity() -> None:
     """Upcoming entries carry status and stay type but no guest identity."""
-    accepted = _reservation("reservation_accepted.json")
-    other = HospitableReservation.from_api(
-        {
-            **load_fixture("reservation_accepted.json")["data"][0],
-            "id": "res-later",
-            "arrival_date": "2025-08-01T00:00:00-07:00",
-            "departure_date": "2025-08-03T00:00:00-07:00",
-            "check_in": "2025-08-01T16:00:00-07:00",
-            "check_out": "2025-08-03T11:00:00-07:00",
-        }
-    )
-    sensor = _sensor([accepted, other])
+    soonest = _relative_reservation("res-soon", 3, 5)
+    other = _relative_reservation("res-later", 10, 12)
+    sensor = _sensor([soonest, other])
     upcoming = sensor.extra_state_attributes["upcoming_reservations"]
     assert isinstance(upcoming, list)
     assert upcoming
     entry = upcoming[0]
+    assert entry["reservation_id"] == "res-later"
     assert set(entry) == {
         "reservation_id",
         "arrival_date",
@@ -147,11 +137,6 @@ def _relative_reservation(
     return HospitableReservation.from_api(payload)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: D1 upcoming attribute must exclude past and cancelled",
-)
 def test_upcoming_excludes_past_and_cancelled() -> None:
     """Upcoming lists only genuine forthcoming stays, not past or cancelled."""
     soonest = _relative_reservation("res-future-1", 5, 7)

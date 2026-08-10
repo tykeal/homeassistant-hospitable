@@ -83,3 +83,18 @@ def select_reservation(
         return None, []
     ranked = sorted(reservations, key=lambda reservation: _sort_key(reservation, now))
     return ranked[0], list(ranked[1:])
+
+
+def is_forthcoming(reservation: HospitableReservation, now: datetime) -> bool:
+    """Return whether a reservation is a real forthcoming stay.
+
+    A forthcoming stay is one that has not been cancelled or declined and
+    whose arrival date is strictly in the future relative to ``now`` in
+    the reservation's own offset. US3's upcoming_reservations sensor
+    (T090) consumes this identical predicate so the sensor count and the
+    reservation_status upcoming_reservations attribute never disagree.
+    """
+    if reservation.status_category in _INACTIVE_CATEGORIES:
+        return False
+    now_date = now.astimezone(_reservation_zone(reservation)).date()
+    return reservation.arrival_date > now_date

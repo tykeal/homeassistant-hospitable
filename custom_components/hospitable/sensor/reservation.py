@@ -24,7 +24,10 @@ from custom_components.hospitable.services.occupancy import (
     derive_occupancy,
     parse_scheduled_instant,
 )
-from custom_components.hospitable.services.selection import select_reservation
+from custom_components.hospitable.services.selection import (
+    is_forthcoming,
+    select_reservation,
+)
 from custom_components.hospitable.services.status import StatusMapper
 
 NO_RESERVATION = "no_reservation"
@@ -143,7 +146,9 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
             "booking_date": selected.booking_date,
             "stay_type": selected.stay_type,
             "upcoming_reservations": [
-                reservation_summary(reservation) for reservation in upcoming
+                reservation_summary(reservation)
+                for reservation in upcoming
+                if is_forthcoming(reservation, now)
             ],
         }
 
