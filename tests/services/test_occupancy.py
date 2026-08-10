@@ -124,3 +124,51 @@ def test_degradation_scoped_to_boundary_dates_only() -> None:
     result = derive_occupancy(reservation, now)
     assert result.state == "occupied"
     assert result.state != "unknown"
+
+
+def _both_times_missing(arrival: str, departure: str) -> HospitableReservation:
+    """Build a reservation whose check-in and check-out are both missing."""
+    payload = dict(load_fixture("reservation_accepted.json")["data"][0])
+    payload.update(
+        {
+            "id": "res-both-missing",
+            "arrival_date": arrival,
+            "departure_date": departure,
+            "check_in": None,
+            "check_out": None,
+        }
+    )
+    return HospitableReservation.from_api(payload)
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=True,
+    reason="TDD red phase: D4 both-missing interior day must not degrade",
+)
+def test_both_times_missing_interior_is_occupied() -> None:
+    """Both scheduled times missing on an interior day still yields occupied."""
+    derive_occupancy = _derive_occupancy()
+    reservation = _both_times_missing(
+        "2025-06-14T00:00:00-07:00", "2025-06-16T00:00:00-07:00"
+    )
+    now = datetime.fromisoformat("2025-06-15T12:00:00-07:00")
+    result = derive_occupancy(reservation, now)
+    assert result.state == "occupied"
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=True,
+    reason="TDD red phase: D4 both-missing must report the boundary field",
+)
+def test_both_times_missing_departure_reports_checkout() -> None:
+    """On the departure date the degraded field names check_out, not check_in."""
+    derive_occupancy = _derive_occupancy()
+    reservation = _both_times_missing(
+        "2025-06-14T00:00:00-07:00", "2025-06-16T00:00:00-07:00"
+    )
+    now = datetime.fromisoformat("2025-06-16T12:00:00-07:00")
+    result = derive_occupancy(reservation, now)
+    assert result.state == "unknown"
+    assert result.degraded_field == "check_out"

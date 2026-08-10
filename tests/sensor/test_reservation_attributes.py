@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
+
+import pytest
 
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
@@ -117,3 +119,51 @@ def test_upcoming_reservations_carry_no_identity() -> None:
         "status_category",
         "stay_type",
     }
+
+
+def _relative_reservation(
+    reservation_id: str,
+    arrival_offset: int,
+    departure_offset: int,
+    status_current: str = "accepted",
+) -> HospitableReservation:
+    """Build a reservation with dates offset from today in a fixed zone."""
+    zone = timezone(timedelta(hours=-7))
+    base = datetime.now(zone).date()
+    arrival = base + timedelta(days=arrival_offset)
+    departure = base + timedelta(days=departure_offset)
+    payload = cast(dict[str, Any], load_fixture("reservation_accepted.json")["data"][0])
+    payload = dict(payload)
+    payload.update(
+        {
+            "id": reservation_id,
+            "arrival_date": f"{arrival.isoformat()}T00:00:00-07:00",
+            "departure_date": f"{departure.isoformat()}T00:00:00-07:00",
+            "check_in": f"{arrival.isoformat()}T16:00:00-07:00",
+            "check_out": f"{departure.isoformat()}T11:00:00-07:00",
+        }
+    )
+    payload["reservation_status"] = {"current": status_current, "history": []}
+    return HospitableReservation.from_api(payload)
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=True,
+    reason="TDD red phase: D1 upcoming attribute must exclude past and cancelled",
+)
+def test_upcoming_excludes_past_and_cancelled() -> None:
+    """Upcoming lists only genuine forthcoming stays, not past or cancelled."""
+    soonest = _relative_reservation("res-future-1", 5, 7)
+    later = _relative_reservation("res-future-2", 10, 12)
+    past = _relative_reservation("res-past", -10, -8)
+    cancelled = _relative_reservation("res-cancelled", 6, 8, status_current="cancelled")
+    sensor = _sensor([soonest, later, past, cancelled])
+
+    upcoming_ids = {
+        entry["reservation_id"]
+        for entry in sensor.extra_state_attributes["upcoming_reservations"]
+    }
+    assert "res-future-2" in upcoming_ids
+    assert "res-past" not in upcoming_ids
+    assert "res-cancelled" not in upcoming_ids
