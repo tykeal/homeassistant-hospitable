@@ -9,7 +9,6 @@ import struct
 import zlib
 from pathlib import Path
 
-import pytest
 from PIL import Image
 
 BRAND_DIR = Path(__file__).resolve().parents[1] / "custom_components/hospitable/brand"
@@ -53,11 +52,6 @@ def _assert_png_chunks_valid(path: Path) -> None:
     zlib.decompress(bytes(idat))
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: brand PNG payloads are not decoder-valid",
-    strict=True,
-)
 def test_brand_png_payloads_are_valid() -> None:
     """Every shipped brand PNG has valid chunks and decodes with Pillow."""
     for path in _brand_png_paths():
@@ -68,11 +62,6 @@ def test_brand_png_payloads_are_valid() -> None:
             image.verify()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: brand images do not follow icon-only sizing",
-    strict=True,
-)
 def test_brand_assets_are_icon_only() -> None:
     """The brand directory ships only correctly sized square icons."""
     assert not (BRAND_DIR / "logo.png").exists()
