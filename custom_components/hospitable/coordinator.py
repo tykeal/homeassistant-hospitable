@@ -27,7 +27,7 @@ from custom_components.hospitable.const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-class _HospitableCoordinator[DataT](DataUpdateCoordinator[DataT]):
+class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
     """Base ``DataUpdateCoordinator`` with a consecutive-failure counter.
 
     The counter backs the three-strike availability policy required by
@@ -74,7 +74,7 @@ class _HospitableCoordinator[DataT](DataUpdateCoordinator[DataT]):
 
 
 class HospitableReservationsCoordinator(
-    _HospitableCoordinator[list[HospitableReservation]]
+    HospitableDataUpdateCoordinator[list[HospitableReservation]]
 ):
     """Coordinator for reservation data across the configured window."""
 
@@ -125,7 +125,7 @@ class HospitableReservationsCoordinator(
 
 
 class HospitablePropertiesCoordinator(
-    _HospitableCoordinator[dict[str, HospitableProperty]]
+    HospitableDataUpdateCoordinator[dict[str, HospitableProperty]]
 ):
     """Coordinator for property data keyed by property identifier."""
 
@@ -157,7 +157,7 @@ class HospitablePropertiesCoordinator(
             raise UpdateFailed(str(exc)) from exc
 
 
-class HospitableCalendarCoordinator(_HospitableCoordinator[dict[str, Any]]):
+class HospitableCalendarCoordinator(HospitableDataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for calendar data, wired by US7."""
 
     default_minutes = 60

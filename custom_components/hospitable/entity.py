@@ -10,12 +10,12 @@ from typing import Any
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from custom_components.hospitable.const import DOMAIN
-from custom_components.hospitable.coordinator import _HospitableCoordinator
+from custom_components.hospitable.coordinator import HospitableDataUpdateCoordinator
 
 MAX_CONSECUTIVE_FAILURES = 3
 
 
-class HospitableEntity(CoordinatorEntity[_HospitableCoordinator[Any]]):
+class HospitableEntity(CoordinatorEntity[HospitableDataUpdateCoordinator[Any]]):
     """Base entity applying the three-strike availability policy.
 
     The entity stays available through two consecutive poll failures,
