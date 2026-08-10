@@ -88,16 +88,15 @@ admitting a street number and postcode into diagnostics scope.
 
 | Field | Type | Source | Tier |
 | --- | --- | --- | --- |
-| `max_guests` | `int \| None` | `capacity.max` | UNVERIFIED key name |
-| `bedrooms` | `int \| None` | `capacity.bedrooms` | UNVERIFIED key name |
-| `beds` | `int \| None` | `capacity.beds` | UNVERIFIED key name |
-| `bathrooms` | `float \| None` | `capacity.bathrooms` | UNVERIFIED key name |
+| `max` | `int \| None` | `capacity.max` | CONFIRMED-BY-TEST (13/13) |
+| `bedrooms` | `int \| None` | `capacity.bedrooms` | CONFIRMED-BY-TEST (13/13) |
+| `beds` | `int \| None` | `capacity.beds` | CONFIRMED-BY-TEST (13/13) |
+| `bathrooms` | `float \| None` | `capacity.bathrooms` | CONFIRMED-BY-TEST (13/13) |
 
-The `capacity` object is CONFIRMED to exist; its inner key names are
-not recorded in the specification. Every field is optional and defaults
-to `None`, so an unexpected inner shape degrades the FR-053 capacity
-attribute rather than failing the poll. The US1 fixture-capture task
-pins the real names.
+The `capacity` object and all four inner keys are CONFIRMED-BY-TEST
+from the 2026-08-09 live property probe across 13 properties. Every
+field remains optional in the model as defensive degradation, and an
+unexpected inner shape yields `None` rather than failing the poll.
 
 ### `HospitableListing`
 

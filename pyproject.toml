@@ -1,0 +1,97 @@
+# SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "homeassistant-hospitable"
+dynamic = ["version"]
+description = "Hospitable integration for Home Assistant"
+requires-python = ">=3.14.2"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "httpx==0.28.1",
+    "voluptuous>=0.15.2",
+]
+
+[project.optional-dependencies]
+test = [
+    "homeassistant>=2026.8.0",
+    "httpx==0.28.1",
+    "interrogate>=1.7",
+    "mypy==2.3.0",
+    "pillow>=11",
+    "pytest>=8.0",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=6.0",
+    "pytest-homeassistant-custom-component>=0.13.340",
+    "respx>=0.22",
+    "voluptuous>=0.15.2",
+]
+
+[dependency-groups]
+dev = [
+    "homeassistant>=2026.8.0",
+    "httpx==0.28.1",
+    "interrogate>=1.7",
+    "mypy==2.3.0",
+    "pillow>=11",
+    "pytest>=8.0",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=6.0",
+    "pytest-homeassistant-custom-component>=0.13.340",
+    "respx>=0.22",
+    "ruff>=0.15.21",
+    "voluptuous>=0.15.2",
+]
+
+[tool.hatch.version]
+source = "vcs"
+tag-pattern = "v(?P<version>.*)"
+
+[tool.hatch.build.targets.wheel]
+packages = ["custom_components"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+xfail_strict = true
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unused_ignores = true
+explicit_package_bases = true
+mypy_path = "."
+
+[[tool.mypy.overrides]]
+module = [
+    "homeassistant.*",
+    "pytest_homeassistant_custom_component.*",
+    "respx.*",
+    "voluptuous.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_decorators = false
+
+[tool.coverage.run]
+source = ["custom_components"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["PLC0415"]
+
+[tool.interrogate]
+fail-under = 100
+verbose = 2

@@ -7,10 +7,10 @@ SPDX-License-Identifier: MIT
 <!--
   Sync Impact Report
   ==================================================
-  Version change: 1.0.0 → 1.1.0
-  Change type: MINOR - A mandate is materially relaxed and new
-  requirements are added. No principle is removed, renamed, or
-  renumbered; all twelve survive with their original numbering.
+  Version change: 1.1.1 → 1.1.2
+  Change type: PATCH - a governance-process clarification. No
+  principle is added, removed, renamed, renumbered, or materially
+  expanded; all twelve retain their existing scope.
 
   Report scope: this block describes ONLY the most recent amendment.
   It is overwritten on every amendment; the full amendment history is
@@ -18,99 +18,29 @@ SPDX-License-Identifier: MIT
 
   Why this amendment exists
   -------------------------------------------------
-  Version 1.0.0 was ratified before the Hospitable API had been
-  empirically probed. It treated the Personal Access Token and the
-  OAuth 2.0 authorization-code flow as two co-equal credential models
-  that a user might choose between. A live test against a real paid
-  Hospitable account disproved that assumption.
+  The v1.1.1 amendment correctly overwrote the Sync Impact Report, but
+  the outgoing v1.1.0 report also contained live future-scope research
+  findings and an open webhook-signature TODO. Because the Governance
+  section described git history as the complete amendment history but
+  did not require relocating non-history content before overwrite,
+  those findings became invisible to normal repository readers. This
+  amendment adds that preservation check to Governance. The lost
+  webhook, OAuth, and rate-limit findings were moved into
+  `specs/001-hospitable-ha-integration/research.md` before this
+  amendment.
 
-  CONFIRMED-BY-TEST (live PAT against a real account, same reservation
-  UUID, same token):
-    - GET /v2/reservations/{uuid}             → HTTP 200
-    - GET /v2/reservations/{uuid}/enrichment  → HTTP 403,
-      {"status_code":403,"reason_phrase":"Invalid scope(s) provided."}
+  Modified sections:
+    - Governance
+      - The Sync Impact Report rule now requires amenders to inspect
+        the outgoing report for still-open TODOs, deferred-scope
+        research findings, or operational notes that must remain
+        visible, and to relocate them to a durable artifact before the
+        report is overwritten.
+      - The template-review rule now explicitly says each template must
+        be re-read for every amendment and that prior "no drift" claims
+        must not be copied forward without inspection.
 
-  The `enrichment:read` / `enrichment:write` scopes cannot be granted
-  to a Personal Access Token. They require OAuth 2.0, which Hospitable
-  restricts to approved Vendors, which requires a Typeform application
-  (https://form.typeform.com/to/n8bZPJIm) plus Partner Portal
-  approval. There is no self-serve path to OAuth for a self-hosted
-  Home Assistant user, so v1.0.0's framing was factually wrong for
-  this integration's actual audience.
-
-  Also CONFIRMED-BY-TEST: Hospitable's paginator returns page links
-  carrying an `http://` scheme, e.g.
-  "url": "http://public.api.hospitable.com/v2/reservations?page=2".
-
-  Modified principles (all retain their number and title):
-    - II. API Client Design
-      - The "MUST support both documented authentication models"
-        requirement is reframed: PAT is the primary, self-serve model
-        and MUST be supported now; OAuth is a future path that the
-        client MUST NOT preclude, not a currently-selectable peer.
-      - NEW BULLET: a separate bullet states that OAuth 2.0 support is
-        DEFERRED until Vendor access is obtained, MUST NOT be a
-        precondition for any release, and that every OAuth requirement
-        in this constitution is forward-looking — binding if and when
-        OAuth is added, imposing no obligation before then. This is
-        new normative text, not a rewording of the bullet above.
-      - OAuth renewal language becomes conditional ("when and if OAuth
-        support is added") and is updated with the now-known token
-        lifetimes.
-      - NEW: the vendor-gated-scope constraint is recorded here, with
-        the requirement that a scope-related 403 is a capability
-        limitation, never an authentication failure.
-      - The rate-limit bullet is MODIFIED, not merely reworded. It
-        gains a new MUST ("MUST NOT assume such headers are present
-        (their existence is UNVERIFIED)"), narrows "no numeric
-        rate-limit ceiling" to "no GENERAL numeric rate-limit
-        ceiling", and adds a new obligation: the documented messaging
-        limits — 2 messages per minute per reservation and 50 messages
-        per 5 minutes — "MUST be respected where the integration sends
-        messages." This is the normative half of the
-        HOSPITABLE_RATE_LIMIT_VALUES resolution below.
-      - Rationale updated: the two credential models are no longer
-        described as a user-facing choice.
-    - VII. User Experience Consistency
-      - The blocking change. The bullet mandating that the config flow
-        "MUST accommodate both supported Hospitable credential models"
-        is softened to a mandate that the design MUST NOT PRECLUDE
-        OAuth. As written in v1.0.0 it made the planned PAT-only first
-        release non-compliant. The existing intent that credential-
-        model jargon is not exposed to the user is preserved verbatim
-        in spirit.
-      - The error-message example is updated so it no longer implies a
-        403 scope failure is a credential problem.
-    - X. Security & Credential Management (NON-NEGOTIABLE)
-      - NOT WEAKENED. Every existing security requirement survives.
-        Phrasing that implied OAuth is presently in use became
-        conditional ("when and if OAuth support is added").
-      - NEW, inside that same OAuth-renewal bullet: because both the
-        access token and the refresh token rotate on refresh, a
-        renewed refresh token MUST replace the stored one atomically
-        and the superseded token MUST be discarded. This is an added
-        obligation, not a rewording — the v1.0.0 bullet said nothing
-        about rotation. The bullet also now marks the published
-        lifetimes and scope names as CONFIRMED-BY-SPEC only and
-        requires honoring the expiry metadata actually returned.
-      - NEW: reauthentication MUST be triggered by credential
-        rejection (401) but MUST NOT be triggered by a scope-related
-        403, since a config entry cannot escape that reauth loop.
-      - NEW: server-supplied pagination URLs MUST NOT be followed
-        verbatim; the client MUST construct page requests itself or
-        force the `https` scheme.
-      - CORRECTED: the rationale previously asserted that Personal
-        Access Tokens "carry access to all endpoints by default."
-        The live 403 disproves this, so the claim was removed. The
-        security argument is unchanged and, stated honestly, is
-        stronger: the enrichment gate narrows what a PAT can DO, not
-        the breadth of guest data it can READ — one PAT still exposes
-        every guest record across every property on the account.
-
-  Added sections: None. No new top-level principle or section was
-  added. New requirements landed as new bullets inside existing
-  Principles II and X, and as added sentences inside existing bullets
-  in Principles II, VII, and X.
+  Added sections: None.
 
   Removed sections: None.
 
@@ -122,100 +52,30 @@ SPDX-License-Identifier: MIT
   this amendment. Findings, stated as checked rather than assumed:
 
     - .specify/templates/plan-template.md — CHECKED, no change needed.
-      Its "Constitution Check" heading at line 39 is followed at line
-      43 by the literal placeholder "[Gates determined based on
-      constitution file]". Gates are therefore resolved from this file
-      at runtime and no principle text, number, or credential-model
-      claim is hard-coded in the template.
+      Its Constitution Check section delegates gates to the current
+      constitution through the placeholder "[Gates determined based on
+      constitution file]" and contains no Sync Impact Report,
+      amendment, migration, or template-review process text.
+    - .specify/templates/tasks-template.md — CHECKED, no change needed.
+      Its project overlay discusses mandatory tests and red-phase
+      commits under Principles I, IX, and XII only. It contains no Sync
+      Impact Report, amendment, migration, or template-review process
+      text.
     - .specify/templates/spec-template.md — CHECKED, no change needed.
-      Its only authentication-related line is 98, a generic sample
-      requirement ("FR-006: System MUST authenticate users via [NEEDS
-      CLARIFICATION: auth method not specified - email/password, SSO,
-      OAuth?]"). That is upstream Spec Kit boilerplate illustrating a
-      clarification marker; it makes no claim about Hospitable and is
-      unaffected by this amendment.
-    - .specify/templates/tasks-template.md — CHECKED, no change needed
-      for THIS amendment. It does cite the constitution by number at
-      line 26, but only Principles I, IX, and XII (mandatory test
-      tasks, no deferred unit TDD, the XFAIL red-phase protocol). This
-      amendment touches only II, VII, and X and renumbers nothing, so
-      those citations remain accurate. (Its earlier drift against
-      Principles I/IX/XII was reconciled under v1.0.0 and remains
-      reconciled.)
+      The template is generic feature-spec boilerplate and contains no
+      Sync Impact Report, amendment, migration, or template-review
+      process text.
     - .specify/templates/checklist-template.md — CHECKED, no change
-      needed. Full file read (40 lines); it contains no constitution,
-      credential, authentication, testing, licensing, or commit
-      references at all — only placeholder categories and sample CHK
-      items.
+      needed. The checklist scaffold contains no constitution,
+      amendment, migration, or template-review process text.
     - .specify/templates/constitution-template.md — CHECKED, no change
-      needed. It is the unfilled upstream scaffold (50 lines) whose
-      only relevant line is the version footer placeholder at line 49,
-      "**Version**: [CONSTITUTION_VERSION] | **Ratified**:
-      [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]".
-      That is a placeholder, not a version claim, so a version bump in
-      this file does not stale it.
+      needed. It is the unfilled upstream scaffold with placeholder
+      governance and version fields only; it does not contain this
+      project's Sync Impact Report preservation rule.
 
-  NOTE for future amendments: v1.0.0's report asserted "no change
-  needed" for templates in a form that was later found to have been
-  claimed without inspection. Every line above was verified by reading
-  the file named. Do not copy these claims forward without re-reading.
-
-  Follow-up TODOs:
-    - TODO(HOSPITABLE_WEBHOOK_SIGNATURE): STILL OPEN, but now better
-      characterized. Best available information, all marked
-      LIKELY / UNVERIFIED because it comes from secondary sources
-      rather than an observed delivery: the signature header is named
-      `Signature`; the value is an HMAC-SHA256 hex digest computed
-      over the RAW request body; webhooks are dashboard-registered
-      only, with no registration API; delivery source IPs fall in
-      38.80.170.0/24; failed deliveries are retried 5 times with
-      1s → 5s → 10s → 1hr → 6hr backoff. Principle XI remains written
-      to mandate verification WITHOUT depending on a specific header
-      name, so none of the above is load-bearing yet. This TODO closes
-      only when the mechanism is confirmed against a real delivery or
-      the authenticated developer portal. Do not implement signature
-      verification against the unverified header name alone.
-    - TODO(HOSPITABLE_OAUTH_TOKEN_LIFETIMES): ANSWERED
-      (CONFIRMED-BY-SPEC, not CONFIRMED-BY-TEST — these values are
-      derived from Hospitable's own Stoplight OpenAPI export, and no
-      live OAuth grant was performed, because obtaining one requires
-      Vendor approval this project does not hold):
-        - Access token lifetime: 12 hours (`expires_in: 43200`).
-        - Refresh token lifetime: 90 days.
-        - BOTH tokens rotate on refresh — a refresh returns a new
-          refresh token, and the old one must be discarded.
-        - Observed scopes: listing:read, property:read,
-          financials:read, message:read, message:write,
-          transaction:read, enrichment:read, enrichment:write.
-        - Token endpoint: POST https://auth.hospitable.com/oauth/token
-          and it takes a JSON body, NOT form-encoded. This differs
-          from the common OAuth 2.0 convention and will silently fail
-          if implemented from habit.
-        - Authorize endpoint:
-          https://auth.hospitable.com/oauth/authorize
-        - Scopes are configured in the Partner Portal and are NOT
-          passed in the authorize URL.
-        - There is NO client-credentials grant; authorization_code is
-          the only supported grant type.
-      These values are recorded here for whenever OAuth becomes
-      reachable. Both Principles II and X were edited in this
-      amendment to cite them, and both were deliberately written so
-      that no implementation obligation depends on them today.
-    - TODO(HOSPITABLE_RATE_LIMIT_VALUES): RESOLVED AS GENUINELY
-      UNPUBLISHED — closed, not deferred. Hospitable publishes no
-      general numeric rate-limit ceiling. The only documented limits
-      are for messaging: 2 messages per minute per reservation, and 50
-      messages per 5 minutes. The existence of `X-RateLimit-*`
-      response headers is UNVERIFIED; it rests on SDK-author prose,
-      not on documentation or an observed response, so the client MUST
-      NOT assume those headers are present. Practical consequence:
-      because no ceiling is discoverable, poll cadence is
-      user-configurable with conservative defaults plus 429 backoff,
-      rather than derived from a published quota. Principle VIII
-      already carried that requirement and is UNCHANGED by this
-      amendment; Principle II's rate-limit bullet WAS edited here to
-      add the no-assumed-headers MUST and the messaging limits.
-      Reopen only if Hospitable publishes numbers.
+  Migration plan: No code migration is required. Future-scope research
+  that would otherwise have been lost has already been preserved in the
+  durable research artifact for spec 001.
   ==================================================
 -->
 
@@ -412,8 +272,9 @@ actually changed behavior.
     `.github/*/speckit.**`, and `.vscode/**`, copyright
     "Delimarsky, D., & Riem, M. (2026)". Contributors MUST NOT
     relicense these files.
-  - **CC-BY-SA-4.0** — brand assets under
-    `custom_components/hospitable/brand/**`.
+  - **LicenseRef-Hospitable-Trademark** — Hospitable trademark assets
+    under `custom_components/hospitable/brand/**`, used only for
+    third-party service identification.
 - Python files carrying inline headers MUST use:
 
   <!-- REUSE-IgnoreStart -->
@@ -432,11 +293,12 @@ actually changed behavior.
 **Rationale**: This repository deliberately mixes three licenses with
 three different obligations, and two of them are not the project's own.
 Vendored Spec Kit tooling is MIT and upstream-owned; Hospitable-facing
-brand imagery carries share-alike obligations that do not apply to
-code. Getting this wrong is not a cosmetic error — it is a licensing
-defect that a downstream HACS user inherits. Machine-checked REUSE
-compliance is the only way to keep three license regimes straight in a
-repository that a single maintainer and several AI agents both touch.
+brand imagery is a third-party trademark asset, not project-authored
+Apache-2.0 material. Getting this wrong is not a cosmetic error — it is
+a licensing defect that a downstream HACS user inherits.
+Machine-checked REUSE compliance is the only way to keep multiple
+license and trademark regimes straight in a repository that a single
+maintainer and several AI agents both touch.
 
 ### V. Pre-Commit Integrity (NON-NEGOTIABLE)
 
@@ -1121,15 +983,21 @@ structurally impossible rather than merely discouraged.
 - The Sync Impact Report comment at the top of this file records ONLY
   the most recent amendment; each `/speckit.constitution` run overwrites
   it. The authoritative, complete amendment history is the git history
-  of this file, which Principle III keeps atomic and bisectable.
-- All `.specify/templates/*.md` files MUST be reviewed for consistency
-  whenever this constitution is amended, and any drift MUST be
-  corrected — in the same change where doing so preserves commit
-  atomicity, otherwise under a follow-up TODO recorded in the Sync
-  Impact Report. Because `.specify/**` is MIT-licensed, upstream-owned
-  Spec Kit material (Principle IV), any such correction is a local
-  project overlay that a Spec Kit upgrade WILL overwrite and that MUST
-  therefore be re-applied after every upstream Spec Kit upgrade.
+  of this file, which Principle III keeps atomic and bisectable. Before
+  overwriting the report, amenders MUST inspect the outgoing report for
+  still-open TODOs, deferred-scope research findings, or operational
+  notes that must remain visible outside git history, and MUST relocate
+  any such material into a durable repository artifact.
+- All `.specify/templates/*.md` files MUST be re-read and reviewed for
+  consistency whenever this constitution is amended; prior claims that
+  no template drift exists MUST NOT be copied forward without fresh
+  inspection. Any drift MUST be corrected — in the same change where
+  doing so preserves commit atomicity, otherwise under a follow-up TODO
+  recorded in the Sync Impact Report. Because `.specify/**` is
+  MIT-licensed, upstream-owned Spec Kit material (Principle IV), any
+  such correction is a local project overlay that a Spec Kit upgrade
+  WILL overwrite and that MUST therefore be re-applied after every
+  upstream Spec Kit upgrade.
 - Claims about tooling in this document MUST match the repository's
   actual configuration. When `.pre-commit-config.yaml`, `.gitlint`,
   `REUSE.toml`, or the CI workflows change in a way that alters an
@@ -1137,4 +1005,4 @@ structurally impossible rather than merely discouraged.
 - Use `AGENTS.md` for day-to-day runtime development guidance that
   supplements, but never overrides, this constitution.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-07
+**Version**: 1.1.2 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-10

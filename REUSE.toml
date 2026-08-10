@@ -57,5 +57,11 @@ SPDX-License-Identifier = "Apache-2.0"
 [[annotations]]
 path = "custom_components/hospitable/brand/**"
 precedence = "aggregate"
+SPDX-FileCopyrightText = "Hospitable R&D BV"
+SPDX-License-Identifier = "LicenseRef-Hospitable-Trademark"
+
+[[annotations]]
+path = "tests/fixtures/**"
+precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Andrew Grimberg <tykeal@bardicgrove.org>"
-SPDX-License-Identifier = "CC-BY-SA-4.0"
+SPDX-License-Identifier = "Apache-2.0"

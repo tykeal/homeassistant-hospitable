@@ -1,0 +1,21 @@
+{
+  "data": {
+    "address": {
+      "city": "Example City",
+      "coordinates": {
+        "latitude": 37.1001,
+        "longitude": -122.1001
+      },
+      "country": "US",
+      "display": "100 Example Avenue, Example City, CA 90210, US",
+      "number": "100",
+      "postcode": "90210",
+      "state": "CA",
+      "street": "Example Avenue"
+    },
+    "company": "Example Company",
+    "email": "manager@example.com",
+    "id": "acct-example-0001",
+    "name": "Example Manager"
+  }
+}

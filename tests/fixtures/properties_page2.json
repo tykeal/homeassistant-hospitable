@@ -1,0 +1,60 @@
+{
+  "data": [
+    {
+      "address": {
+        "city": "Example City",
+        "coordinates": {
+          "latitude": 37.1001,
+          "longitude": -122.1001
+        },
+        "country": "US",
+        "display": "100 Example Avenue, Example City, CA 90210, US",
+        "number": "100",
+        "postcode": "90210",
+        "state": "CA",
+        "street": "Example Avenue"
+      },
+      "capacity": {
+        "bathrooms": 1.0,
+        "bedrooms": 2,
+        "beds": 2,
+        "max": 4
+      },
+      "checkin": "16:00",
+      "checkout": "11:00",
+      "currency": "USD",
+      "ical_imports": [],
+      "id": "prop-example-002",
+      "listed": true,
+      "listings": [
+        {
+          "co_hosts": [],
+          "platform": "airbnb",
+          "platform_email": "host@example.com",
+          "platform_id": "AIR-EXAMPLE-1",
+          "platform_name": "Example Host",
+          "platform_picture": "https://example.com/pic.png",
+          "platform_user_id": "user-example"
+        }
+      ],
+      "name": "Example Mountain Cabin",
+      "property_type": "house",
+      "public_name": "Example Mountain Cabin",
+      "timezone": "-0700"
+    }
+  ],
+  "links": [
+    {
+      "active": true,
+      "label": "2",
+      "url": "http://public.api.hospitable.com/v2/properties?page=2"
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "last_page": 2,
+    "path": "http://public.api.hospitable.com/v2/properties",
+    "per_page": 100,
+    "total": 1
+  }
+}

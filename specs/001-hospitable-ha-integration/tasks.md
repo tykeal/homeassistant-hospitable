@@ -80,7 +80,7 @@ tasks are Principle XII **exempt** (packaging-only and
 configuration-only changes) and therefore must not be forced into a
 red/green pair.
 
-- [ ] T001 Create `pyproject.toml` at the repository root with
+- [X] T001 Create `pyproject.toml` at the repository root with
       `[tool.pytest.ini_options]` setting `xfail_strict = true`,
       `asyncio_mode = "auto"`, and `testpaths = ["tests"]`;
       `[tool.mypy]` setting `warn_unused_ignores = true` and
@@ -91,10 +91,10 @@ red/green pair.
       `pytest`, `pytest-asyncio`, `pytest-homeassistant-custom-component`,
       `respx`, `mypy`, `interrogate`. Copy the exact settings block from
       `plan.md` §Test strategy. (Principle XII exempt: config-only.)
-- [ ] T002 Generate `uv.lock` from `pyproject.toml` with `uv lock` and
+- [X] T002 Generate `uv.lock` from `pyproject.toml` with `uv lock` and
       commit it. `REUSE.toml` already annotates `uv.lock`.
       (Principle XII exempt: packaging-only.)
-- [ ] T003 [P] Create `custom_components/hospitable/manifest.json`
+- [X] T003 [P] Create `custom_components/hospitable/manifest.json`
       declaring `domain: hospitable`, `name: Hospitable`,
       `iot_class: cloud_polling`, `config_flow: true`,
       `integration_type: hub`, `documentation` and `issue_tracker` URLs,
@@ -102,13 +102,16 @@ red/green pair.
       and `homeassistant: "2026.8.0"` as the minimum supported Home
       Assistant version (the manifest key is `homeassistant`; there is
       no `min_ha_version` manifest key). (FR-066, FR-067)
-- [ ] T004 [P] Create `hacs.json` at the repository root with `name`,
+- [X] T004 [P] Create `hacs.json` at the repository root with `name`,
       `homeassistant` minimum `2026.8.0`, `render_readme: true`, and
       `zip_release: false`. (FR-066)
-- [ ] T005 [P] Add brand assets under
-      `custom_components/hospitable/brand/` (`icon.png`, `logo.png`)
-      referenced by the existing CC-BY-SA-4.0 `REUSE.toml` annotation.
-- [ ] T006 [P] Create `custom_components/hospitable/strings.json` and
+- [X] T005 [P] Add brand assets under
+      `custom_components/hospitable/brand/` (`icon.png`,
+      `icon@2x.png`) and rely on Home Assistant's icon fallback rather
+      than shipping `logo.png`. Annotate them as
+      `LicenseRef-Hospitable-Trademark` for nominative service
+      identification.
+- [X] T006 [P] Create `custom_components/hospitable/strings.json` and
       `custom_components/hospitable/translations/en.json` with the
       config-flow, options-flow, reauth, error, and entity-name keys
       enumerated in `contracts/config-entry.md`. All user-facing text
@@ -116,19 +119,20 @@ red/green pair.
       to obtain a Personal Access Token, that it requires a paid
       Hospitable plan with Essentials excluded, and what scopes it
       needs. (FR-007, FR-064, FR-068)
-- [ ] T007 [P] Create the package skeleton: empty
+- [X] T007 [P] Create the package skeleton: empty
       `custom_components/hospitable/api/__init__.py`,
       `custom_components/hospitable/services/__init__.py`, and
       `custom_components/hospitable/sensor/__init__.py` so the
       three-package split exists from the first commit. `services/` here
       is DOMAIN LOGIC ONLY — this feature registers no Home Assistant
       services. (FR-069)
-- [ ] T008 Add `REUSE.toml` annotations for every new path that cannot
+- [X] T008 Add `REUSE.toml` annotations for every new path that cannot
       carry an inline SPDX header. `specs/**`,
       `custom_components/**/*.json`, `hacs.json`, `uv.lock`, and
-      `custom_components/hospitable/brand/**` are already annotated;
-      verify each new path is covered and add any that is not, in the
-      same commit that creates the path.
+      `custom_components/hospitable/brand/**` are already annotated
+      with the Hospitable trademark notice; verify each new path is
+      covered and add any that is not, in the same commit that creates
+      the path.
 
 ---
 
@@ -145,23 +149,23 @@ complete. In particular T019–T021 (live probes) MUST complete before the
 US1 green phase, because the field bindings they pin appear in
 `api/models.py`.
 
-- [ ] T009 Create the test package tree: `tests/__init__.py`,
+- [X] T009 Create the test package tree: `tests/__init__.py`,
       `tests/api/__init__.py`, `tests/services/__init__.py`,
       `tests/sensor/__init__.py`, mirroring the reference integration's
       layout. (Principle XII exempt: test-only, asserts no behavior.)
-- [ ] T010 Create `tests/conftest.py` providing the `respx` mock router,
+- [X] T010 Create `tests/conftest.py` providing the `respx` mock router,
       a synthetic-token fixture, an `enable_custom_integrations`
       autouse fixture, and factory fixtures for integration objects.
       `conftest.py` MUST NOT import any not-yet-existing module at
       module level or inside a plain fixture body that is evaluated at
       collection; factory fixtures return a callable that imports inside
       its own body.
-- [ ] T011 Create `tests/helpers.py` with helpers to load a JSON fixture
+- [X] T011 Create `tests/helpers.py` with helpers to load a JSON fixture
       by name, build a Laravel paginator envelope, and assert that a
       captured `respx` request carries an expected query key/value.
       The query-assertion helper is the mechanism every FR-075 honored-
       request assertion uses. (FR-075)
-- [ ] T012 [P] Create synthetic property fixtures under
+- [X] T012 [P] Create synthetic property fixtures under
       `tests/fixtures/`: `properties_page1.json`,
       `properties_page2.json`, `properties_single.json`. Shapes mirror
       the live API; ALL VALUES ARE SYNTHETIC. Include a `timezone` field
@@ -170,7 +174,7 @@ US1 green phase, because the field bindings they pin appear in
       block using documentation-reserved values, and `meta.path` plus
       `links[].url` values that use `http://` so the never-follow test
       has real material. (FR-024, FR-025, FR-026, FR-027)
-- [ ] T013 [P] Create synthetic reservation fixtures under
+- [X] T013 [P] Create synthetic reservation fixtures under
       `tests/fixtures/`: one file per status category covering all six
       — `request`, `accepted`, `cancelled`, `not accepted`, `unknown`,
       `checkpoint` — plus `reservations_page1.json` with mixed
@@ -184,7 +188,7 @@ US1 green phase, because the field bindings they pin appear in
       observed in a 621-reservation census; that is absence of evidence,
       not evidence of absence, so both MUST be fixture-exercised.
       (FR-032, FR-043, FR-048, FR-075)
-- [ ] T014 [P] Create the remaining synthetic fixtures under
+- [X] T014 [P] Create the remaining synthetic fixtures under
       `tests/fixtures/`: `calendar_property.json` (aggregate across
       sales channels, with `listing_id` and `provider` present as
       cosmetic metadata only), `user.json`, `error_401.json`,
@@ -192,11 +196,11 @@ US1 green phase, because the field bindings they pin appear in
       `"Invalid scope(s) provided."`), `error_403_other.json`,
       `error_403_unparsable.txt` (a non-JSON 403 body), `error_404.json`,
       `error_429.json`, and `error_500.json`. (FR-035, FR-038, FR-058)
-- [ ] T015 Add a `REUSE.toml` annotation covering `tests/fixtures/**`,
+- [X] T015 Add a `REUSE.toml` annotation covering `tests/fixtures/**`,
       in the SAME commit that creates that path. Fixture files are JSON
       and cannot carry an inline SPDX header, so without this the
       `reuse` pre-commit hook fails.
-- [ ] T016 **RED** Create `tests/test_check_fixture_pii.py` asserting
+- [X] T016 **RED** Create `tests/test_check_fixture_pii.py` asserting
       that `scripts/check_fixture_pii.py` flags: an email address at a
       non-documentation domain; the strings `tykeal` or `bardicgrove`;
       a bearer-token-shaped literal; latitude/longitude outside the
@@ -207,17 +211,17 @@ US1 green phase, because the field bindings they pin appear in
       with `# type: ignore[import-not-found]` and mark each test
       `@pytest.mark.xfail(raises=ModuleNotFoundError, strict=True,
       reason="TDD red phase: T016 fixture PII guard")`.
-- [ ] T017 **GREEN** Implement `scripts/check_fixture_pii.py` satisfying
+- [X] T017 **GREEN** Implement `scripts/check_fixture_pii.py` satisfying
       T016 and remove T016's markers and type-ignores in the same
       commit. Exit non-zero listing file, line, and rule for each hit.
-- [ ] T018 Register the guard in `.pre-commit-config.yaml` as a local
+- [X] T018 Register the guard in `.pre-commit-config.yaml` as a local
       hook `check-fixture-pii` with `files: ^tests/.*\.json$` plus a
       pass over the repository for stray fixtures. Confirm the
       repository-level `exclude` does not shadow it — this is why
       fixtures live in `tests/fixtures/` and NOT `tests/resources/`,
       which the existing top-level `exclude: ^tests/resources` would
       silently disable, taking `check-json` and this guard with it.
-- [ ] T019 [P] **REGRESSION ASSERTION (A-1 RESOLVED)** Assert
+- [X] T019 [P] **REGRESSION ASSERTION (A-1 RESOLVED)** Assert
       reservation queries always send `date_query=checkin`, and that
       the client can emit only the confirmed upstream values `checkin`
       or `checkout`. This is CONFIRMED-BY-TEST from the 2026-08-09
@@ -226,18 +230,18 @@ US1 green phase, because the field bindings they pin appear in
       bogus value returned HTTP 400 naming exactly those two allowed
       values. Client-side filtering of the returned window remains
       authoritative. (FR-030, FR-075)
-- [ ] T020 **LIVE PROBE (capacity)** In the same live session, pin the
-      inner key names of the `capacity` object. Record each in
-      `data-model.md`'s field binding table, replacing the UNVERIFIED
-      confidence marker with the observed value. Any binding still
-      unconfirmed stays UNVERIFIED and its consumer MUST degrade to
-      `unknown` with a warning rather than guess.
+- [X] T020 **LIVE PROBE (capacity)** CONFIRMED-BY-TEST on
+      2026-08-09 across 13 properties: `capacity.max`, `bedrooms`,
+      `beds`, and `bathrooms` were present on every sampled property.
+      Property `checkin` and `checkout` were also confirmed as bare
+      `HH:MM` wall-clock strings. Recorded in `data-model.md` and
+      `research.md`; unexpected shapes degrade to `None`.
       (FR-024, FR-034)
-- [ ] T021 Update `research.md` (A-1..A-3 outcomes) and `data-model.md`
+- [X] T021 Update `research.md` (A-1..A-3 outcomes) and `data-model.md`
       (field binding table) with the probe results, and note in
       `spec.md` any open question the probes closed. Documentation-only;
       Principle XII exempt.
-- [ ] T022 Verify the red-phase machinery itself before relying on it:
+- [X] T022 Verify the red-phase machinery itself before relying on it:
       confirm `xfail_strict = true` converts an unexpected pass into a
       failure, that an `async def` test body actually executes under
       `asyncio_mode = "auto"`, and that `warn_unused_ignores = true`
@@ -280,13 +284,13 @@ nothing.
 > test body with `# type: ignore[import-not-found]`. Run
 > `uv run pytest --runxfail <new node ids>` before committing.
 
-- [ ] T023 [P] [US1] `tests/api/test_const.py`: assert a single base URL
+- [X] T023 [P] [US1] `tests/api/test_const.py`: assert a single base URL
       constant `https://public.api.hospitable.com/v2`, that no other
       host or API version literal exists in the package, and that
       endpoint path constants exist for `/user`, `/properties`,
       `/reservations`, and `/properties/{id}/calendar`.
       (FR-001, FR-002)
-- [ ] T024 [P] [US1] `tests/api/test_exceptions.py`: assert the
+- [X] T024 [P] [US1] `tests/api/test_exceptions.py`: assert the
       hierarchy from `contracts/errors-and-diagnostics.md` —
       `HospitableError` base carrying status, endpoint, and a redacted
       body excerpt, with subclasses `HospitableAuthError` (401),
@@ -296,14 +300,14 @@ nothing.
       `HospitableConnectionError` (transport and 5xx), and
       `HospitableResponseError` (shape) with subclass
       `HospitableIncludeMissingError`. (FR-035)
-- [ ] T025 [P] [US1] `tests/api/test_auth.py`: assert the credential
+- [X] T025 [P] [US1] `tests/api/test_auth.py`: assert the credential
       interface sets `Authorization: Bearer <token>` on every request,
       that the token is never placed in a query string or logged, and
       that the interface takes a token provider rather than a bare
       string so an OAuth provider could be substituted later without a
       call-site change. Assert no OAuth credential type is accepted
       today. (FR-001, FR-003, FR-005, FR-008)
-- [ ] T026 [P] [US1] `tests/api/test_client_403.py`: assert the 403
+- [X] T026 [P] [US1] `tests/api/test_client_403.py`: assert the 403
       classifier parses the body and takes `reason_phrase`, else
       `message`, else `error`; that a case-insensitive `scope`
       substring yields `HospitableScopeError`; and that EVERY other
@@ -311,7 +315,7 @@ nothing.
       (`error_403_unparsable.txt`), unrecognized shape — defaults to
       `HospitableForbiddenError`. Assert neither branch triggers
       reauth. (FR-038)
-- [ ] T027 [P] [US1] `tests/api/test_pagination.py`: register a `respx`
+- [X] T027 [P] [US1] `tests/api/test_pagination.py`: register a `respx`
       route matching `http://` (non-TLS) to ANY Hospitable host whose
       side effect RAISES, so following an upstream-supplied
       `links[].url` or `meta.path` verbatim fails the test loudly.
@@ -319,7 +323,7 @@ nothing.
       `page` and `per_page`, asserts the echoed `meta.current_page`
       matches what was requested, stops at `meta.last_page`, and caps
       `per_page` at 100. (FR-025, FR-026, FR-027, FR-075)
-- [ ] T028 [P] [US1] `tests/api/test_retry.py`: assert HTTP 429 is
+- [X] T028 [P] [US1] `tests/api/test_retry.py`: assert HTTP 429 is
       authoritative and its `Retry-After` is honored when present;
       that `X-RateLimit-*` headers are read if present but that their
       absence changes nothing and no code path depends on them; that
@@ -327,10 +331,10 @@ nothing.
       delay, including maximum jitter, can exceed `MAX_BACKOFF`, which
       is ≤ 300 s per SC-007; and that exhausting retries raises rather
       than looping. (FR-036, FR-037, SC-007)
-- [ ] T029 [P] [US1] `tests/api/test_redaction.py`: assert the token,
+- [X] T029 [P] [US1] `tests/api/test_redaction.py`: assert the token,
       any bearer-shaped string, and every personal field are redacted
       from exception text, log records, and body excerpts. (FR-006)
-- [ ] T030 [P] [US1] `tests/api/test_responses.py`: assert the shape
+- [X] T030 [P] [US1] `tests/api/test_responses.py`: assert the shape
       validator rejects a missing or mistyped envelope; and assert the
       FR-075 honored-request register — `include=listings` on
       `/properties` and `include=properties` on `/reservations` are
@@ -343,7 +347,7 @@ nothing.
       other include, a calendar `listing_id`, and `status[]` are NEVER
       SENT. HTTP 200 is not proof a parameter was honored.
       (FR-033, FR-034, FR-075)
-- [ ] T031 [P] [US1] `tests/api/test_models.py`: assert models parse the
+- [X] T031 [P] [US1] `tests/api/test_models.py`: assert models parse the
       synthetic fixtures; that money is retained as INTEGER MINOR UNITS
       alongside `currency` and `formatted`; that personal fields are
       dropped at the model boundary so they cannot reach an entity, a
@@ -355,28 +359,28 @@ nothing.
       from offset-aware midnight datetimes and take their date
       component in the reservation's own offset, never after converting
       to another zone. (FR-024, FR-039, FR-062, FR-073)
-- [ ] T032 [P] [US1] `tests/api/test_properties.py`: assert
+- [X] T032 [P] [US1] `tests/api/test_properties.py`: assert
       `GET /properties` pages correctly, sends `include=listings` and
       asserts the key, and returns models keyed by `property_id`.
       (FR-025, FR-075)
-- [ ] T033 [P] [US1] `tests/api/test_reservations.py`: assert
+- [X] T033 [P] [US1] `tests/api/test_reservations.py`: assert
       `GET /reservations` ALWAYS sends `properties[]` and
       `start_date`/`end_date`; that property IDs are batched at no more
       than fifty per request; that `date_query=checkin` is always sent;
       and that the returned window is re-filtered client-side
       regardless, so correctness never depends on the parameter.
       (FR-028, FR-029, FR-030, FR-031)
-- [ ] T034 [P] [US1] `tests/api/test_client_methods.py`: assert every
+- [X] T034 [P] [US1] `tests/api/test_client_methods.py`: assert every
       client entry point is `async`, that the client exposes no
       method issuing a non-`GET` request, that it uses
       `homeassistant.helpers.httpx_client.get_async_client`, and that
       no TLS-verification-disabling option exists. (FR-027, FR-040)
-- [ ] T035 [P] [US1] `tests/services/test_window.py`: assert the
+- [X] T035 [P] [US1] `tests/services/test_window.py`: assert the
       reservation window defaults to 90 days back and 90 forward, that
       lookback accepts 7–365 and lookahead 1–730, and that
       out-of-bounds values are rejected with a message naming the
       bound. (FR-021, FR-022)
-- [ ] T036 [P] [US1] `tests/services/test_timezones.py`: assert the
+- [X] T036 [P] [US1] `tests/services/test_timezones.py`: assert the
       effective zone defaults to the Home Assistant instance timezone;
       that a per-property override must be a valid IANA name and is
       rejected otherwise; that lookups go through
@@ -384,13 +388,13 @@ nothing.
       (a Principle VIII blocking-call violation); and that the upstream
       `property.timezone` fixed offset is never consulted.
       (FR-040, FR-074)
-- [ ] T037 [P] [US1] `tests/services/test_estimator.py`: assert the
+- [X] T037 [P] [US1] `tests/services/test_estimator.py`: assert the
       request estimate formula from `contracts/config-entry.md` and
       that ten properties at default intervals with 500 reservations
       yields exactly **1,704** requests per day (24 property + 240
       calendar + 1,440 reservation), under SC-004's 2,000 ceiling.
       (FR-072)
-- [ ] T038 [P] [US1] `tests/test_coordinator.py`: assert three distinct
+- [X] T038 [P] [US1] `tests/test_coordinator.py`: assert three distinct
       coordinator classes exist — reservations, properties, calendar —
       each keying its data by `property_id`; that reservations defaults
       to 5 minutes with a 1-minute floor and properties and calendar
@@ -399,14 +403,14 @@ nothing.
       N-per-property fan-out cannot delay the single cheap properties
       call; and that one coordinator's failure does not fail the
       others. (FR-019, FR-020, FR-071)
-- [ ] T039 [P] [US1] `tests/test_entity.py`: assert the FROZEN unique-ID
+- [X] T039 [P] [US1] `tests/test_entity.py`: assert the FROZEN unique-ID
       format `f"{account_namespace}_{property_id}_{entity_key}"`; that
       it derives solely from account-stable and property-stable values
       and never from a name; that `suggested_object_id` is
       `f"hospitable_{slugify(property.name)}_{key}"`; and that exactly
       one device is created per selected property.
       (FR-050, FR-054, FR-055)
-- [ ] T040 [P] [US1] `tests/test_init.py`: assert `async_setup_entry`
+- [X] T040 [P] [US1] `tests/test_init.py`: assert `async_setup_entry`
       instantiates ONLY the properties coordinator in US1 (a positive
       assertion that the reservations and calendar coordinators are
       NOT instantiated); that no Home Assistant platform is forwarded
@@ -415,7 +419,7 @@ nothing.
       exists with `VERSION = 1` and `MINOR_VERSION = 1`; and that a
       setup failure never fails silently.
       (FR-041, FR-065, FR-070, FR-071)
-- [ ] T041 [P] [US1] `tests/test_config_flow.py`: assert the `user` step
+- [X] T041 [P] [US1] `tests/test_config_flow.py`: assert the `user` step
       validates the token with `GET /user` and stores `token`,
       `account_namespace`, and `namespace_source` in `entry.data`; the
       `properties` step lists properties by name and requires at least
@@ -427,26 +431,26 @@ nothing.
       lookahead, and timezone overrides with bound validation.
       (FR-004, FR-009, FR-010, FR-011, FR-012, FR-013, FR-014,
       FR-015, FR-016)
-- [ ] T042 [P] [US1] `tests/test_diagnostics.py`: assert the diagnostics
+- [X] T042 [P] [US1] `tests/test_diagnostics.py`: assert the diagnostics
       dump is built from an ALLOWLIST, contains the entry skeleton,
       option values, coordinator health, and last-error classification,
       and contains no token, no guest name, no email, no phone, and no
       address. (FR-063)
-- [ ] T043 [P] [US1] `tests/test_privacy.py`: the SC-008 audit — sweep
+- [X] T043 [P] [US1] `tests/test_privacy.py`: the SC-008 audit — sweep
       diagnostics output, DEBUG-level log records, and every exception
       string for token material and personal data across a full
       simulated lifecycle. Assert `/channels` is never called.
       (FR-006, FR-062, FR-073)
-- [ ] T044 [P] [US1] `tests/test_terminology.py`: assert every
+- [X] T044 [P] [US1] `tests/test_terminology.py`: assert every
       user-facing string in `strings.json` and `translations/en.json`
       uses "property" and never "listing", except where `listings` is
       the literal name of an upstream attribute. (FR-068)
-- [ ] T045 [P] [US1] `tests/test_polling_only.py`: assert the package
+- [X] T045 [P] [US1] `tests/test_polling_only.py`: assert the package
       contains no webhook registration, no inbound HTTP view, and no
       push subscription — the integration functions entirely by
       polling and `manifest.json` declares `cloud_polling`.
       (FR-067)
-- [ ] T046 [US1] Run `uv run pytest --runxfail` scoped to the node IDs
+- [X] T046 [US1] Run `uv run pytest --runxfail` scoped to the node IDs
       added in T023–T045 and confirm each fails with the exception
       named in its `raises=`. Fix any test that fails for a different
       reason, then commit the red phase (tests only).
@@ -457,94 +461,94 @@ nothing.
 > `# type: ignore[...]` comments belonging to the tests it satisfies,
 > in the same commit as the implementation.
 
-- [ ] T047 [P] [US1] Implement `custom_components/hospitable/api/const.py`
+- [X] T047 [P] [US1] Implement `custom_components/hospitable/api/const.py`
       — base URL, API version, endpoint paths, timeouts, `per_page`
       ceiling of 100, batch ceiling of 50. Satisfies T023.
       (FR-001, FR-002, FR-031)
-- [ ] T048 [P] [US1] Implement
+- [X] T048 [P] [US1] Implement
       `custom_components/hospitable/api/exceptions.py`. Satisfies T024.
       (FR-035)
-- [ ] T049 [P] [US1] Implement `custom_components/hospitable/api/auth.py`
+- [X] T049 [P] [US1] Implement `custom_components/hospitable/api/auth.py`
       — a token-provider interface that does not preclude OAuth.
       Satisfies T025. (FR-001, FR-003, FR-005, FR-008)
-- [ ] T050 [P] [US1] Implement
+- [X] T050 [P] [US1] Implement
       `custom_components/hospitable/api/redaction.py`. Satisfies T029.
       (FR-006)
-- [ ] T051 [P] [US1] Implement `custom_components/hospitable/api/retry.py`.
+- [X] T051 [P] [US1] Implement `custom_components/hospitable/api/retry.py`.
       Satisfies T028. (FR-036, FR-037)
-- [ ] T052 [US1] Implement
+- [X] T052 [US1] Implement
       `custom_components/hospitable/api/responses.py` — envelope
       validation plus the FR-075 honored-request assertions. Satisfies
       T030. (FR-034, FR-075)
-- [ ] T053 [US1] Implement `custom_components/hospitable/api/models.py`
+- [X] T053 [US1] Implement `custom_components/hospitable/api/models.py`
       — property, reservation, calendar day, money, and user models;
       personal fields dropped at the boundary; NO `timezone` attribute
       on the property model; parse `arrival_date` and `departure_date`
       as offset-aware midnight datetimes before taking the local date
       in the reservation's own offset. Satisfies T031.
       (FR-024, FR-039, FR-060, FR-062, FR-073)
-- [ ] T054 [US1] Implement `custom_components/hospitable/api/client.py`
+- [X] T054 [US1] Implement `custom_components/hospitable/api/client.py`
       — `get_async_client`-backed transport, GET-only surface,
       self-constructed pagination that never follows an upstream URL,
       and the 403 classifier defaulting to the non-scope branch.
       Satisfies T026, T027, T034.
       (FR-025, FR-026, FR-027, FR-038, FR-040)
-- [ ] T055 [P] [US1] Implement
+- [X] T055 [P] [US1] Implement
       `custom_components/hospitable/api/properties.py`. Satisfies T032.
       (FR-025, FR-075)
-- [ ] T056 [P] [US1] Implement
+- [X] T056 [P] [US1] Implement
       `custom_components/hospitable/api/reservations.py` — mandatory
       `properties[]` and date filters, 50-ID batching,
       `date_query=checkin`, and authoritative client-side
       re-filtering. Satisfies T033.
       (FR-028, FR-029, FR-030, FR-031, FR-032)
-- [ ] T057 [P] [US1] Implement
+- [X] T057 [P] [US1] Implement
       `custom_components/hospitable/services/window.py`. Satisfies
       T035. (FR-021, FR-022)
-- [ ] T058 [P] [US1] Implement
+- [X] T058 [P] [US1] Implement
       `custom_components/hospitable/services/timezones.py` — instance
       default, validated IANA override, `dt_util.async_get_time_zone`
       only. Satisfies T036. (FR-040, FR-074)
-- [ ] T059 [P] [US1] Implement
+- [X] T059 [P] [US1] Implement
       `custom_components/hospitable/services/estimator.py`. Satisfies
       T037. (FR-072)
-- [ ] T060 [US1] Implement `custom_components/hospitable/const.py` —
+- [X] T060 [US1] Implement `custom_components/hospitable/const.py` —
       domain, platforms (`SENSOR` only), interval defaults and floors,
       window defaults and bounds, option keys, `VERSION`,
       `MINOR_VERSION`. (FR-019, FR-020, FR-021, FR-070)
-- [ ] T061 [US1] Implement `custom_components/hospitable/coordinator.py`
+- [X] T061 [US1] Implement `custom_components/hospitable/coordinator.py`
       — all three coordinator classes with independent intervals and
       isolated failure handling. Satisfies T038.
       (FR-019, FR-020, FR-071)
-- [ ] T062 [US1] Implement `custom_components/hospitable/entity.py` —
+- [X] T062 [US1] Implement `custom_components/hospitable/entity.py` —
       base entity, device construction, frozen unique ID,
       `suggested_object_id`, and an explicit
       `device_registry.async_get_or_create` call for each selected
       property so US1 creates devices without sensor entities.
       Satisfies T039.
       (FR-050, FR-054, FR-055)
-- [ ] T063 [US1] Implement `custom_components/hospitable/config_flow.py`
+- [X] T063 [US1] Implement `custom_components/hospitable/config_flow.py`
       — `user`, `properties`, `reauth_confirm`, and options steps with
       bound validation. Satisfies T041.
       (FR-004, FR-007, FR-009 to FR-016)
-- [ ] T064 [P] [US1] Implement
+- [X] T064 [P] [US1] Implement
       `custom_components/hospitable/diagnostics.py` — allowlist-based.
       Satisfies T042, and contributes to T043. (FR-063)
-- [ ] T065 [US1] Implement `custom_components/hospitable/__init__.py` —
+- [X] T065 [US1] Implement `custom_components/hospitable/__init__.py` —
       `async_setup_entry` instantiating ONLY the properties
       coordinator, `async_unload_entry` teardown,
       `async_migrate_entry`, and the options update listener
       registration. Satisfies T040.
       (FR-041, FR-065, FR-067, FR-070, FR-071)
-- [ ] T066 [US1] Finalize `strings.json` and `translations/en.json`
+- [X] T066 [US1] Finalize `strings.json` and `translations/en.json`
       against the implemented flow, keeping every message actionable
       and every noun "property". Satisfies T044, T045.
       (FR-007, FR-064, FR-067, FR-068)
-- [ ] T067 [US1] Sweep the diff: confirm ZERO `xfail` markers and ZERO
+- [X] T067 [US1] Sweep the diff: confirm ZERO `xfail` markers and ZERO
       `# type: ignore[import-not-found]` comments remain for
       T023–T045, then run the full suite plus
       `uv run mypy custom_components tests` and confirm both are green.
-- [ ] T068 [US1] Walk the US1 rows of `quickstart.md` against a live
+- [X] T068 [US1] Walk the US1 rows of `quickstart.md` against a live
       Home Assistant instance and record the outcome. Confirm the exit
       criteria below.
 

@@ -1,0 +1,15 @@
+Trademark Legal Notices
+
+All product names, trademarks, and registered trademarks in the images
+included in custom_components/hospitable/brand/ are property of their
+respective owners. The Hospitable name and logo are trademarks of
+Hospitable R&D BV.
+
+The images are included solely to identify the third-party service that
+this Home Assistant integration connects to. Their inclusion does not
+imply any affiliation with, sponsorship by, or endorsement from
+Hospitable R&D BV.
+
+The images in custom_components/hospitable/brand/ are not covered by
+this repository's Apache-2.0 license and are not redistributable under
+that license.

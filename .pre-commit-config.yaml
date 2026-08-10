@@ -129,6 +129,15 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-fixture-pii
+        name: check fixture PII
+        entry: python scripts/check_fixture_pii.py
+        language: python
+        files: ^tests/.*\.json$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
       - id: aislop
         name: aislop ci
         entry: aislop
@@ -193,7 +202,7 @@ repos:
         language_version: python3.14
         args: ["--show-error-codes", "--install-types", "--non-interactive"]
         additional_dependencies:
-          - "homeassistant>=2026.4.0"
+          - "homeassistant>=2026.8.0"
           - "pytest"
           - "pytest-homeassistant-custom-component>=0.13.0"
           - "httpx"

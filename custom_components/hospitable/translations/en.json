@@ -1,0 +1,65 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Hospitable",
+        "description": "Enter a Hospitable Personal Access Token from Apps > API access. Public API access requires a paid Hospitable plan; Essentials is excluded. The token needs read access to user, property, reservation, and calendar data.",
+        "data": {"token": "Personal Access Token"}
+      },
+      "properties": {
+        "title": "Select properties",
+        "description": "Choose at least one property to monitor.",
+        "data": {"selected_properties": "Properties"}
+      },
+      "reauth_confirm": {
+        "title": "Update Hospitable token",
+        "description": "Enter a replacement Personal Access Token for this Hospitable account.",
+        "data": {"token": "Personal Access Token"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to Hospitable. Try again later.",
+      "invalid_auth": "The token was rejected. Generate a replacement under Apps > API access, and confirm the account has paid Public API access.",
+      "no_properties_selected": "Select at least one property.",
+      "option_bound": "The value is outside the permitted bound.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This Hospitable account is already configured.",
+      "no_properties": "No properties were found for this account.",
+      "reauth_successful": "Hospitable token updated.",
+      "wrong_account": "The replacement token belongs to a different account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hospitable options",
+        "description": "Tune polling and property selection. Wider windows increase requests; shorter lookback can hide long in-progress stays.",
+        "data": {
+          "selected_properties": "Properties",
+          "reservation_interval_minutes": "Reservation polling interval (minutes)",
+          "property_interval_minutes": "Property polling interval (minutes)",
+          "lookback_days": "Lookback days",
+          "lookahead_days": "Lookahead days",
+          "timezone_overrides": "Property timezone overrides"
+        }
+      }
+    },
+    "error": {
+      "no_properties_selected": "Select at least one property.",
+      "invalid_timezone": "Timezone overrides must be IANA names such as America/Los_Angeles.",
+      "option_bound": "The value is outside the permitted bound."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "reservation_status": {"name": "Reservation status"},
+      "next_arrival": {"name": "Next arrival"},
+      "next_departure": {"name": "Next departure"},
+      "upcoming_reservations": {"name": "Upcoming reservations"},
+      "property_info": {"name": "Property info"},
+      "availability": {"name": "Availability"}
+    }
+  }
+}

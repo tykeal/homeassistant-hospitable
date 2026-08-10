@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+# SPDX-License-Identifier: Apache-2.0
+
+ignore:
+  - vulnerability: GHSA-g6cj-pr64-35w5
+    package:
+      name: cryptography
+    reason: >-
+      Home Assistant 2026.8 pins cryptography 48.0.1. This project does
+      not use cryptography directly; remove the ignore when Home Assistant
+      releases a compatible fixed pin.
+    expires: 2026-10-31

@@ -116,7 +116,7 @@ No constitutional principle is violated or waived.**
 | I. Code Quality & Testing | PASS | `ruff-check`, `ruff-format`, `mypy`, `interrogate --fail-under=100` all clean. Every module, function, and class carries a docstring. Unit-level TDD is deferred nowhere; every phase opens with a red-phase commit. Coverage measured over `custom_components/` only |
 | II. API Client Design | PASS | All HTTP isolated in `api/`; coordinators and entities construct no requests. API version is one constant in `api/const.py`. PAT sits behind a single credential interface so adding OAuth is an internal change (FR-008). A vendor-gated 403 is a capability boundary, never an auth failure. No quota hard-coded, no rate-limit header assumed. Pagination exposed as an async generator. Typed exceptions carry status, endpoint, and a redacted excerpt. All HTTP mocked with `respx`; no test needs a live account. Malformed shapes raise |
 | III. Atomic Commits | PASS | One logical change per commit; every commit leaves the tree working. Conventional Commits with capitalized types, subjects within 50 characters, bodies wrapped at 72 by hand. `tasks.md` updates committed separately from the code they track. No direct commits to `main` |
-| IV. Licensing | PASS | Python files carry inline SPDX headers. `tests/fixtures/**` is JSON and cannot, so a `REUSE.toml` annotation lands in the same commit that creates the path. `custom_components/hospitable/brand/**` is CC-BY-SA-4.0; `custom_components/**/*.json` and `hacs.json` are already annotated |
+| IV. Licensing | PASS | Python files carry inline SPDX headers. `tests/fixtures/**` is JSON and cannot, so a `REUSE.toml` annotation lands in the same commit that creates the path. `custom_components/hospitable/brand/**` uses `LicenseRef-Hospitable-Trademark` for nominative service identification; `custom_components/**/*.json` and `hacs.json` are already annotated |
 | V. Pre-Commit Integrity | PASS | No `--no-verify`, ever. A new local hook, `check-fixture-pii`, joins the enforced set. On failure: fix, `git add`, commit again — never `git reset`. `mypy` and `aislop` are local-only, so the local run is mandatory in practice as well as principle |
 | VI. Agent Co-Authorship & DCO | PASS | Every commit uses `git commit -s` and carries `Co-authored-by: Copilot`. Author and committer remain the human contributor's signing identity; no `user.name` or `user.email` is set at any scope |
 | VII. User Experience Consistency | PASS | The config flow implements the user step, a reauth flow, and an options flow — the stated minimum — from the first shippable release. PAT is offered without exposing credential-model jargon, and the design does not preclude OAuth. Entity IDs follow `sensor.hospitable_<property>_<attribute>`. Unique IDs derive only from immutable identifiers. Attribute contracts are documented and frozen. Error messages name the remedy, and a scope limitation is never described as a credential problem |
@@ -255,7 +255,7 @@ custom_components/hospitable/
 ├── strings.json
 ├── translations/
 │   └── en.json
-├── brand/                     # CC-BY-SA-4.0
+├── brand/                     # LicenseRef-Hospitable-Trademark
 ├── api/                       # all HTTP lives here; nothing else builds requests
 │   ├── __init__.py            # public re-exports
 │   ├── const.py               # base URL, API version, page and batch ceilings

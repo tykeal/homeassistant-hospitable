@@ -585,20 +585,25 @@ check-in and check-out fields are top-level `check_in` and `check_out`.
 They were present on 25 of 25 sampled reservations. No candidate-field
 list is needed.
 
-### A-3: Format of reservation `check_in` and `check_out` strings
+### A-3: Format of property `checkin` and `checkout` strings
 
-**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-045.
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-053, FR-074.
 
-The live reservation-field probe on 2026-08-09 confirmed both fields
-are full ISO 8601 datetimes with UTC offsets, matching the mask
-`9999-99-99a99:99:99-99:99`. `booking_date` is different: it is a UTC
-timestamp with trailing `Z`, matching `9999-99-99a99:99:99a`.
+The live property-field probe on 2026-08-09 confirmed `checkin` and
+`checkout` are bare `HH:MM` wall-clock policy strings. They are not
+instants: they contain no date, seconds, UTC offset, or timezone, and
+they must not be parsed into datetimes or used for arithmetic. Across
+13 sampled properties both fields were present, non-null, and matched
+the `99:99` mask.
 
-Across a 50-reservation sample spanning the year, offsets varied
-between `-07:00` and `-08:00` (9 and 41 samples respectively), so the
-reservation timestamps are DST-aware at their own instants. Consequence:
-reservation occupancy is an exact instant comparison and needs no
-configured timezone for those reservation instants.
+The integration carries these values as strings for property attributes
+and degrades malformed values to `None`. It must not combine them with
+`property.timezone`, because that upstream field is a fixed UTC offset
+(`-0700` in fixtures), not an IANA timezone, and is DST-blind.
+
+The reservation scheduled-time probe separately confirmed reservation
+`check_in` and `check_out` are top-level ISO 8601 datetimes with UTC
+offsets. Those reservation fields remain governed by A-2 and FR-045.
 
 ### A-4: Reservation window filter fidelity
 
@@ -669,6 +674,81 @@ from US7 reads the *aggregate* property calendar, which CONFIRMED
 includes bookings from every sales channel — so if OQ-004 is true, the
 availability sensor and the reservation sensor will disagree for such a
 property, and that disagreement is the detection signal.
+
+## Deferred scope: webhooks and OAuth
+
+This section preserves future-scope research that does not bind the
+current PAT-only, polling-only feature. Principle XI remains not
+applicable to this feature, as recorded in [plan.md](./plan.md),
+because this integration registers no webhook endpoint and performs no
+OAuth flow in spec 001.
+
+### F-1: Webhook signature mechanism
+
+**Tier**: UNVERIFIED. **Governs**: future webhook specifications only.
+
+Best available information, all from secondary sources rather than an
+observed delivery, suggests Hospitable signs webhook deliveries with a
+`Signature` header whose value is an HMAC-SHA256 hex digest over the
+raw request body. The same secondary sources report dashboard-only
+webhook registration, no webhook registration API, delivery source IPs
+in `38.80.170.0/24`, and five failed-delivery retries at 1 second,
+5 seconds, 10 seconds, 1 hour, and 6 hours.
+
+**Handling**: do not implement signature verification against the
+unverified header name alone. A future webhook specification must
+confirm the mechanism against a real delivery or authenticated
+developer-portal material before relying on any header name, digest
+format, retry schedule, or source-address range.
+
+### F-2: OAuth token lifetimes, endpoints, and scopes
+
+**Tier**: CONFIRMED-BY-SPEC. **Governs**: future OAuth
+specifications only.
+
+Hospitable's own Stoplight OpenAPI export documents the OAuth details
+below. No live OAuth grant was performed, because obtaining one
+requires Vendor approval that this project does not hold; these facts
+therefore must not be promoted to CONFIRMED-BY-TEST.
+
+- Access token lifetime: 12 hours (`expires_in: 43200`).
+- Refresh token lifetime: 90 days.
+- Both access and refresh tokens rotate on refresh. A future OAuth
+  implementation must replace the stored refresh token atomically and
+  discard the superseded token.
+- Observed scopes: `listing:read`, `property:read`, `financials:read`,
+  `message:read`, `message:write`, `transaction:read`,
+  `enrichment:read`, and `enrichment:write`.
+- Token endpoint: `POST https://auth.hospitable.com/oauth/token`.
+- The token endpoint takes a JSON body, not a form-encoded body. A
+  form-encoded request may look natural from OAuth habit but is wrong
+  for this API.
+- Authorize endpoint: `https://auth.hospitable.com/oauth/authorize`.
+- Scopes are configured in the Partner Portal and are not passed in the
+  authorize URL.
+- There is no client-credentials grant. `authorization_code` is the
+  only documented grant type.
+
+**Handling**: spec 001 remains PAT-only. The credential interface keeps
+OAuth addable, but no current code may depend on Vendor-only access or
+OAuth scopes.
+
+### F-3: General and messaging rate limits
+
+**Tier**: RESOLVED as unpublished, with `X-RateLimit-*` headers
+UNVERIFIED. **Governs**: FR-036, OQ-005, and future messaging
+specifications.
+
+Hospitable publishes no general numeric rate-limit ceiling. The only
+documented numeric limits found are for messaging: 2 messages per
+minute per reservation and 50 messages per 5 minutes. The existence of
+`X-RateLimit-*` response headers remains UNVERIFIED; it rests on
+SDK-author prose rather than documentation or an observed response.
+
+**Handling**: the current polling client must continue to avoid any
+hard-coded general quota and must not assume `X-RateLimit-*` headers
+are present. Future messaging specifications must respect the two
+published messaging limits wherever the integration sends messages.
 
 ## Sizing check against SC-004
 

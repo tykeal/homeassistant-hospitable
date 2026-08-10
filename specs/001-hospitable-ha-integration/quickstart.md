@@ -301,3 +301,18 @@ validator owns.
 **Never commit a live response**, even redacted. Fixtures mirror
 observed shapes with invented values, and a redaction slip in a fixture
 is permanent in git history.
+
+## Red-phase machinery verification
+
+Run these commands before relying on red-phase commits:
+
+```shell
+uv run pytest tests/test_red_phase_contract.py::test_xfail_strict_unexpected_pass
+uv run pytest tests/test_red_phase_contract.py::test_asyncio_auto_executes_async_tests
+uv run mypy tests/typecheck_unused_ignore_sample.py
+```
+
+The first command must fail because `xfail_strict = true` turns an
+unexpected pass into a failure. The second proves async tests execute
+under `asyncio_mode = "auto"`. The third must report an unused ignore
+when the temporary sample contains a stale `# type: ignore`.
