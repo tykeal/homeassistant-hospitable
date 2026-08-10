@@ -8,8 +8,6 @@ from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
 
@@ -28,7 +26,7 @@ NINE_OPTIONS = {
 
 def _module() -> Any:
     """Import the not-yet-implemented reservation sensor module."""
-    import custom_components.hospitable.sensor.reservation as reservation  # type: ignore
+    import custom_components.hospitable.sensor.reservation as reservation
 
     return reservation
 
@@ -38,11 +36,6 @@ def _reservation(fixture: str) -> HospitableReservation:
     return HospitableReservation.from_api(load_fixture(fixture)["data"][0])
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T072 sensor/reservation.py not implemented",
-)
 def test_exactly_one_sensor_per_property() -> None:
     """The builder yields exactly one reservation sensor per property."""
     module = _module()
@@ -60,11 +53,6 @@ def test_exactly_one_sensor_per_property() -> None:
     }
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T072 sensor/reservation.py not implemented",
-)
 def test_options_are_the_nine_without_unavailable() -> None:
     """The enum options are exactly the nine states and never unavailable."""
     module = _module()
@@ -82,11 +70,6 @@ def test_options_are_the_nine_without_unavailable() -> None:
     assert set(sensor.options) == NINE_OPTIONS
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T072 sensor/reservation.py not implemented",
-)
 def test_state_is_always_one_of_nine_options() -> None:
     """Every computed state is a member of the enum option set."""
     module = _module()

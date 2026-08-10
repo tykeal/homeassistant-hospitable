@@ -5,31 +5,24 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
-
-import pytest
+from typing import Any, cast
 
 
 def _sensor(reservations: list[object]) -> Any:
     """Build a reservation sensor over a fake coordinator."""
-    from custom_components.hospitable.sensor.reservation import (  # type: ignore
+    from custom_components.hospitable.sensor.reservation import (
         HospitableReservationSensor,
     )
 
     coordinator = SimpleNamespace(data=reservations, consecutive_failures=0)
     return HospitableReservationSensor(
-        coordinator,
+        cast(Any, coordinator),
         account_namespace="acct",
         property_id="prop-example-001",
         property_name="Example",
     )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T075 sensor/reservation.py not implemented",
-)
 def test_no_reservation_reads_no_reservation_state() -> None:
     """A property with no reservation reads the no_reservation state."""
     from datetime import datetime
@@ -39,11 +32,6 @@ def test_no_reservation_reads_no_reservation_state() -> None:
     assert sensor._compute_state(now) == "no_reservation"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T075 sensor/reservation.py not implemented",
-)
 def test_no_reservation_entity_remains_available() -> None:
     """A property with no reservation remains available, not unavailable."""
     sensor = _sensor([])

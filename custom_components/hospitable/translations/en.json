@@ -54,7 +54,20 @@
   },
   "entity": {
     "sensor": {
-      "reservation_status": {"name": "Reservation status"},
+      "reservation_status": {
+        "name": "Reservation status",
+        "state": {
+          "no_reservation": "No reservation",
+          "awaiting_checkin": "Awaiting check-in",
+          "occupied": "Occupied",
+          "checked_out": "Checked out",
+          "pending_request": "Pending request",
+          "checkpoint": "Checkpoint",
+          "cancelled": "Cancelled",
+          "not_accepted": "Not accepted",
+          "unknown": "Unknown"
+        }
+      },
       "next_arrival": {"name": "Next arrival"},
       "next_departure": {"name": "Next departure"},
       "upcoming_reservations": {"name": "Upcoming reservations"},

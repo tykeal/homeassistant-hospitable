@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.helpers import device_registry as dr
@@ -22,11 +21,6 @@ from custom_components.hospitable.const import (
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T077 sensor platform not wired into PLATFORMS",
-)
 def test_platforms_contains_sensor() -> None:
     """US2 forwards the sensor platform for reservation entities."""
     import custom_components.hospitable as integration
@@ -35,11 +29,6 @@ def test_platforms_contains_sensor() -> None:
     assert integration.PLATFORMS == [Platform.SENSOR]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T077 reservations coordinator not wired into setup",
-)
 async def test_setup_entry_loads_properties_and_devices(
     hass: Any,
     respx_router: Any,

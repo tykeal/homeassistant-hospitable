@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Constants for the Hospitable Home Assistant integration."""
 
+from homeassistant.const import Platform
+
 DOMAIN = "hospitable"
 VERSION = 1
 MINOR_VERSION = 1
-PLATFORMS: list[str] = []
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONF_TOKEN = "token"
 CONF_ACCOUNT_NAMESPACE = "account_namespace"
 CONF_NAMESPACE_SOURCE = "namespace_source"

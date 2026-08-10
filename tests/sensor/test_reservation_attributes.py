@@ -6,9 +6,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from types import SimpleNamespace
-from typing import Any
-
-import pytest
+from typing import Any, cast
 
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
@@ -42,35 +40,25 @@ def _reservation(fixture: str) -> HospitableReservation:
 
 def _sensor(reservations: list[HospitableReservation]) -> Any:
     """Build a reservation sensor bound to a fake coordinator."""
-    from custom_components.hospitable.sensor.reservation import (  # type: ignore
+    from custom_components.hospitable.sensor.reservation import (
         HospitableReservationSensor,
     )
 
     coordinator = SimpleNamespace(data=reservations, consecutive_failures=0)
     return HospitableReservationSensor(
-        coordinator,
+        cast(Any, coordinator),
         account_namespace="acct",
         property_id="prop-example-001",
         property_name="Example",
     )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T073 sensor/reservation.py not implemented",
-)
 def test_attribute_keys_match_contract() -> None:
     """The attribute keys match the entities.md contract exactly."""
     sensor = _sensor([_reservation("reservation_accepted.json")])
     assert set(sensor.extra_state_attributes) == EXPECTED_ATTRIBUTES
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T073 sensor/reservation.py not implemented",
-)
 def test_guest_counts_present_and_typed() -> None:
     """Guest counts are exposed as integers, not identities."""
     sensor = _sensor([_reservation("reservation_accepted.json")])
@@ -82,11 +70,6 @@ def test_guest_counts_present_and_typed() -> None:
     assert attributes["guests_pets"] == 0
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T073 sensor/reservation.py not implemented",
-)
 def test_scheduled_times_are_offset_aware() -> None:
     """Scheduled check-in and check-out are the reservation's own instants."""
     sensor = _sensor([_reservation("reservation_accepted.json")])
@@ -101,11 +84,6 @@ def test_scheduled_times_are_offset_aware() -> None:
     assert attributes["reservation_id"] == "res-example-accepted"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T073 sensor/reservation.py not implemented",
-)
 def test_no_personal_data_in_any_attribute() -> None:
     """No guest name, email, or phone leaks into any attribute value."""
     sensor = _sensor([_reservation("reservation_accepted.json")])
@@ -114,11 +92,6 @@ def test_no_personal_data_in_any_attribute() -> None:
         assert personal not in rendered
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T073 sensor/reservation.py not implemented",
-)
 def test_upcoming_reservations_carry_no_identity() -> None:
     """Upcoming entries carry status and stay type but no guest identity."""
     accepted = _reservation("reservation_accepted.json")

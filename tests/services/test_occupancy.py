@@ -16,7 +16,7 @@ from tests.helpers import load_fixture
 
 def _derive_occupancy() -> Any:
     """Import the not-yet-implemented occupancy derivation function."""
-    from custom_components.hospitable.services.occupancy import (  # type: ignore
+    from custom_components.hospitable.services.occupancy import (
         derive_occupancy,
     )
 
@@ -28,11 +28,6 @@ def _reservation(fixture: str) -> HospitableReservation:
     return HospitableReservation.from_api(load_fixture(fixture)["data"][0])
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_future_arrival_is_awaiting_checkin() -> None:
     """Before the arrival date the state is awaiting check-in."""
     derive_occupancy = _derive_occupancy()
@@ -41,11 +36,6 @@ def test_future_arrival_is_awaiting_checkin() -> None:
     assert derive_occupancy(reservation, now).state == "awaiting_checkin"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_mid_stay_is_occupied() -> None:
     """Between scheduled check-in and check-out the state is occupied."""
     derive_occupancy = _derive_occupancy()
@@ -54,11 +44,6 @@ def test_mid_stay_is_occupied() -> None:
     assert derive_occupancy(reservation, now).state == "occupied"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_after_checkout_is_checked_out() -> None:
     """At or after the scheduled check-out moment the state is checked out."""
     derive_occupancy = _derive_occupancy()
@@ -67,11 +52,6 @@ def test_after_checkout_is_checked_out() -> None:
     assert derive_occupancy(reservation, now).state == "checked_out"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_arrives_today_before_checkin_is_awaiting_not_occupied() -> None:
     """On the arrival date before check-in the state is awaiting check-in."""
     derive_occupancy = _derive_occupancy()
@@ -82,11 +62,6 @@ def test_arrives_today_before_checkin_is_awaiting_not_occupied() -> None:
     assert state != "occupied"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_departs_today_after_checkout_is_checked_out_not_occupied() -> None:
     """On the departure date after check-out the state is checked out."""
     derive_occupancy = _derive_occupancy()
@@ -97,11 +72,6 @@ def test_departs_today_after_checkout_is_checked_out_not_occupied() -> None:
     assert state != "occupied"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_missing_checkin_on_arrival_date_is_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -117,11 +87,6 @@ def test_missing_checkin_on_arrival_date_is_unknown(
     assert "check_in" in caplog.text
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_missing_checkout_on_departure_date_is_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -136,11 +101,6 @@ def test_missing_checkout_on_departure_date_is_unknown(
     assert "check_out" in caplog.text
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_unparsable_checkin_on_arrival_date_is_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -156,11 +116,6 @@ def test_unparsable_checkin_on_arrival_date_is_unknown(
     assert "check_in" in caplog.text
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T070 services/occupancy.py not implemented",
-)
 def test_degradation_scoped_to_boundary_dates_only() -> None:
     """Three days into the stay an unparsable time still resolves to occupied."""
     derive_occupancy = _derive_occupancy()

@@ -15,18 +15,13 @@ from tests.helpers import load_fixture
 
 def _status_mapper() -> Any:
     """Import and build the not-yet-implemented status mapper."""
-    from custom_components.hospitable.services.status import (  # type: ignore
+    from custom_components.hospitable.services.status import (
         StatusMapper,
     )
 
     return StatusMapper()
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T069 services/status.py not implemented",
-)
 def test_six_categories_map_explicitly() -> None:
     """Every upstream category maps to a defined enum state."""
     mapper = _status_mapper()
@@ -39,11 +34,6 @@ def test_six_categories_map_explicitly() -> None:
     assert mapper.map("checkpoint", "occupied") == "checkpoint"
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T069 services/status.py not implemented",
-)
 def test_checkpoint_does_not_reach_unknown_fallback(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -54,11 +44,6 @@ def test_checkpoint_does_not_reach_unknown_fallback(
     assert caplog.records == []
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T069 services/status.py not implemented",
-)
 def test_unrecognized_status_maps_to_unknown_logged_once(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -71,11 +56,6 @@ def test_unrecognized_status_maps_to_unknown_logged_once(
     assert len(warnings) == 1
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T069 services/status.py not implemented",
-)
 def test_status_read_from_structured_path_only() -> None:
     """Status comes from reservation_status.current, never the flat field."""
     mapper = _status_mapper()

@@ -5,8 +5,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-
-import pytest
+from typing import Any, cast
 
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
@@ -17,14 +16,9 @@ def _reservation(fixture: str) -> HospitableReservation:
     return HospitableReservation.from_api(load_fixture(fixture)["data"][0])
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T076 services/occupancy.py not implemented",
-)
 def test_owner_stay_occupancy_matches_guest_stay() -> None:
     """An owner stay derives the same occupancy as an equivalent guest stay."""
-    from custom_components.hospitable.services.occupancy import (  # type: ignore
+    from custom_components.hospitable.services.occupancy import (
         derive_occupancy,
     )
 
@@ -41,23 +35,18 @@ def test_owner_stay_occupancy_matches_guest_stay() -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T076 sensor/reservation.py not implemented",
-)
 def test_owner_stay_distinguished_by_attribute_not_state() -> None:
     """Stay type appears as an attribute, never folded into the enum state."""
     from types import SimpleNamespace
 
-    from custom_components.hospitable.sensor.reservation import (  # type: ignore
+    from custom_components.hospitable.sensor.reservation import (
         HospitableReservationSensor,
     )
 
     owner = _reservation("reservation_owner_stay.json")
     coordinator = SimpleNamespace(data=[owner], consecutive_failures=0)
     sensor = HospitableReservationSensor(
-        coordinator,
+        cast(Any, coordinator),
         account_namespace="acct",
         property_id="prop-example-001",
         property_name="Example",
