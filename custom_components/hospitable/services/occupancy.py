@@ -23,6 +23,16 @@ STATE_OCCUPIED = "occupied"
 STATE_CHECKED_OUT = "checked_out"
 STATE_UNKNOWN = "unknown"
 
+_FIELD_MESSAGES = {
+    "check_in": (
+        "Reservation %s is missing a usable scheduled check_in time on its arrival date"
+    ),
+    "check_out": (
+        "Reservation %s is missing a usable scheduled check_out time "
+        "on its departure date"
+    ),
+}
+
 
 @dataclass(frozen=True)
 class OccupancyResult:
@@ -42,37 +52,34 @@ def parse_scheduled_instant(raw: str | None) -> datetime | None:
         return None
 
 
-def derive_occupancy(
+def classify_occupancy(
     reservation: HospitableReservation, now: datetime
 ) -> OccupancyResult:
-    """Derive occupancy for ``reservation`` at instant ``now``.
+    """Classify occupancy for ``reservation`` at instant ``now`` without logging.
 
     Degradation to ``unknown`` is scoped to the two boundary dates only:
     a missing or unparsable check-in on the arrival date, or check-out on
-    the departure date, yields ``unknown`` with a warning naming the
-    reservation and the field. Interior days never degrade.
+    the departure date, yields ``unknown`` naming the offending field.
+    Interior days never degrade.
+
+    When neither scheduled time parses there is no offset to anchor the
+    local day; this both-missing case degrades unconditionally to
+    ``unknown`` naming ``check_in``. Boundary scoping of that case is
+    addressed separately.
     """
     checkin = parse_scheduled_instant(reservation.scheduled_checkin_raw)
     checkout = parse_scheduled_instant(reservation.scheduled_checkout_raw)
+    arrival = reservation.arrival_date
+    departure = reservation.departure_date
     reference = checkin or checkout
+
     if reference is None:
-        _LOGGER.warning(
-            "Reservation %s has no usable scheduled check_in or check_out time",
-            reservation.reservation_id,
-        )
         return OccupancyResult(STATE_UNKNOWN, "check_in")
 
     now_date = now.astimezone(reference.tzinfo).date()
-    arrival = reservation.arrival_date
-    departure = reservation.departure_date
 
     if now_date == arrival:
         if checkin is None:
-            _LOGGER.warning(
-                "Reservation %s is missing a usable scheduled check_in time "
-                "on its arrival date",
-                reservation.reservation_id,
-            )
             return OccupancyResult(STATE_UNKNOWN, "check_in")
         if now < checkin:
             return OccupancyResult(STATE_AWAITING_CHECKIN)
@@ -82,11 +89,6 @@ def derive_occupancy(
 
     if now_date == departure:
         if checkout is None:
-            _LOGGER.warning(
-                "Reservation %s is missing a usable scheduled check_out time "
-                "on its departure date",
-                reservation.reservation_id,
-            )
             return OccupancyResult(STATE_UNKNOWN, "check_out")
         if now >= checkout:
             return OccupancyResult(STATE_CHECKED_OUT)
@@ -99,3 +101,38 @@ def derive_occupancy(
     if now_date > departure:
         return OccupancyResult(STATE_CHECKED_OUT)
     return OccupancyResult(STATE_OCCUPIED)
+
+
+def _log_degradation(reservation: HospitableReservation, field: str) -> None:
+    """Emit the WARNING naming the reservation and the degraded field."""
+    _LOGGER.warning(_FIELD_MESSAGES[field], reservation.reservation_id)
+
+
+def derive_occupancy(
+    reservation: HospitableReservation, now: datetime
+) -> OccupancyResult:
+    """Classify occupancy and log any degradation on every call."""
+    result = classify_occupancy(reservation, now)
+    if result.degraded_field is not None:
+        _log_degradation(reservation, result.degraded_field)
+    return result
+
+
+def derive_occupancy_once(
+    reservation: HospitableReservation,
+    now: datetime,
+    warned: set[tuple[str, str]],
+) -> OccupancyResult:
+    """Classify occupancy, logging each degradation once per field.
+
+    ``warned`` tracks the ``(reservation_id, field)`` pairs already
+    reported so a persistently degraded reservation does not emit a fresh
+    warning on every poll.
+    """
+    result = classify_occupancy(reservation, now)
+    if result.degraded_field is not None:
+        key = (reservation.reservation_id, result.degraded_field)
+        if key not in warned:
+            warned.add(key)
+            _log_degradation(reservation, result.degraded_field)
+    return result

@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timezone
 from custom_components.hospitable.api.models import HospitableReservation
 from custom_components.hospitable.services.occupancy import (
     STATE_OCCUPIED,
-    derive_occupancy,
+    classify_occupancy,
     parse_scheduled_instant,
 )
 
@@ -53,7 +53,7 @@ def _sort_key(
     reservation identifier.
     """
     active_rank = 0 if reservation.status_category not in _INACTIVE_CATEGORIES else 1
-    state = derive_occupancy(reservation, now).state
+    state = classify_occupancy(reservation, now).state
     now_date = now.astimezone(_reservation_zone(reservation)).date()
 
     if state == STATE_OCCUPIED:

@@ -45,11 +45,6 @@ def _sensor(reservation: HospitableReservation) -> Any:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: D3 occupancy degradation must warn once per field",
-)
 def test_repeated_reads_warn_once(caplog: pytest.LogCaptureFixture) -> None:
     """Repeated state and attribute reads warn once for one degraded field."""
     sensor = _sensor(_arrival_today_missing_checkin())

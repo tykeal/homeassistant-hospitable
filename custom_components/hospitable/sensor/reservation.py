@@ -21,7 +21,7 @@ from custom_components.hospitable.entity import (
 )
 from custom_components.hospitable.sensor.helpers import reservation_summary
 from custom_components.hospitable.services.occupancy import (
-    derive_occupancy,
+    derive_occupancy_once,
     parse_scheduled_instant,
 )
 from custom_components.hospitable.services.selection import (
@@ -83,6 +83,7 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
         super().__init__(coordinator)
         self._property_id = property_id
         self._status_mapper = StatusMapper()
+        self._occupancy_warned: set[tuple[str, str]] = set()
         self._attr_unique_id = build_unique_id(
             account_namespace, property_id, "reservation_status"
         )
@@ -107,7 +108,7 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
         selected, _ = select_reservation(self._property_reservations(), now)
         if selected is None:
             return NO_RESERVATION
-        occupancy = derive_occupancy(selected, now)
+        occupancy = derive_occupancy_once(selected, now, self._occupancy_warned)
         return self._status_mapper.map(selected.status_category, occupancy.state)
 
     @property
