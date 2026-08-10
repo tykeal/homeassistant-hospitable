@@ -69,7 +69,6 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         lookahead_days=entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT),
         config_entry=entry,
         interval_minutes=entry.options.get(CONF_RESERVATION_INTERVAL),
-        properties_coordinator=properties_coordinator,
     )
     await reservations_coordinator.async_refresh()
 

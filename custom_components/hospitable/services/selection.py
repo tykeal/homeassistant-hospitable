@@ -34,10 +34,10 @@ def _reservation_zone(reservation: HospitableReservation) -> timezone:
     return UTC
 
 
-def _epoch(raw: str | None) -> float:
-    """Return an instant's POSIX timestamp, or 0.0 when unparsable."""
+def _epoch(raw: str | None, default: float) -> float:
+    """Return an instant's POSIX timestamp, or ``default`` when unparsable."""
     instant = parse_scheduled_instant(raw)
-    return instant.timestamp() if instant is not None else 0.0
+    return instant.timestamp() if instant is not None else default
 
 
 def _sort_key(
@@ -48,7 +48,9 @@ def _sort_key(
     Active reservations always outrank inactive (cancelled or not
     accepted) ones. Within an activity class, an in-progress stay wins,
     then the soonest future arrival, then the most recent past departure.
-    Ties break on ascending reservation identifier.
+    A reservation whose scheduled time is missing or unparsable sorts
+    after its dated peers within the tier. Ties break on ascending
+    reservation identifier.
     """
     active_rank = 0 if reservation.status_category not in _INACTIVE_CATEGORIES else 1
     state = derive_occupancy(reservation, now).state
@@ -59,11 +61,12 @@ def _sort_key(
     elif reservation.arrival_date >= now_date:
         tier = _TIER_FUTURE
         primary = float(reservation.arrival_date.toordinal())
-        secondary = _epoch(reservation.scheduled_checkin_raw)
+        secondary = _epoch(reservation.scheduled_checkin_raw, float("inf"))
     else:
         tier = _TIER_PAST
         primary = -float(reservation.departure_date.toordinal())
-        secondary = -_epoch(reservation.scheduled_checkout_raw)
+        checkout = parse_scheduled_instant(reservation.scheduled_checkout_raw)
+        secondary = -checkout.timestamp() if checkout is not None else float("inf")
 
     return (active_rank, tier, primary, secondary, reservation.reservation_id)
 

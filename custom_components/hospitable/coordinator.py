@@ -91,7 +91,6 @@ class HospitableReservationsCoordinator(
         lookahead_days: int,
         config_entry: ConfigEntry | None = None,
         interval_minutes: int | None = None,
-        properties_coordinator: HospitablePropertiesCoordinator | None = None,
     ) -> None:
         """Initialize the reservations coordinator with its query window."""
         super().__init__(
@@ -104,7 +103,6 @@ class HospitableReservationsCoordinator(
         self._property_ids = list(property_ids)
         self._lookback_days = lookback_days
         self._lookahead_days = lookahead_days
-        self._properties_coordinator = properties_coordinator
         self._logged_include_missing = False
 
     async def _fetch_data(self) -> list[HospitableReservation]:
