@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from custom_components.hospitable.api.models import HospitableReservation
 
@@ -63,9 +63,9 @@ def classify_occupancy(
     Interior days never degrade.
 
     When neither scheduled time parses there is no offset to anchor the
-    local day; this both-missing case degrades unconditionally to
-    ``unknown`` naming ``check_in``. Boundary scoping of that case is
-    addressed separately.
+    local day, so the day comparison falls back to UTC; interior days
+    still resolve to ``occupied`` and only the boundary dates degrade,
+    reporting whichever field bounds that date.
     """
     checkin = parse_scheduled_instant(reservation.scheduled_checkin_raw)
     checkout = parse_scheduled_instant(reservation.scheduled_checkout_raw)
@@ -74,7 +74,15 @@ def classify_occupancy(
     reference = checkin or checkout
 
     if reference is None:
-        return OccupancyResult(STATE_UNKNOWN, "check_in")
+        now_date = now.astimezone(UTC).date()
+        if now_date < arrival:
+            return OccupancyResult(STATE_AWAITING_CHECKIN)
+        if now_date > departure:
+            return OccupancyResult(STATE_CHECKED_OUT)
+        if arrival < now_date < departure:
+            return OccupancyResult(STATE_OCCUPIED)
+        field = "check_in" if now_date == arrival else "check_out"
+        return OccupancyResult(STATE_UNKNOWN, field)
 
     now_date = now.astimezone(reference.tzinfo).date()
 

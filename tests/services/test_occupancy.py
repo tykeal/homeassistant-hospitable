@@ -141,11 +141,6 @@ def _both_times_missing(arrival: str, departure: str) -> HospitableReservation:
     return HospitableReservation.from_api(payload)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: D4 both-missing interior day must not degrade",
-)
 def test_both_times_missing_interior_is_occupied() -> None:
     """Both scheduled times missing on an interior day still yields occupied."""
     derive_occupancy = _derive_occupancy()
@@ -157,11 +152,6 @@ def test_both_times_missing_interior_is_occupied() -> None:
     assert result.state == "occupied"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: D4 both-missing must report the boundary field",
-)
 def test_both_times_missing_departure_reports_checkout() -> None:
     """On the departure date the degraded field names check_out, not check_in."""
     derive_occupancy = _derive_occupancy()
