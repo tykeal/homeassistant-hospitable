@@ -106,8 +106,11 @@ red/green pair.
       `homeassistant` minimum `2026.8.0`, `render_readme: true`, and
       `zip_release: false`. (FR-066)
 - [X] T005 [P] Add brand assets under
-      `custom_components/hospitable/brand/` (`icon.png`, `logo.png`)
-      referenced by the existing CC-BY-SA-4.0 `REUSE.toml` annotation.
+      `custom_components/hospitable/brand/` (`icon.png`,
+      `icon@2x.png`) and rely on Home Assistant's icon fallback rather
+      than shipping `logo.png`. Annotate them as
+      `LicenseRef-Hospitable-Trademark` for nominative service
+      identification.
 - [X] T006 [P] Create `custom_components/hospitable/strings.json` and
       `custom_components/hospitable/translations/en.json` with the
       config-flow, options-flow, reauth, error, and entity-name keys
@@ -126,9 +129,10 @@ red/green pair.
 - [X] T008 Add `REUSE.toml` annotations for every new path that cannot
       carry an inline SPDX header. `specs/**`,
       `custom_components/**/*.json`, `hacs.json`, `uv.lock`, and
-      `custom_components/hospitable/brand/**` are already annotated;
-      verify each new path is covered and add any that is not, in the
-      same commit that creates the path.
+      `custom_components/hospitable/brand/**` are already annotated
+      with the Hospitable trademark notice; verify each new path is
+      covered and add any that is not, in the same commit that creates
+      the path.
 
 ---
 

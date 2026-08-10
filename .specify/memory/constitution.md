@@ -412,8 +412,9 @@ actually changed behavior.
     `.github/*/speckit.**`, and `.vscode/**`, copyright
     "Delimarsky, D., & Riem, M. (2026)". Contributors MUST NOT
     relicense these files.
-  - **CC-BY-SA-4.0** — brand assets under
-    `custom_components/hospitable/brand/**`.
+  - **LicenseRef-Hospitable-Trademark** — Hospitable trademark assets
+    under `custom_components/hospitable/brand/**`, used only for
+    third-party service identification.
 - Python files carrying inline headers MUST use:
 
   <!-- REUSE-IgnoreStart -->
@@ -432,11 +433,12 @@ actually changed behavior.
 **Rationale**: This repository deliberately mixes three licenses with
 three different obligations, and two of them are not the project's own.
 Vendored Spec Kit tooling is MIT and upstream-owned; Hospitable-facing
-brand imagery carries share-alike obligations that do not apply to
-code. Getting this wrong is not a cosmetic error — it is a licensing
-defect that a downstream HACS user inherits. Machine-checked REUSE
-compliance is the only way to keep three license regimes straight in a
-repository that a single maintainer and several AI agents both touch.
+brand imagery is a third-party trademark asset, not project-authored
+Apache-2.0 material. Getting this wrong is not a cosmetic error — it is
+a licensing defect that a downstream HACS user inherits. Machine-
+checked REUSE compliance is the only way to keep multiple license and
+trademark regimes straight in a repository that a single maintainer and
+several AI agents both touch.
 
 ### V. Pre-Commit Integrity (NON-NEGOTIABLE)
 
