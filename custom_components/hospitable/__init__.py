@@ -59,7 +59,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
     selected_properties = set(entry.options.get(CONF_SELECTED_PROPERTIES, []))
     properties = properties_coordinator.data or {}
-    selected = selected_properties or set(properties)
+    selected = sorted(selected_properties or set(properties))
 
     reservations_coordinator = HospitableReservationsCoordinator(
         hass,

@@ -29,7 +29,9 @@ async def async_setup_entry(
     properties = coordinators["properties"].data or {}
 
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
-    selected = set(entry.options.get(CONF_SELECTED_PROPERTIES, [])) or set(properties)
+    selected = sorted(
+        set(entry.options.get(CONF_SELECTED_PROPERTIES, [])) or set(properties)
+    )
     property_names = {
         property_id: (
             properties[property_id].name if property_id in properties else property_id
