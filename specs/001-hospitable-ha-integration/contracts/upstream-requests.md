@@ -27,7 +27,7 @@ specified together.
 
 ## Honored-Request Verification
 
-**HTTP 200 is not proof that a request was honored.** Three
+**HTTP 200 is not proof that a request was honored.** Four
 independent silent-ignore behaviors are CONFIRMED upstream. Every
 optional input therefore appears in this register with either a
 post-condition or a prohibition.
