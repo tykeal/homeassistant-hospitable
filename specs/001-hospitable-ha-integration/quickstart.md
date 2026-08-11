@@ -319,7 +319,10 @@ Outcome (implemented and verified in `feat/us7-availability`):
 - Property cadence (60-minute default, 15-minute floor) confirmed.
 - One property's 500 leaves the survivors' data present and correct and
   the properties coordinator's `last_update_success` and
-  `consecutive_failures` untouched.
+  `consecutive_failures` untouched. The failing property retains its
+  last-good calendar through two strikes and its availability sensor
+  degrades to `unavailable` on the third consecutive per-property
+  failure (D-15, FR-057), recovering when a fetch next succeeds.
 - Full lifecycle (setup, refresh every coordinator, options change,
   reload, unload) records only `GET` requests.
 
