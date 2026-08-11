@@ -343,18 +343,18 @@ Known limitations:
 
 Run at the end of every phase.
 
-| Check | Requirement |
-| --- | --- |
-| No `unavailable` string in any enum option list | FR-047, FR-058 |
-| No non-`GET` request in any test recording | FR-059 |
-| No request to a body-supplied URL | FR-026 |
-| No `include=guests`, no `status[]`, no calendar `listing_id` | Honored-Request Verification register |
-| No bare `zoneinfo.ZoneInfo(...)` construction | Principle VIII, SC-013 |
-| No `property.timezone` read anywhere | FR-074 |
-| Diagnostics and DEBUG logs contain no fixture personal data and no token | FR-062, FR-073, SC-008 |
-| `interrogate --fail-under=100` clean | Principle I |
-| Coverage over `custom_components/` maintained or increased | Principle I |
-| Every `xfail` marker on `main` has an open task | Principle XII |
+| Check | Requirement | Phase 10 outcome |
+| --- | --- | --- |
+| No `unavailable` string in any enum option list | FR-047, FR-058 | PASS. Grep over `custom_components/hospitable/sensor` found no enum option list containing `unavailable`. |
+| No non-`GET` request in any test recording | FR-059 | PASS. `tests/test_no_writes.py::test_full_lifecycle_issues_only_get_requests` records setup, refresh, reload, and unload, then asserts every captured method is `GET`. |
+| No request to a body-supplied URL | FR-026 | PASS. `tests/api/test_pagination.py::test_pagination_constructs_https_pages` poisons the `http://` body link and asserts constructed HTTPS page requests. |
+| No `include=guests`, no `status[]`, no calendar `listing_id` | Honored-Request Verification register | PASS. `tests/api/test_reservations.py` asserts reservation queries omit `include=guests`, `status[]`, `date_type`, and `filter_date_type`; `tests/api/test_calendar.py` asserts calendar queries omit `listing_id`. |
+| No bare `zoneinfo.ZoneInfo(...)` construction | Principle VIII, SC-013 | PASS. Grep over `custom_components/hospitable` and `tests` found no `ZoneInfo(` construction. |
+| No `property.timezone` read anywhere | FR-074 | PASS. Grep over `custom_components/hospitable` and `tests` found no `property.timezone` read. |
+| Diagnostics and DEBUG logs contain no fixture personal data and no token | FR-062, FR-073, SC-008 | PASS. `tests/test_diagnostics.py::test_diagnostics_redacts_tokens_and_personal_data`, `tests/test_privacy.py::test_privacy_audit_helpers`, and `tests/test_check_fixture_pii.py` passed. |
+| `interrogate --fail-under=100` clean | Principle I | PASS. `uv run interrogate --fail-under=100 custom_components/ tests/ --quiet` exited 0. |
+| Coverage over `custom_components/` maintained or increased | Principle I | PASS. `uv run pytest --cov=custom_components --cov-report=term-missing tests/` passed 164 tests and reported 95% total coverage. |
+| Every `xfail` marker on `main` has an open task | Principle XII | MIXED. Executable code and tests have zero `pytest.mark.xfail` or `type: ignore[import-not-found]` matches. A whole-repository grep still finds those literal strings in governance/specification prose, including `.specify/memory/constitution.md`, which Phase 10 must not edit; `xfail_strict` does not apply to Markdown prose. |
 
 ## Optional live validation
 
