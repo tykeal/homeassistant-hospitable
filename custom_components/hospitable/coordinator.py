@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.api.exceptions import (
     HospitableAuthError,
+    HospitableConnectionError,
     HospitableError,
     HospitableForbiddenError,
     HospitableIncludeMissingError,
@@ -43,6 +44,13 @@ AUTH_FAILED_MESSAGE = (
 FORBIDDEN_MESSAGE = (
     "Hospitable refused access to requested data. Review the account plan "
     "and permissions, then reload the integration."
+)
+# A transport failure (DNS, TLS, connect or read timeout) or a 5xx from
+# Hospitable. The message names the cause and the concrete thing to check
+# so a user whose network is down is not shown a raw exception (FR-064).
+CONNECTION_FAILED_MESSAGE = (
+    "Could not reach the Hospitable API. Check the internet connection and "
+    "whether Hospitable is reachable; polling retries automatically."
 )
 # Number of consecutive non-credential failures after which the entry
 # escalates to a persistent-failure repair issue (FR-065).
@@ -149,6 +157,8 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             raise UpdateFailed(FORBIDDEN_MESSAGE) from exc
         if self.consecutive_failures + 1 >= PERSISTENT_FAILURE_THRESHOLD:
             self._create_repair_issue("persistent", "persistent_failure")
+        if isinstance(exc, HospitableConnectionError):
+            raise UpdateFailed(CONNECTION_FAILED_MESSAGE) from exc
         raise UpdateFailed(str(exc)) from exc
 
 

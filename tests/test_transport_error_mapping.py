@@ -30,11 +30,6 @@ from tests.helpers import load_fixture
 _ACCOUNT = "acct-example-0001"
 
 
-@pytest.mark.xfail(
-    raises=httpx.ConnectError,
-    strict=True,
-    reason="TDD red phase T136: transport error escapes the client unmapped",
-)
 async def test_transport_error_maps_to_connection_error(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -58,11 +53,6 @@ async def test_transport_error_maps_to_connection_error(
     assert exc_info.value.__cause__ is boom
 
 
-@pytest.mark.xfail(
-    raises=ValueError,
-    strict=True,
-    reason="TDD red phase T136: non-JSON success body escapes as ValueError",
-)
 async def test_non_json_success_maps_to_response_error(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -117,11 +107,6 @@ async def _setup_loaded(hass: Any, respx_router: Any) -> MockConfigEntry:
     return entry
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase T136: connection failure surfaces a raw repr",
-)
 async def test_connection_failure_message_states_cause_and_action(
     hass: Any, respx_router: Any
 ) -> None:
