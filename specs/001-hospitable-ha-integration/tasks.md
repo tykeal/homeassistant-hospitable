@@ -1015,6 +1015,10 @@ and confirm it produces neither a reauth prompt nor a repair issue.
       the Retry-After header on a 429, tolerating its absence. Found by
       contract-versus-implementation review: the documented field was
       unconditionally None in production. (FR-064)
+- [x] T139 [US6] Guard `_log_rate_limit_once` in `coordinator.py` so a
+      throttle logs once per episode and re-logs after recovery, instead
+      of on every 429. Found by review: the `_once` name asserted a
+      behaviour the body lacked. (FR-064)
 
 **Exit criteria (US6)**: a revoked token produces an actionable reauth
 prompt within one interval; a scope-403 produces neither reauth nor a
