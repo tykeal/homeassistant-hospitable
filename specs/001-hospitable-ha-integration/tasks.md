@@ -1140,30 +1140,30 @@ documentation-only or test-only and therefore Principle XII exempt;
 any that turns out to require a behavior change gets its own red/green
 pair.
 
-- [ ] T149 [P] Write `README.md`: installation, the entity table
+- [X] T149 [P] Write `README.md`: installation, the entity table
       (reservation status, next arrival, next departure, upcoming
       reservations, property info, availability), the option reference
       with defaults and floors, the request-volume trade-off, and the
       terminology rule that user-facing text says "property".
       Document the OQ-004 limitation if T100 confirmed it.
       (FR-023, FR-068)
-- [ ] T150 [P] Document the request-economy design in `README.md` or a
+- [X] T150 [P] Document the request-economy design in `README.md` or a
       developer note: three coordinators, entities read shared
       coordinator data and issue no requests of their own, and the
       default daily budget of 1,704 requests for ten properties.
       (FR-071)
-- [ ] T151 [P] Run `uv run interrogate --fail-under=100` over
+- [X] T151 [P] Run `uv run interrogate --fail-under=100` over
       `custom_components/` and `tests/` and add any missing docstrings.
-- [ ] T152 [P] Confirm coverage is measured over `custom_components/`
+- [X] T152 [P] Confirm coverage is measured over `custom_components/`
       and review the report for untested branches, adding tests for
       any material gap. Report the actual number; do not assert a
       threshold the tool did not produce.
-- [ ] T153 **Marker audit**: grep the whole repository for
+- [X] T153 **Marker audit**: grep the whole repository for
       `pytest.mark.xfail` and `type: ignore[import-not-found]` and
       confirm ZERO remain. Any survivor means a green phase forgot its
       cleanup, which `xfail_strict` should already have caught — if
       one is found, investigate why the gate did not fire.
-- [ ] T154 **Silent-ignore audit**: re-read
+- [X] T154 **Silent-ignore audit**: re-read
       `contracts/upstream-requests.md` and confirm each of the five
       known upstream silent-ignore behaviors has a live assertion — a
       bogus `listing_id` on the calendar route (never sent), a bogus
@@ -1178,12 +1178,12 @@ pair.
       ignored with all 7 rows returned regardless). Neither an unknown
       name nor a known-but-unsupported one produces any signal, so
       HTTP 200 is never proof a request was honored. (FR-075)
-- [ ] T155 Walk the cross-cutting checks section of `quickstart.md` and
+- [X] T155 Walk the cross-cutting checks section of `quickstart.md` and
       record each outcome.
 - [ ] T156 Run the live success-criteria validation (SC-001, SC-002,
       SC-003, SC-005, SC-006, SC-013) against a real account after CI
       is green, and record the measured values.
-- [ ] T157 Re-verify `REUSE.toml` covers every path added across all
+- [X] T157 Re-verify `REUSE.toml` covers every path added across all
       phases with `uv run reuse lint`.
 - [ ] T158 Update `spec.md`'s open-questions table with the status of
       every OQ the implementation resolved or left open, and update
