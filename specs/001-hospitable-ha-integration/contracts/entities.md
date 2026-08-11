@@ -93,6 +93,7 @@ entities are prohibited (FR-042).
 | `channel_confirmation` | `str \| None` | FR-046 |
 | `booking_date` | `datetime \| None` | FR-046 |
 | `stay_type` | `str \| None` | FR-049 |
+| `status_sub_category` | `str \| None` | FR-032 |
 | `upcoming_reservations` | `list[dict]` | FR-044 |
 
 `scheduled_checkin` and `scheduled_checkout` are the reservation's own
@@ -113,6 +114,15 @@ converting a midnight instant across zones causes.
 can independently be awaiting check-in, occupied, checked out, or
 cancelled (FR-049), so folding it into the enum would make the enum
 two-dimensional and break FR-043.
+
+`status_sub_category` is the reservation's structured
+`reservation_status.current.sub_category`, or `None`. It is additive and
+never part of the state, which stays single-dimensional per FR-043. It
+exists because the sub_category is the only reliable way to distinguish
+declined from expired and checkpoint from voided: the deprecated flat
+status field that once carried that distinction disagrees with the
+structured path in three of six live-observed combinations, so it cannot
+be trusted.
 
 **No guest identity appears in any attribute.** No name, email, phone,
 picture, or message content. Only counts.
