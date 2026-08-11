@@ -146,11 +146,6 @@ def test_cancelled_excluded_by_is_forthcoming() -> None:
     assert is_forthcoming(reservation, now) is False
 
 
-@pytest.mark.xfail(
-    reason="Reservation sensor does not expose status_sub_category yet",
-    raises=KeyError,
-    strict=True,
-)
 def test_sensor_surfaces_sub_category_attribute() -> None:
     """The reservation sensor exposes ``status_sub_category`` as an attribute."""
     from types import SimpleNamespace

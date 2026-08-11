@@ -27,6 +27,7 @@ EXPECTED_ATTRIBUTES = {
     "channel_confirmation",
     "booking_date",
     "stay_type",
+    "status_sub_category",
     "upcoming_reservations",
 }
 

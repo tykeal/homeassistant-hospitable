@@ -63,6 +63,7 @@ _ATTRIBUTE_KEYS = (
     "channel_confirmation",
     "booking_date",
     "stay_type",
+    "status_sub_category",
     "upcoming_reservations",
 )
 
@@ -153,6 +154,7 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
             "channel_confirmation": selected.channel_confirmation,
             "booking_date": selected.booking_date,
             "stay_type": selected.stay_type,
+            "status_sub_category": selected.status_sub_category,
             "upcoming_reservations": [
                 reservation_summary(reservation)
                 for reservation in upcoming
