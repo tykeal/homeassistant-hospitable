@@ -1189,6 +1189,9 @@ pair.
       every OQ the implementation resolved or left open, and update
       `research.md`'s assumption table with the final state of A-1
       through A-8. Say plainly which remain UNVERIFIED.
+- [ ] T164 Exclude the availability sensor's `forward_window`
+      attribute from recorder persistence while keeping it live in
+      entity state, added from a Phase 10 recorder-cost review.
 
 ---
 
