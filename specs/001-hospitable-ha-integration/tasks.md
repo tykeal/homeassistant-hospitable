@@ -1156,11 +1156,20 @@ pair.
       cleanup, which `xfail_strict` should already have caught — if
       one is found, investigate why the gate did not fire.
 - [ ] T154 **Silent-ignore audit**: re-read
-      `contracts/upstream-requests.md` and confirm each of the three
+      `contracts/upstream-requests.md` and confirm each of the five
       known upstream silent-ignore behaviors has a live assertion — a
-      bogus `listing_id` (never sent), a bogus `include=` (never sent,
-      and every sent include's key asserted present), and `http://`
-      pagination URLs (never followed). (FR-075)
+      bogus `listing_id` on the calendar route (never sent), a bogus
+      `include=` value (never sent, and every sent include's key
+      asserted present), `http://` pagination URLs (never followed), an
+      unrecognised parameter *name* such as `date_type=` or
+      `filter_date_type=` (accepted with no effect, while an
+      unrecognised *value* for an implemented parameter is rejected —
+      `date_query=bogus_value` returns HTTP 400 — so only registered
+      names are sent), and a recognised parameter name on an endpoint
+      that does not support it (`per_page` on `/channels`, silently
+      ignored with all 7 rows returned regardless). Neither an unknown
+      name nor a known-but-unsupported one produces any signal, so
+      HTTP 200 is never proof a request was honored. (FR-075)
 - [ ] T155 Walk the cross-cutting checks section of `quickstart.md` and
       record each outcome.
 - [ ] T156 Run the live success-criteria validation (SC-001, SC-002,
