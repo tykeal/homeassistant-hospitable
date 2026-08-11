@@ -687,7 +687,7 @@ Findings:
   against real `request` data.
 - `unknown` was **never** observed anywhere, as either a category or a
   sub_category. The `unknown` fallback in `StatusMapper` nonetheless
-  **remains correct defensive behaviour** for an unrecognised future
+  **remains correct defensive behavior** for an unrecognised future
   value and MUST NOT be removed: FR-048 requires mapping an unknown
   category to `unknown`, logging once, and never raising. This path
   remains defensive and untested against real `unknown` data.

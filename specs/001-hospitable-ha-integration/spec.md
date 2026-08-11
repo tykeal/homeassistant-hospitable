@@ -1144,8 +1144,9 @@ uncertainty.
   and documents that it "can only manage the codes it creates". How an
   API-set enrichment value would interact with, override, or conflict
   with an account-generated code is entirely undocumented. The
-  `/enrichment` endpoint returned HTTP 403 for the same reservation UUID
-  that returned HTTP 200 from `GET /reservations/{uuid}`, confirming a
+  `GET /reservations/{uuid}/enrichment` endpoint returned HTTP 403 for
+  the same reservation UUID that returned HTTP 200 from
+  `GET /reservations/{uuid}`, confirming a
   vendor plan gate. This does not affect the present specification,
   which writes nothing, and door codes are deferred to a future
   specification.
