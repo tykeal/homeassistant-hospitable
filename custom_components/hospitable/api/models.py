@@ -257,6 +257,24 @@ def _map_availability(status: dict[str, Any]) -> str:
     return AVAILABILITY_UNKNOWN
 
 
+def _coerce_int(value: Any) -> int | None:
+    """Return an integer only for an int or an integral float.
+
+    The calendar model never carries floats, and the confirmed API sends
+    integer-valued minor units. A non-integral float would be a contract
+    violation, so it degrades to ``None`` rather than silently truncating
+    to a wrong value (FR-060). ``bool`` is rejected because it is an int
+    subclass that never represents a currency amount or a stay length.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return None
+
+
 @dataclass(frozen=True)
 class HospitableCalendarDay:
     """One aggregate calendar day for a property.
@@ -284,23 +302,19 @@ class HospitableCalendarDay:
             status = {}
         price = payload.get("price")
         if isinstance(price, dict):
-            amount = price.get("amount")
-            price_minor_units = (
-                int(amount) if isinstance(amount, (int, float)) else None
-            )
+            price_minor_units = _coerce_int(price.get("amount"))
             raw_currency = price.get("currency")
             currency = raw_currency if isinstance(raw_currency, str) else None
         else:
             price_minor_units = None
             currency = None
-        min_stay = payload.get("min_stay")
         note = payload.get("note")
         return cls(
             str(payload.get("date", "")),
             _map_availability(status),
             price_minor_units,
             currency,
-            int(min_stay) if isinstance(min_stay, (int, float)) else None,
+            _coerce_int(payload.get("min_stay")),
             payload.get("closed_for_checkin")
             if isinstance(payload.get("closed_for_checkin"), bool)
             else None,

@@ -113,7 +113,7 @@ class HospitableAvailabilitySensor(HospitableEntity, SensorEntity):
         return {
             "nightly_rate": (
                 minor_units_to_float(day.price_minor_units, day.currency)
-                if day is not None
+                if day is not None and day.currency is not None
                 else None
             ),
             "currency": day.currency if day is not None else None,
@@ -126,8 +126,12 @@ class HospitableAvailabilitySensor(HospitableEntity, SensorEntity):
                 {
                     "date": window_day.date,
                     "availability": window_day.availability,
-                    "nightly_rate": minor_units_to_float(
-                        window_day.price_minor_units, window_day.currency
+                    "nightly_rate": (
+                        minor_units_to_float(
+                            window_day.price_minor_units, window_day.currency
+                        )
+                        if window_day.currency is not None
+                        else None
                     ),
                     "currency": window_day.currency,
                 }
