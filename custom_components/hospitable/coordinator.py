@@ -97,6 +97,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
         )
         self.consecutive_failures = 0
         self._logged_scope_limitation = False
+        self._logged_rate_limit = False
 
     async def _async_update_data(self) -> DataT:
         """Fetch fresh data and maintain the consecutive-failure counter."""
@@ -106,6 +107,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             self.consecutive_failures += 1
             raise
         self.consecutive_failures = 0
+        self._logged_rate_limit = False
         self._clear_repair_issues()
         return data
 
@@ -177,12 +179,19 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(kind))
 
     def _log_rate_limit_once(self, exc: HospitableRateLimitError) -> None:
-        """Log a 429 as a transient throttle, recording any retry delay.
+        """Log a 429 once per throttling episode, recording any delay.
 
-        The delay is recorded and logged only; the fixed polling interval
-        is not rescheduled, so recovery happens on the next scheduled
-        poll rather than exactly at the server-advised time (FR-064).
+        The first throttled poll logs a warning; further throttled polls
+        stay quiet until a successful fetch resets the guard, so a new
+        episode logs again rather than latching silent for the coordinator
+        lifetime. The delay is recorded and logged only; the fixed polling
+        interval is not rescheduled, so recovery happens on the next
+        scheduled poll rather than exactly at the server-advised time
+        (FR-064).
         """
+        if self._logged_rate_limit:
+            return
+        self._logged_rate_limit = True
         if exc.retry_after is not None:
             _LOGGER.warning(
                 "Hospitable is rate limiting %s; retrying on the next poll "

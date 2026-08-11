@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import issue_registry as ir
@@ -147,11 +146,6 @@ async def test_recovery_does_not_clear_other_coordinator_issue(
     assert len(_domain_issues(hass)) == 1
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase T139: rate-limit log fires on every 429, not once",
-)
 async def test_rate_limit_logs_once_per_episode(
     hass: Any, respx_router: Any, caplog: Any
 ) -> None:
