@@ -29,6 +29,7 @@ from custom_components.hospitable.coordinator import (
     HospitablePropertiesCoordinator,
 )
 from custom_components.hospitable.entity import (
+    MAX_CONSECUTIVE_FAILURES,
     HospitableEntity,
     build_device_identifier,
     build_suggested_object_id,
@@ -57,6 +58,7 @@ class HospitableAvailabilitySensor(HospitableEntity, SensorEntity):
     ) -> None:
         """Initialize one availability sensor bound to a property."""
         super().__init__(coordinator)
+        self._calendar_coordinator = coordinator
         self._property_id = property_id
         self._presence_coordinator = properties_coordinator
         self._presence_property_id = property_id
@@ -93,11 +95,21 @@ class HospitableAvailabilitySensor(HospitableEntity, SensorEntity):
         A calendar fetch failure for a single property leaves no data for
         it while other properties refresh normally, so this property's
         availability sensor is the only entity that degrades (Research
-        D-15). The shared three-strike and presence policy still applies.
+        D-15). Two halves apply: a property is unavailable if it has no
+        data yet, and it also degrades once it has failed
+        ``MAX_CONSECUTIVE_FAILURES`` consecutive times, so persistent
+        per-property failure becomes visible rather than reporting
+        confident stale data (FR-057). Fewer strikes retain last-good.
+        The shared three-strike and presence policy still applies.
         """
         if not super().available:
             return False
-        return self._property_id in (self.coordinator.data or {})
+        if self._property_id not in (self.coordinator.data or {}):
+            return False
+        return (
+            self._calendar_coordinator.property_failure_count(self._property_id)
+            < MAX_CONSECUTIVE_FAILURES
+        )
 
     @property
     def native_value(self) -> str | None:

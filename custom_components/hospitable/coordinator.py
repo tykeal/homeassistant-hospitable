@@ -372,6 +372,17 @@ class HospitableCalendarCoordinator(
         self._client = client
         self._property_ids = list(property_ids or [])
         self._lookahead_days = lookahead_days
+        self._property_failures: dict[str, int] = {}
+
+    def property_failure_count(self, property_id: str) -> int:
+        """Return consecutive calendar fetch failures for one property.
+
+        The count resets to zero on any successful fetch of that
+        property. The availability sensor uses it to degrade a single
+        property after ``MAX_CONSECUTIVE_FAILURES`` consecutive strikes
+        while transient blips retain last-good data (FR-057, D-15).
+        """
+        return self._property_failures.get(property_id, 0)
 
     async def _fetch_data(self) -> dict[str, HospitablePropertyCalendar]:
         """Fetch each property's calendar with per-property isolation."""
@@ -387,9 +398,25 @@ class HospitableCalendarCoordinator(
                 result[property_id] = await self._client.get_calendar(
                     property_id, today, end
                 )
+                # A success resets this property's strike counter so a
+                # recovered property becomes available again.
+                self._property_failures[property_id] = 0
                 succeeded = True
             except HospitableError as exc:
+                # Count strikes per property so a persistently failing
+                # property degrades on its own without waiting for every
+                # property to fail (D-15, FR-057).
+                self._property_failures[property_id] = (
+                    self._property_failures.get(property_id, 0) + 1
+                )
                 last_error = exc
+        # Never leak a counter for a property that has left the fan-out.
+        active = set(self._property_ids)
+        self._property_failures = {
+            property_id: count
+            for property_id, count in self._property_failures.items()
+            if property_id in active
+        }
         if self._property_ids and not succeeded and last_error is not None:
             self._raise_for_api_error(last_error)
         return result

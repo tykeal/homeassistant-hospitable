@@ -23,7 +23,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, STATE_UNAVAILABLE
 from homeassistant.helpers import entity_registry as er
@@ -94,11 +93,6 @@ def _entry(hass: Any) -> MockConfigEntry:
     return entry
 
 
-@pytest.mark.xfail(
-    reason="T163 per-property degradation not yet implemented",
-    raises=AssertionError,
-    strict=True,
-)
 async def test_calendar_sensor_degrades_after_three_property_strikes(
     hass: Any, respx_router: Any
 ) -> None:
