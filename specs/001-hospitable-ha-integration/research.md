@@ -705,13 +705,24 @@ the flat field, which is retained only as raw/deprecated evidence.
 
 ### A-7: Rate-limit headers
 
-**Tier**: UNVERIFIED. **Governs**: FR-036, OQ-005.
+**Tier**: CONFIRMED-BY-TEST for the success case; the 429 case remains
+UNVERIFIED. **Governs**: FR-036, OQ-005.
 
 The client reads `Retry-After` and any `X-RateLimit-*` headers *if
-present* and ignores their absence, which is the expected case. No code
-path requires them. No quota is hard-coded. This is stated because the
-opposite mistake — designing a token-bucket against headers that may
-not exist — is an easy one to make from SDK-author prose.
+present* and ignores their absence, which a live probe confirms is the
+actual behavior on success. The full response headers on a `200` from
+`GET /properties` were `date`, `content-type`, `cache-control`,
+`x-hospitable-trace`, `access-control-allow-origin`,
+`access-control-expose-headers`, and `strict-transport-security` —
+there was **no `X-RateLimit-*` header and no `Retry-After`**. The
+design's tolerance of their absence is therefore confirmed rather than
+assumed, and the opposite mistake — designing a token-bucket against
+headers that may not exist — is confirmed as one correctly avoided. No
+code path requires these headers and no quota is hard-coded. What
+remains genuinely unknown is whether a rate-limited `429` response
+carries `Retry-After`; no `429` has been observed and one will not be
+deliberately triggered, so the defensive `Retry-After` parsing in
+`custom_components/hospitable/api/retry.py` stays and remains correct.
 
 ### A-8: Reservations on unlisted listings
 

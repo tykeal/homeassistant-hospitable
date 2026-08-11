@@ -1183,13 +1183,17 @@ uncertainty.
   is unanswerable by API design, and no further probing can resolve
   it. It remains a documentation obligation: the user-facing README
   (task T149) must carry this limitation.
-- **OQ-005 — Rate limiting (CONFIRMED absent, behavior UNVERIFIED).**
-  No general numeric rate limit is published. Whether any rate-limit
-  or retry-delay headers are returned at all, and under what
-  conditions HTTP 429 is issued, is unverified. The chosen defaults
-  are conservative precisely because there is nothing to calibrate
-  against; they should be revisited if Hospitable publishes limits or
-  if observed behavior provides evidence.
+- **OQ-005 — Rate limiting (CONFIRMED absent, 429 behavior
+  UNVERIFIED).** No general numeric rate limit is published. A live
+  probe of the full response headers on a `200` from `GET /properties`
+  found no `X-RateLimit-*` header and no `Retry-After`, so the design's
+  tolerance of their absence on success is confirmed (see A-7). Whether
+  a rate-limited HTTP 429 response carries `Retry-After`, and under what
+  conditions 429 is issued, remains unverified and will not be
+  deliberately triggered. The chosen defaults are conservative
+  precisely because there is nothing to calibrate against; they should
+  be revisited if Hospitable publishes limits or if observed behavior
+  provides evidence.
 - **OQ-006 — Insecure pagination links (CONFIRMED, permanence
   unknown).** Pagination link values are returned with an insecure
   scheme. It is unknown whether this is a deliberate upstream
