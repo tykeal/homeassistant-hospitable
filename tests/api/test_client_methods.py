@@ -18,3 +18,4 @@ def test_client_get_only_async_surface() -> None:
         name.startswith(("post_", "put_", "delete_", "patch_"))
         for name in dir(HospitableApiClient)
     )
+    assert not any("channel" in name for name in dir(HospitableApiClient))

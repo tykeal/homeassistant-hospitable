@@ -27,6 +27,18 @@ def test_reservation_query_contract() -> None:
     assert params["end_date"] == "2025-01-02"
     assert params["date_query"] == "checkin"
     assert params["include"] == "properties"
+    assert set(params) == {
+        "properties[]",
+        "start_date",
+        "end_date",
+        "date_query",
+        "include",
+        "page",
+        "per_page",
+    }
+    assert "date_type" not in params
+    assert "filter_date_type" not in params
+    assert "status[]" not in params
 
 
 async def test_client_reservations_send_filters_and_refilter(
@@ -53,6 +65,11 @@ async def test_client_reservations_send_filters_and_refilter(
     assert_query_value(request, "end_date", "2025-06-16")
     assert_query_value(request, "date_query", "checkin")
     assert_query_value(request, "include", "properties")
+    query = request.url.query.decode()
+    assert "include=guests" not in query
+    assert "date_type=" not in query
+    assert "filter_date_type=" not in query
+    assert "status%5B%5D=" not in query
     assert {reservation.reservation_id for reservation in reservations} == {
         "res-example-accepted",
         "res-example-cancelled",
