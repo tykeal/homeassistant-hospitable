@@ -366,7 +366,9 @@ integration is capable of modifying the Hospitable calendar.
   integration constructs its own page requests instead.
 - **Hospitable returns HTTP 200 for a request it did not honor.** Live
   tests found multiple silently ignored inputs, including a bogus
-  calendar `listing_id` and invalid include names. The integration
+  calendar `listing_id`, invalid include names, and a `per_page`
+  parameter on the `/channels` endpoint that was ignored while the
+  endpoint returned every row. The integration
   validates response keys instead of treating success status alone as
   proof that an expansion or filter took effect.
 - **A reservation request is issued without a property filter.**
@@ -877,8 +879,10 @@ false negative on the integration's primary sensor.
   expansion with `include=`, it MUST assert that the expected response
   keys are present and MUST handle their absence explicitly rather
   than silently degrading. This is a standing client rule because live
-  testing found Hospitable silently accepts invalid include names,
-  silently discards the calendar `listing_id` parameter, and returns
+  testing found four distinct silent-ignore behaviors: Hospitable
+  silently accepts invalid include names, silently discards the
+  calendar `listing_id` parameter, silently ignores the `per_page`
+  parameter on `/channels` while still returning HTTP 200, and returns
   insecure pagination URLs that must not be followed verbatim.
   (CONFIRMED)
 
@@ -1089,9 +1093,11 @@ false negative on the integration's primary sensor.
   per-property data. The tested account returned seven rows with
   `data` fields `user_id`, `name`, `login`, `platform`, and `picture`;
   the platform census was four `airbnb`, one `booking`, one `direct`,
-  and one `manual`. Its `meta` value was null; whether the endpoint
-  paginates at larger scale is unverified. (CONFIRMED response shape;
-  pagination UNVERIFIED)
+  and one `manual`. Its `meta` value was null; a follow-up request with
+  `per_page=1` returned the identical seven rows with `meta` and
+  `links` still null, so the endpoint is unpaginated and silently
+  ignores `per_page`, returning HTTP 200 for a parameter it did not
+  honor. (CONFIRMED-BY-TEST response shape and pagination absence)
 - The Hospitable Public API surface remains at version two, carried in
   the request path.
 
@@ -1241,10 +1247,17 @@ uncertainty.
   baseline listing, proving the parameter is silently discarded; that
   is harmless for this feature because the desired calendar is the
   aggregate calendar.
-- **OQ-011 — Channels pagination at scale (UNVERIFIED).** A live test
-  found `GET /v2/channels` and observed `meta: null` with seven rows.
-  It is unknown whether larger accounts receive pagination metadata or
-  whether this endpoint remains unpaginated at scale.
+- **OQ-011 — Channels pagination at scale (RESOLVED).** A live test
+  found `GET /v2/channels` returned `meta: null`, `links: null`, and
+  seven rows. A follow-up request with `per_page=1` returned the same
+  `meta: null`, `links: null`, and all seven rows unchanged. **Answer:**
+  the endpoint is unpaginated and additionally *silently ignores* the
+  `per_page` parameter, returning HTTP 200 for a request it did not
+  honor. This is a fourth instance of the silent-ignore behavior that
+  FR-075 exists to guard against; whether larger accounts ever receive
+  pagination metadata is now moot for this feature because the
+  integration does not call `/channels` at all (see A-5).
+  (CONFIRMED-BY-TEST)
 - **OQ-012 — iCal import population (UNVERIFIED).** The properties
   endpoint adds `ical_imports` when `include=listings` is requested,
   but all ten tested properties returned an empty array. It is unknown

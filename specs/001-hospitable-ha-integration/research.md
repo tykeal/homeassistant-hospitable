@@ -191,9 +191,11 @@ that a request was honored.** Every optional request parameter the
 client sends must be paired with a post-condition assertion on the
 response, or must be documented as deliberately never sent.
 
-This is elevated above a note because this API has three independent,
-separately discovered silent-ignore behaviors. Treating them as three
-isolated bugs to work around would leave the fourth one undiscovered.
+This is elevated above a note because this API has four independent,
+separately discovered silent-ignore behaviors — the fourth, `/channels`
+ignoring `per_page`, was found exactly as this rule predicted a further
+one would be. Treating any of them as an isolated bug to work around
+would leave the next one undiscovered.
 
 **The register of optional inputs**, which
 [contracts/upstream-requests.md](./contracts/upstream-requests.md)
@@ -209,6 +211,7 @@ carries normatively:
 | `page`, `per_page` | CONFIRMED honored | Assert `meta.current_page` equals the page requested |
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
+| `per_page` on `/channels` | CONFIRMED-BY-TEST silently ignored (OQ-011) | NEVER SENT; endpoint is uncalled and unpaginated |
 | `date_query=checkin` | CONFIRMED-BY-TEST honored parameter and value | SEND; explicit even though it matches the current platform default |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
