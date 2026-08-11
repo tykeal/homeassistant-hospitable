@@ -99,12 +99,23 @@ def is_forthcoming(reservation: HospitableReservation, now: datetime) -> bool:
     """Return whether a reservation is a real forthcoming stay.
 
     A forthcoming stay is one that has not been cancelled or declined and
-    whose arrival date is strictly in the future relative to ``now`` in
-    the reservation's own offset. US3's upcoming_reservations sensor
-    (T090) consumes this identical predicate so the sensor count and the
-    reservation_status upcoming_reservations attribute never disagree.
+    whose arrival is strictly in the future relative to ``now``. Arrival
+    is judged instant-first: when the scheduled check-in instant is
+    available, parseable and offset-aware, the stay is forthcoming iff
+    that instant is strictly after ``now``. When the instant is missing
+    or naive, it falls back to the date comparison ``arrival_date`` >
+    today in the reservation's own offset. The instant-first rule keeps
+    this predicate aligned with the ``next_arrival`` timestamp sensor, so
+    a guest arriving later today is counted rather than dropped a day
+    early. US3's upcoming_reservations sensor (T090) and the
+    reservation_status upcoming_reservations attribute both consume this
+    single predicate, so the count, the attribute list and next_arrival
+    never disagree.
     """
     if reservation.status_category in _INACTIVE_CATEGORIES:
         return False
+    instant = parse_scheduled_instant(reservation.scheduled_checkin_raw)
+    if instant is not None and instant.tzinfo is not None:
+        return instant > now
     now_date = now.astimezone(_reservation_zone(reservation)).date()
     return reservation.arrival_date > now_date
