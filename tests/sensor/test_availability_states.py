@@ -188,8 +188,11 @@ async def test_forward_window_is_live_but_unrecorded(
     assert state is not None
 
     assert "forward_window" in state.attributes
-    assert state.state_info is not None
-    assert "forward_window" in state.state_info["unrecorded_attributes"]
+    from custom_components.hospitable.sensor.availability import (
+        HospitableAvailabilitySensor,
+    )
+
+    assert "forward_window" in HospitableAvailabilitySensor._unrecorded_attributes
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
