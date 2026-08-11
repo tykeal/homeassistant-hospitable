@@ -5,8 +5,35 @@
 from __future__ import annotations
 
 import re
+from typing import Any
+
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from custom_components.hospitable.const import DOMAIN
+from custom_components.hospitable.coordinator import HospitableDataUpdateCoordinator
+
+MAX_CONSECUTIVE_FAILURES = 3
+
+
+class HospitableEntity(CoordinatorEntity[HospitableDataUpdateCoordinator[Any]]):
+    """Base entity applying the three-strike availability policy.
+
+    The entity stays available through two consecutive poll failures,
+    retaining its last known state, and only reports unavailable once a
+    third consecutive failure has occurred (FR-057). An entity that has
+    never received coordinator data is unavailable.
+    """
+
+    _attr_has_entity_name = True
+
+    @property
+    def available(self) -> bool:
+        """Return availability under the three-strike failure policy."""
+        coordinator = self.coordinator
+        return (
+            coordinator.data is not None
+            and coordinator.consecutive_failures < MAX_CONSECUTIVE_FAILURES
+        )
 
 
 def _slugify(value: str) -> str:

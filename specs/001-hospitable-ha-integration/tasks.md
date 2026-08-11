@@ -582,7 +582,7 @@ while remaining available.
 
 > Tests only, `xfail(raises=..., strict=True)`, deferred imports.
 
-- [ ] T069 [P] [US2] `tests/services/test_status.py`: assert all six
+- [x] T069 [P] [US2] `tests/services/test_status.py`: assert all six
       upstream status categories map explicitly — `request` →
       `pending_request`, `accepted` → an occupancy-derived state,
       `cancelled` → `cancelled`, `not accepted` → `not_accepted`,
@@ -592,7 +592,7 @@ while remaining available.
       raising. Assert status is read from the structured status path
       only, never a deprecated flat field.
       (FR-032, FR-043, FR-048)
-- [ ] T070 [P] [US2] `tests/services/test_occupancy.py`: assert
+- [x] T070 [P] [US2] `tests/services/test_occupancy.py`: assert
       transitions happen at STRICT SCHEDULED TIMES using the
       reservation's own offset-aware `check_in` and `check_out`
       instants, with no configured-timezone dependency. Three boundary
@@ -603,12 +603,12 @@ while remaining available.
       `awaiting_checkin` satisfies the weaker assertion and IS the
       midnight-fallback bug this test exists to prevent. Assert NO
       midnight fallback exists anywhere. (FR-045, FR-047)
-- [ ] T071 [P] [US2] `tests/services/test_selection.py`: assert that
+- [x] T071 [P] [US2] `tests/services/test_selection.py`: assert that
       when a property has more than one reservation in the window the
       chosen one is deterministic across repeated refreshes and across
       input ordering, and that the documented tie-break is applied.
       (FR-044)
-- [ ] T072 [P] [US2] `tests/sensor/test_reservation.py`: assert exactly
+- [x] T072 [P] [US2] `tests/sensor/test_reservation.py`: assert exactly
       one reservation sensor per property; that its state is one of
       the nine enum options `no_reservation`, `awaiting_checkin`,
       `occupied`, `checked_out`, `pending_request`, `checkpoint`,
@@ -616,49 +616,49 @@ while remaining available.
       NEVER an enum option; and that no second dimension (such as
       availability) is folded into this single-dimensional enum.
       (FR-042, FR-043, FR-058)
-- [ ] T073 [P] [US2] `tests/sensor/test_reservation_attributes.py`:
+- [x] T073 [P] [US2] `tests/sensor/test_reservation_attributes.py`:
       assert the attribute contract from `contracts/entities.md` —
       guest COUNTS only (never names or contact details), scheduled
       check-in and check-out, reservation identifier, stay type, and
       the reservation's own offset-aware timestamps. Assert no personal
       data appears in any attribute.
       (FR-046, FR-049, FR-062, FR-073)
-- [ ] T074 [P] [US2] `tests/sensor/test_availability_mixin.py`: assert
+- [x] T074 [P] [US2] `tests/sensor/test_availability_mixin.py`: assert
       the custom availability mixin keeps the last known state and
       stays AVAILABLE after one and after two consecutive poll
       failures, becoming unavailable only on the THIRD. Home
       Assistant's stock `CoordinatorEntity.available` returns
       `last_update_success` and would go unavailable after one
       failure, so a custom mixin is required. (FR-057)
-- [ ] T075 [P] [US2] `tests/sensor/test_no_reservation.py`: the SC-012
+- [x] T075 [P] [US2] `tests/sensor/test_no_reservation.py`: the SC-012
       assertion — a property with no reservation in the window reads
       `no_reservation` and its entity remains AVAILABLE. (FR-042)
-- [ ] T076 [P] [US2] `tests/services/test_owner_stay.py`: assert an
+- [x] T076 [P] [US2] `tests/services/test_owner_stay.py`: assert an
       owner or maintenance stay is classified consistently with a
       guest stay for occupancy purposes and is distinguished by the
       stay-type attribute rather than by the enum state. (FR-049)
-- [ ] T077 [US2] Extend `tests/test_init.py`: assert
+- [x] T077 [US2] Extend `tests/test_init.py`: assert
       `async_setup_entry` now instantiates the reservations coordinator
       IN ADDITION to the properties coordinator, and still does NOT
       instantiate the calendar coordinator. (FR-071)
-- [ ] T078 [US2] Run `uv run pytest --runxfail` scoped to T069–T077,
+- [x] T078 [US2] Run `uv run pytest --runxfail` scoped to T069–T077,
       confirm each fails for its declared reason, then commit the red
       phase.
 
 ### Implementation for User Story 2 (GREEN-PHASE COMMIT)
 
-- [ ] T079 [P] [US2] Implement
+- [x] T079 [P] [US2] Implement
       `custom_components/hospitable/services/status.py`. Satisfies
       T069. (FR-032, FR-043, FR-048)
-- [ ] T080 [P] [US2] Implement
+- [x] T080 [P] [US2] Implement
       `custom_components/hospitable/services/occupancy.py` — strict
       scheduled moments, `unknown` plus a warning on a missing or
       unparsable boundary time, no midnight fallback. Satisfies T070,
       T076. No configured timezone dependency. (FR-045, FR-047, FR-049)
-- [ ] T081 [P] [US2] Implement
+- [x] T081 [P] [US2] Implement
       `custom_components/hospitable/services/selection.py`. Satisfies
       T071. (FR-044)
-- [ ] T082 [US2] Implement
+- [x] T082 [US2] Implement
       `custom_components/hospitable/sensor/__init__.py` (platform setup
       and entity creation) and
       `custom_components/hospitable/sensor/helpers.py` (shared
@@ -666,24 +666,24 @@ while remaining available.
       minor-unit-to-float conversion point). US3, US4, and US7 require
       this module; if any ships before US2, pull this task forward into
       that phase. (FR-042, FR-060)
-- [ ] T083 [US2] Implement the three-strike availability mixin in
+- [x] T083 [US2] Implement the three-strike availability mixin in
       `custom_components/hospitable/entity.py`. Satisfies T074.
       (FR-057)
-- [ ] T084 [US2] Implement
+- [x] T084 [US2] Implement
       `custom_components/hospitable/sensor/reservation.py`. Satisfies
       T072, T073, T075.
       (FR-042, FR-043, FR-046, FR-049, FR-062, FR-073)
-- [ ] T085 [US2] Wire the reservations coordinator into
+- [x] T085 [US2] Wire the reservations coordinator into
       `async_setup_entry` in `custom_components/hospitable/__init__.py`,
       and forward the sensor platform after T082 implements
       `sensor/__init__.py`. Satisfies T077.
       (FR-071)
-- [ ] T086 [US2] Add the reservation sensor's entity name and enum
+- [x] T086 [US2] Add the reservation sensor's entity name and enum
       state translations to `strings.json` and `translations/en.json`,
       using "property" throughout. (FR-064, FR-068)
-- [ ] T087 [US2] Sweep the diff for leftover `xfail` markers and
+- [x] T087 [US2] Sweep the diff for leftover `xfail` markers and
       type-ignores from T069–T077; run the full suite and mypy.
-- [ ] T088 [US2] Walk the US2 rows of `quickstart.md` and record the
+- [x] T088 [US2] Walk the US2 rows of `quickstart.md` and record the
       outcome.
 
 **Exit criteria (US2)**: every US2 acceptance scenario passing,

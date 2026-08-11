@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -21,12 +21,12 @@ from custom_components.hospitable.const import (
 from tests.helpers import load_fixture
 
 
-def test_setup_wires_only_properties_coordinator() -> None:
-    """Assert US1 exposes no platform forwarding target."""
+def test_platforms_contains_sensor() -> None:
+    """US2 forwards the sensor platform for reservation entities."""
     import custom_components.hospitable as integration
 
     assert integration.VERSION == 1 and integration.MINOR_VERSION == 1
-    assert integration.PLATFORMS == []
+    assert integration.PLATFORMS == [Platform.SENSOR]
 
 
 async def test_setup_entry_loads_properties_and_devices(
@@ -34,7 +34,7 @@ async def test_setup_entry_loads_properties_and_devices(
     respx_router: Any,
     synthetic_token: str,
 ) -> None:
-    """Load the integration and assert US1 creates devices without platforms."""
+    """Load the integration and assert US2 wires the reservations coordinator."""
     from custom_components.hospitable.api.const import BASE_URL
 
     entry = MockConfigEntry(
@@ -54,12 +54,16 @@ async def test_setup_entry_loads_properties_and_devices(
             httpx.Response(200, json=load_fixture("properties_page2.json")),
         ]
     )
+    respx_router.get(f"{BASE_URL}/reservations").mock(
+        return_value=httpx.Response(200, json=load_fixture("reservations_page1.json"))
+    )
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.LOADED
-    assert set(entry.runtime_data["coordinators"]) == {"properties"}
+    assert set(entry.runtime_data["coordinators"]) == {"properties", "reservations"}
+    assert "calendar" not in entry.runtime_data["coordinators"]
     registry = dr.async_get(hass)
     devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
     identifiers = {
