@@ -24,6 +24,7 @@ from custom_components.hospitable.api.exceptions import (
     HospitableForbiddenError,
     HospitableNotFoundError,
     HospitableRateLimitError,
+    HospitableResponseError,
     HospitableScopeError,
 )
 from custom_components.hospitable.api.models import (
@@ -40,6 +41,7 @@ from custom_components.hospitable.api.responses import (
     assert_include,
     validate_list_envelope,
 )
+from custom_components.hospitable.api.retry import parse_retry_after
 
 QueryValue = str | int | float | bool | None | list[str]
 
@@ -76,16 +78,26 @@ class HospitableApiClient:
         self, path: str, *, params: Mapping[str, QueryValue] | None = None
     ) -> dict[str, Any]:
         """Issue one authenticated GET request and return JSON."""
-        response = await self._http.get(
-            f"{self._base_url}{path}",
-            params=params,
-            headers=await build_auth_headers(self._token_provider),
-        )
+        try:
+            response = await self._http.get(
+                f"{self._base_url}{path}",
+                params=params,
+                headers=await build_auth_headers(self._token_provider),
+            )
+        except httpx.RequestError as exc:
+            raise HospitableConnectionError(
+                "Could not reach the Hospitable API", endpoint=path
+            ) from exc
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             self._raise_for_status(exc.response, path)
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise HospitableResponseError(
+                "Hospitable returned a malformed response", endpoint=path
+            ) from exc
         if not isinstance(data, dict):
             return {}
         return data
@@ -112,8 +124,11 @@ class HospitableApiClient:
                 "Hospitable resource was not found", status=404, endpoint=path
             )
         if response.status_code == 429:
+            retry_after = parse_retry_after(response.headers.get("Retry-After"))
             raise HospitableRateLimitError(
-                "Hospitable rate limit reached", endpoint=path
+                "Hospitable rate limit reached",
+                retry_after=retry_after,
+                endpoint=path,
             )
         raise HospitableConnectionError(
             "Hospitable API request failed", status=response.status_code, endpoint=path

@@ -946,57 +946,79 @@ and confirm it produces neither a reauth prompt nor a repair issue.
 
 ### Tests for User Story 6 (RED-PHASE COMMIT) ⚠️
 
-- [ ] T123 [P] [US6] `tests/test_reauth_trigger.py`: assert HTTP 401
+- [x] T123 [P] [US6] `tests/test_reauth_trigger.py`: assert HTTP 401
       triggers the Home Assistant reauth flow within one polling
       interval and that the prompt names the account. (FR-014, FR-064)
-- [ ] T124 [P] [US6] `tests/test_scope_403_handling.py`: assert a
+- [x] T124 [P] [US6] `tests/test_scope_403_handling.py`: assert a
       scope-403 (for example `/reservations/{id}/enrichment` returning
       `"Invalid scope(s) provided."` on a PAT) produces NO reauth and
       NO repair issue, is surfaced as a capability limitation, and is
       logged once. A scope-403 IS NOT an authentication failure.
       (FR-038, FR-065)
-- [ ] T125 [P] [US6] `tests/test_non_scope_403_handling.py`: assert a
+- [x] T125 [P] [US6] `tests/test_non_scope_403_handling.py`: assert a
       403 that is NOT scope-related produces a repair issue explaining
       the access problem, and still no reauth. (FR-038, FR-065)
-- [ ] T126 [P] [US6] `tests/test_403_unparsable_default.py`: assert a
+- [x] T126 [P] [US6] `tests/test_403_unparsable_default.py`: assert a
       403 whose body is absent, empty, or non-JSON lands on the
       NON-SCOPE branch. Defaulting to the scope branch would silently
       suppress a real access problem. (FR-038)
-- [ ] T127 [P] [US6] `tests/test_persistent_failure_repair.py`: assert
+- [x] T127 [P] [US6] `tests/test_persistent_failure_repair.py`: assert
       a persistent non-credential failure raises a repair issue rather
       than failing silently, and that the entry does not silently
       remain in a broken state. (FR-065)
-- [ ] T128 [P] [US6] `tests/test_error_message_quality.py`: audit
+- [x] T128 [P] [US6] `tests/test_error_message_quality.py`: audit
       EVERY user-facing string produced by the error paths and assert
       each states what failed AND what the user can do. Assert no
       user-facing message is a bare HTTP status code or an unmapped
       exception repr. (FR-064)
-- [ ] T129 [P] [US6] `tests/test_setup_failure_visibility.py`: assert a
+- [x] T129 [P] [US6] `tests/test_setup_failure_visibility.py`: assert a
       config entry never fails silently — setup failure surfaces as
       `ConfigEntryAuthFailed`, `ConfigEntryNotReady`, or a repair
       issue as appropriate. (FR-065)
-- [ ] T130 [US6] Run `uv run pytest --runxfail` scoped to T123–T129 and
+- [x] T130 [US6] Run `uv run pytest --runxfail` scoped to T123–T129 and
       commit the red phase.
 
 ### Implementation for User Story 6 (GREEN-PHASE COMMIT)
 
-- [ ] T131 [US6] Implement the error-to-outcome mapping from
+- [x] T131 [US6] Implement the error-to-outcome mapping from
       `contracts/errors-and-diagnostics.md` in
       `custom_components/hospitable/coordinator.py` and
       `__init__.py` — 401 to reauth, scope-403 to a logged capability
       limitation, other 403 to a repair issue, persistent failure to a
       repair issue. Satisfies T123, T124, T125, T127, T129.
       (FR-038, FR-064, FR-065)
-- [ ] T132 [US6] Confirm and, if needed, harden the 403 classifier
+- [x] T132 [US6] Confirm and, if needed, harden the 403 classifier
       default in `custom_components/hospitable/api/client.py`.
       Satisfies T126. (FR-038)
-- [ ] T133 [US6] Add every reauth, repair-issue, and error string to
+- [x] T133 [US6] Add every reauth, repair-issue, and error string to
       `strings.json` and `translations/en.json`, each naming a cause
       and an action. Satisfies T128. (FR-064, FR-068)
-- [ ] T134 [US6] Sweep the diff for leftover markers and type-ignores
+- [x] T134 [US6] Sweep the diff for leftover markers and type-ignores
       from T123–T129; run the suite and mypy.
-- [ ] T135 [US6] Walk the US6 rows of `quickstart.md` and record the
+- [x] T135 [US6] Walk the US6 rows of `quickstart.md` and record the
       outcome.
+- [x] T136 [US6] Map transport failures and non-JSON success bodies to
+      typed errors in `custom_components/hospitable/api/client.py`
+      (httpx.RequestError to HospitableConnectionError, non-JSON 200 to
+      HospitableResponseError) and surface an actionable connection
+      message in `coordinator.py`. Surfaced by US5 isolation testing,
+      which found httpx.ConnectError escaping the client unmapped and
+      bypassing the error-to-outcome mapping. (FR-064, FR-065)
+- [x] T137 [US6] Stop 429 escalating to a repair issue and clear repair
+      issues on recovery in `coordinator.py`. Found by contract-versus-
+      implementation review: the blanket persistence check escalated 429
+      to an ERROR repair issue despite the contract characterising it as
+      self-resolving (SC-007), and repair issues outlived their
+      condition. (FR-064, FR-065)
+- [x] T138 [US6] Wire `retry_after` in
+      `custom_components/hospitable/api/client.py` by reading and parsing
+      the Retry-After header on a 429, tolerating its absence. Found by
+      contract-versus-implementation review: the documented field was
+      unconditionally None in production. (FR-064)
+- [x] T139 [US6] Guard `_log_rate_limit_once` in `coordinator.py` so a
+      throttle logs once per episode and re-logs after recovery, instead
+      of on every 429. Found by review: the `_once` name asserted a
+      behaviour the body lacked. (FR-064)
 
 **Exit criteria (US6)**: a revoked token produces an actionable reauth
 prompt within one interval; a scope-403 produces neither reauth nor a

@@ -190,23 +190,26 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         return await self.async_step_reauth_confirm()
 
+    def _reauth_form(self, errors: dict[str, str]) -> ConfigFlowResult:
+        """Render the reauth token form, naming the account in the prompt."""
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=USER_SCHEMA,
+            errors=errors,
+            description_placeholders={"account": self._account_id},
+        )
+
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Validate a replacement token for the same account."""
         if user_input is None:
-            return self.async_show_form(
-                step_id="reauth_confirm", data_schema=USER_SCHEMA, errors={}
-            )
+            return self._reauth_form({})
         token = str(user_input[CONF_TOKEN])
         try:
             account = await _client(self.hass, token).get_user()
         except Exception as exc:
-            return self.async_show_form(
-                step_id="reauth_confirm",
-                data_schema=USER_SCHEMA,
-                errors={"base": _error_key(exc)},
-            )
+            return self._reauth_form({"base": _error_key(exc)})
         if account.account_id != self._account_id:
             return self.async_abort(reason="wrong_account")
         if self._reauth_entry is not None:

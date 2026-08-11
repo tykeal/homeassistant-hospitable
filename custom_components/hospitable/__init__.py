@@ -75,7 +75,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         config_entry=entry,
         interval_minutes=entry.options.get(CONF_PROPERTY_INTERVAL),
     )
-    await properties_coordinator.async_refresh()
+    await properties_coordinator.async_config_entry_first_refresh()
 
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
     selected_properties = set(entry.options.get(CONF_SELECTED_PROPERTIES, []))
@@ -96,7 +96,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         config_entry=entry,
         interval_minutes=entry.options.get(CONF_RESERVATION_INTERVAL),
     )
-    await reservations_coordinator.async_refresh()
+    await reservations_coordinator.async_config_entry_first_refresh()
 
     for property_id in known:
         property_model = properties.get(property_id)

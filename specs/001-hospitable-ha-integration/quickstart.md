@@ -263,6 +263,30 @@ Requirements: FR-014, FR-038, FR-064, FR-065.
 The unparsable-body scenario is the one that catches a permissive
 classifier. It must land on the non-scope branch.
 
+Verified (US6 suite, all green):
+
+- Token revoked, next poll returns 401 — `test_reauth_trigger.py`
+  drives a real coordinator refresh returning 401 and asserts a reauth
+  flow is in progress whose form prompt names the account.
+- Replacement token supplied — `test_config_flow.py`
+  (`test_reauth_replaces_token_for_same_account_only`) confirms the
+  token is replaced and the account namespace is retained.
+- Scope-related 403 — `test_scope_403_handling.py` asserts no reauth,
+  no repair issue, a single capability log, and `last_update_success`
+  stays true.
+- Non-scope 403 — `test_non_scope_403_handling.py` asserts one repair
+  issue and no reauth.
+- 403 body absent or unparsable — `test_403_unparsable_default.py`
+  guards the `classify_403` fail-safe default and the client error path.
+- Persistent non-credential failure — `test_persistent_failure_repair.py`
+  escalates three consecutive 5xx polls to one repair issue.
+- Every user-facing message — `test_error_message_quality.py` audits
+  every config/options error, abort, and repair-issue string for a
+  cause and an action, rejecting bare status codes and exception reprs.
+- Setup never fails silently — `test_setup_failure_visibility.py`
+  asserts a setup 401 does not load the entry and a setup 5xx yields
+  SETUP_RETRY.
+
 ### US7 — Availability and pricing, read-only
 
 Requirements: FR-058 to FR-061.
