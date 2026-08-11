@@ -4,9 +4,10 @@
 
 This is the isolation evidence for SC-010's "poll independently" clause.
 Two accounts are set up and then account A is subjected to an
-authentication failure (401), a rate-limit response (429) and a raw
-connection failure in sequence. Throughout, account B's coordinators and
-entities must stay exactly as they were, and the converse must hold too.
+authentication failure (401), a rate-limit response (429) and a
+server-side poll failure (500) in sequence. Throughout, account B's
+coordinators and entities must stay exactly as they were, and the
+converse must hold too.
 
 A shared coordinator instance, a shared client wrapper, a module-level
 cache, or a shared failure counter would all break these assertions,
@@ -186,12 +187,9 @@ async def test_one_entry_failures_do_not_disturb_another(
     res_a.async_update_listeners()
     await hass.async_block_till_done()
     a_entity_ids = _entity_ids(hass, entry_a)
-    assert all(
-        hass.states.get(entity_id).state == "unavailable" for entity_id in a_entity_ids
-    )
-    assert all(
-        hass.states.get(entity_id).state != "unavailable" for entity_id in b_entity_ids
-    )
+    a_states = _states(hass, a_entity_ids)
+    assert all(value == "unavailable" for value in a_states.values())
+    assert all(value != "unavailable" for value in _states(hass, b_entity_ids).values())
 
     # Converse direction: failing B must not reach into A's state. A keeps its
     # three failures and its last-known data; B's failure counter is its own.
