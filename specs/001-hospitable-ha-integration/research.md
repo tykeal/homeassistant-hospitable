@@ -660,7 +660,9 @@ absence of handling for an oversight.
 
 ### A-6: Unobserved reservation status categories
 
-**Tier**: PARTIALLY VERIFIED. **Governs**: FR-043, OQ-013.
+**Tier**: CONFIRMED-BY-TEST for the observed categories; the
+current-category `request` and `unknown` paths remain UNVERIFIED.
+**Governs**: FR-043, OQ-013.
 
 Assessed by a live census of every `reservation_status.current` and
 every `history` entry across 652 reservations. The `current` value is an
