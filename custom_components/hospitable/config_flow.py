@@ -259,7 +259,8 @@ class HospitableOptionsFlow(OptionsFlow):
         options: dict[str, Any] = {**DEFAULT_OPTIONS, **self._config_entry.options}
         available = self._available_properties()
         selection = list(options.get(CONF_SELECTED_PROPERTIES, []))
-        overrides = dict(options.get(CONF_TIMEZONE_OVERRIDES) or {})
+        saved_overrides = dict(options.get(CONF_TIMEZONE_OVERRIDES) or {})
+        overrides = dict(saved_overrides)
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -279,7 +280,9 @@ class HospitableOptionsFlow(OptionsFlow):
             if not user_input.get(CONF_SELECTED_PROPERTIES):
                 errors["base"] = "no_properties_selected"
             errors.update(_validate_bounds(user_input))
-            tz_errors, resolved_overrides = await self._validate_timezones(user_input)
+            tz_errors, resolved_overrides = await self._validate_timezones(
+                user_input, saved_overrides
+            )
             errors.update(tz_errors)
 
             if not errors:
@@ -338,23 +341,31 @@ class HospitableOptionsFlow(OptionsFlow):
         return 0
 
     async def _validate_timezones(
-        self, user_input: dict[str, Any]
+        self, user_input: dict[str, Any], existing: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str]]:
-        """Validate per-property IANA overrides at the options step."""
+        """Validate per-property IANA overrides at the options step.
+
+        Merges the submitted overrides onto the previously saved ones so
+        overrides for properties not shown in this submission (for
+        example deselected properties) are retained. A blank submitted
+        value clears that property's override.
+        """
         errors: dict[str, str] = {}
-        resolved: dict[str, str] = {}
+        resolved: dict[str, str] = dict(existing)
         for key, value in user_input.items():
             if not key.startswith(TZ_FIELD_PREFIX):
                 continue
+            property_id = key[len(TZ_FIELD_PREFIX) :]
             text = str(value).strip()
             if not text:
+                resolved.pop(property_id, None)
                 continue
             try:
                 await resolve_timezone(self.hass, text)
             except ValueError:
                 errors[key] = "invalid_timezone"
                 continue
-            resolved[key[len(TZ_FIELD_PREFIX) :]] = text
+            resolved[property_id] = text
         return errors, resolved
 
     def _build_schema(

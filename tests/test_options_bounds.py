@@ -26,6 +26,7 @@ from custom_components.hospitable.const import (
     CONF_PROPERTY_INTERVAL,
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
+    CONF_TIMEZONE_OVERRIDES,
     CONF_TOKEN,
     DOMAIN,
 )
@@ -152,3 +153,34 @@ async def test_valid_options_saved(hass: Any) -> None:
     assert result["type"] == "create_entry"
     assert entry.options[CONF_RESERVATION_INTERVAL] == 3
     assert entry.options[CONF_LOOKBACK_DAYS] == 30
+
+
+async def test_override_for_deselected_property_is_retained(hass: Any) -> None:
+    """A saved override for a property not shown this step survives.
+
+    When a property was deselected in an earlier step its timezone
+    field is no longer rendered, so the submission omits it. The saved
+    override must be merged forward rather than dropped, so reselecting
+    the property later restores its override.
+    """
+    entry = _entry()
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_TIMEZONE_OVERRIDES: {
+                "prop-example-001": "America/New_York",
+                "prop-example-002": "Europe/London",
+            },
+        },
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], _base_input()
+    )
+
+    assert result["type"] == "create_entry"
+    overrides = entry.options[CONF_TIMEZONE_OVERRIDES]
+    assert overrides["prop-example-002"] == "Europe/London"
