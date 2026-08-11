@@ -18,11 +18,6 @@ import httpx
 import pytest
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase T138: retry_after is never populated from the header",
-)
 async def test_rate_limit_populates_retry_after(
     api_client_factory: Any,
     mock_httpx_client: Any,

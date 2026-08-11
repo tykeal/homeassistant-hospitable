@@ -41,6 +41,7 @@ from custom_components.hospitable.api.responses import (
     assert_include,
     validate_list_envelope,
 )
+from custom_components.hospitable.api.retry import parse_retry_after
 
 QueryValue = str | int | float | bool | None | list[str]
 
@@ -123,8 +124,11 @@ class HospitableApiClient:
                 "Hospitable resource was not found", status=404, endpoint=path
             )
         if response.status_code == 429:
+            retry_after = parse_retry_after(response.headers.get("Retry-After"))
             raise HospitableRateLimitError(
-                "Hospitable rate limit reached", endpoint=path
+                "Hospitable rate limit reached",
+                retry_after=retry_after,
+                endpoint=path,
             )
         raise HospitableConnectionError(
             "Hospitable API request failed", status=response.status_code, endpoint=path

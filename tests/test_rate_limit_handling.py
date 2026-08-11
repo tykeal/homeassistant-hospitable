@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import issue_registry as ir
@@ -70,11 +69,6 @@ def _domain_issues(hass: Any) -> list[Any]:
     ]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase T137: 429 wrongly escalates to a repair issue",
-)
 async def test_repeated_rate_limit_raises_no_repair_issue(
     hass: Any, respx_router: Any
 ) -> None:
@@ -95,11 +89,6 @@ async def test_repeated_rate_limit_raises_no_repair_issue(
     assert _domain_issues(hass) == []
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase T137: repair issue outlives the failing condition",
-)
 async def test_persistent_repair_issue_clears_on_recovery(
     hass: Any, respx_router: Any
 ) -> None:

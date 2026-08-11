@@ -22,6 +22,7 @@ from custom_components.hospitable.api.exceptions import (
     HospitableError,
     HospitableForbiddenError,
     HospitableIncludeMissingError,
+    HospitableRateLimitError,
     HospitableScopeError,
 )
 from custom_components.hospitable.api.models import (
@@ -51,6 +52,14 @@ FORBIDDEN_MESSAGE = (
 CONNECTION_FAILED_MESSAGE = (
     "Could not reach the Hospitable API. Check the internet connection and "
     "whether Hospitable is reachable; polling retries automatically."
+)
+# A 429 is self-resolving: Hospitable is throttling requests and normal
+# polling resumes on its own (SC-007). Throttling is not a fault the user
+# can act on, so it never raises a repair issue; the message says only
+# that polling will resume (FR-064).
+RATE_LIMITED_MESSAGE = (
+    "Hospitable is rate limiting requests. No action is needed; polling "
+    "resumes automatically once the limit clears."
 )
 # Number of consecutive non-credential failures after which the entry
 # escalates to a persistent-failure repair issue (FR-065).
@@ -97,6 +106,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             self.consecutive_failures += 1
             raise
         self.consecutive_failures = 0
+        self._clear_repair_issues()
         return data
 
     async def _fetch_data(self) -> DataT:
@@ -142,19 +152,58 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             translation_placeholders={"account": self._account_id()},
         )
 
+    def _clear_repair_issues(self) -> None:
+        """Remove repair issues once a successful fetch confirms recovery.
+
+        A repair issue represents a current condition; leaving it raised
+        after the condition clears would strand a stale ERROR alarm the
+        user cannot dismiss by fixing anything (FR-065).
+        """
+        if self.config_entry is None:
+            return
+        for kind in ("forbidden", "persistent"):
+            ir.async_delete_issue(
+                self.hass, DOMAIN, f"{kind}_{self.config_entry.entry_id}"
+            )
+
+    def _log_rate_limit_once(self, exc: HospitableRateLimitError) -> None:
+        """Log a 429 as a transient throttle, recording any retry delay.
+
+        The delay is recorded and logged only; the fixed polling interval
+        is not rescheduled, so recovery happens on the next scheduled
+        poll rather than exactly at the server-advised time (FR-064).
+        """
+        if exc.retry_after is not None:
+            _LOGGER.warning(
+                "Hospitable is rate limiting %s; retrying on the next poll "
+                "(server suggested %.0f seconds). No action is needed",
+                exc.endpoint or self.name,
+                exc.retry_after,
+            )
+            return
+        _LOGGER.warning(
+            "Hospitable is rate limiting %s; retrying on the next poll. "
+            "No action is needed",
+            exc.endpoint or self.name,
+        )
+
     def _raise_for_api_error(self, exc: HospitableError) -> NoReturn:
         """Map a non-scope API error to its Home Assistant outcome.
 
         A 401 becomes ``ConfigEntryAuthFailed`` so Home Assistant starts a
-        reauth flow; a non-scope 403 raises a repair issue; any other error
-        that persists past the failure threshold also raises a repair issue.
-        Every branch raises (FR-064, FR-065).
+        reauth flow; a non-scope 403 raises a repair issue; a 429 is a
+        self-resolving throttle that raises no repair issue (SC-007); any
+        other error that persists past the failure threshold raises a
+        repair issue. Every branch raises (FR-064, FR-065).
         """
         if isinstance(exc, HospitableAuthError):
             raise ConfigEntryAuthFailed(AUTH_FAILED_MESSAGE) from exc
         if isinstance(exc, HospitableForbiddenError):
             self._create_repair_issue("forbidden", "forbidden_access")
             raise UpdateFailed(FORBIDDEN_MESSAGE) from exc
+        if isinstance(exc, HospitableRateLimitError):
+            self._log_rate_limit_once(exc)
+            raise UpdateFailed(RATE_LIMITED_MESSAGE) from exc
         if self.consecutive_failures + 1 >= PERSISTENT_FAILURE_THRESHOLD:
             self._create_repair_issue("persistent", "persistent_failure")
         if isinstance(exc, HospitableConnectionError):
