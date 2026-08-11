@@ -26,19 +26,13 @@ from custom_components.hospitable.const import (
     DOMAIN,
 )
 from custom_components.hospitable.entity import build_unique_id
-from custom_components.hospitable.sensor.property import HospitablePropertyInfoSensor
+from custom_components.hospitable.sensor.property import (
+    PROPERTY_INFO_ATTRIBUTES,
+    HospitablePropertyInfoSensor,
+)
 from tests.helpers import load_fixture
 
-EXPECTED_ATTRIBUTES = {
-    "address",
-    "checkin_time",
-    "checkout_time",
-    "max_guests",
-    "effective_timezone",
-    "timezone_source",
-    "listings",
-    "listings_available",
-}
+EXPECTED_ATTRIBUTES = set(PROPERTY_INFO_ATTRIBUTES)
 
 # The address attribute is the upstream-composed ``address.display``
 # string, which the contract explicitly permits. The guard therefore

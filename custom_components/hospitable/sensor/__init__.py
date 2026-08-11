@@ -44,7 +44,14 @@ async def async_setup_entry(
         for property_id in selected
     }
 
-    overrides: dict[str, str] = entry.options.get(CONF_TIMEZONE_OVERRIDES, {}) or {}
+    raw_overrides = entry.options.get(CONF_TIMEZONE_OVERRIDES)
+    overrides: dict[str, str] = {}
+    if isinstance(raw_overrides, dict):
+        overrides = {
+            str(property_id): value
+            for property_id, value in raw_overrides.items()
+            if isinstance(value, str)
+        }
     property_timezones: dict[str, tuple[str, str]] = {}
     for property_id in selected:
         override = overrides.get(property_id)
