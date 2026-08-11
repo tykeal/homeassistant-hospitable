@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, STATE_UNAVAILABLE
 from homeassistant.helpers import entity_registry as er
@@ -154,6 +155,47 @@ async def test_availability_states_available_and_booked(
     for state in (available_state, booked_state):
         assert state.attributes["options"] == ["available", "booked", "unknown"]
         assert STATE_UNAVAILABLE not in state.attributes["options"]
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    reason="TDD red phase: forward_window must stay live but not recorded",
+    strict=True,
+)
+async def test_forward_window_is_live_but_unrecorded(
+    hass: Any, respx_router: Any
+) -> None:
+    """The large forward window stays in state but is excluded from recorder."""
+    entry = _entry(hass)
+    _mock_core_endpoints(respx_router)
+    respx_router.get(f"{BASE_URL}/properties/prop-example-001/calendar").mock(
+        return_value=httpx.Response(
+            200, json=_calendar_payload(available=True, reason="AVAILABLE")
+        )
+    )
+    respx_router.get(f"{BASE_URL}/properties/prop-example-002/calendar").mock(
+        return_value=httpx.Response(
+            200, json=_calendar_payload(available=False, reason="RESERVED")
+        )
+    )
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_registry = er.async_get(hass)
+    availability_id = entity_registry.async_get_entity_id(
+        "sensor", DOMAIN, build_unique_id(_ACCOUNT, "prop-example-001", "availability")
+    )
+    assert availability_id is not None
+    state = hass.states.get(availability_id)
+    assert state is not None
+
+    assert "forward_window" in state.attributes
+    assert state.state_info is not None
+    assert "forward_window" in state.state_info["unrecorded_attributes"]
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
