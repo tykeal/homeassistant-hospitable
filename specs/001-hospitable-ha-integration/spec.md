@@ -1258,12 +1258,16 @@ uncertainty.
   pagination metadata is now moot for this feature because the
   integration does not call `/channels` at all (see A-5).
   (CONFIRMED-BY-TEST)
-- **OQ-012 — iCal import population (UNVERIFIED).** The properties
-  endpoint adds `ical_imports` when `include=listings` is requested,
-  but all ten tested properties returned an empty array. It is unknown
-  whether accounts that actually configure iCal imports ever receive
-  populated entries, and no behavior in this specification depends on
-  that array.
+- **OQ-012 — iCal import population (UNRESOLVABLE FROM AVAILABLE
+  ACCOUNT).** The properties endpoint adds `ical_imports` when
+  `include=listings` is requested, but all 13 tested properties
+  returned an empty array because no iCal imports are configured on
+  this account. Resolving whether accounts that actually configure iCal
+  imports ever receive populated entries would require access to an
+  account that uses them, which is not available; this is a genuine
+  access limitation rather than an unperformed test. No behavior in
+  this specification depends on that array, which is why it is safe to
+  leave open.
 - **OQ-013 — Request and unknown status occurrence (UNVERIFIED).** The
   documented reservation categories include request and unknown, but a
   621-reservation live census did not observe either one. They remain

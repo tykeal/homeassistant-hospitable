@@ -624,15 +624,22 @@ beyond the FR-039 bound.
 
 ### A-5: Channels pagination and iCal imports
 
-**Tier**: UNVERIFIED. **Governs**: OQ-011, OQ-012.
+**Tier**: OQ-011 RESOLVED (CONFIRMED-BY-TEST); OQ-012 unresolvable from
+the available account. **Governs**: OQ-011, OQ-012.
 
 Neither affects this feature. `/channels` is not called by this
 integration at all — it is account-level, it carries a clear-text email
 in `login`, and nothing in FR-001 through FR-075 needs it, so the
-lowest-risk handling of an endpoint with unverified pagination and
-known PII is not to call it. `ical_imports` arrives as a side effect of
-`include=listings` and is discarded at the model boundary, which is why
-its population state is irrelevant here.
+lowest-risk handling of the endpoint is not to call it. A live test
+resolved OQ-011: `/channels` returned `meta: null` and `links: null`,
+and a `per_page=1` request returned the identical seven rows, so the
+endpoint is unpaginated and silently ignores `per_page` — the fourth
+silent-ignore behavior in the D-05 register. `ical_imports` arrives as
+a side effect of `include=listings` and is discarded at the model
+boundary, which is why its population state is irrelevant here; OQ-012
+could not be resolved because no iCal imports are configured on the
+available account, and confirming a populated array would require an
+account that uses them.
 
 This is recorded so that a later specification does not mistake the
 absence of handling for an oversight.
