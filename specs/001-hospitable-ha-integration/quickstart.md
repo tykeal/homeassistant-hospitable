@@ -215,6 +215,19 @@ The deselection scenario is non-destructive in both directions.
 Reselecting a property must restore its original entity identifiers and
 its recorder history.
 
+Known limitations:
+
+- The request-per-day estimate recomputes on the next server render of
+  the options form, not live as a field changes. Home Assistant config
+  forms re-render server-side, so "updates as any value is edited"
+  means "updates on the next render" — the only behaviour the platform
+  supports.
+- A new timezone override cannot be set for a property in the same
+  submission that first selects it: the override field is only rendered
+  for already-selected properties. Select the property and save, then
+  reopen the options to set its override. Previously-saved overrides
+  for deselected properties are retained across saves.
+
 ### US5 — Multiple accounts
 
 Requirements: FR-012, FR-013, FR-055.

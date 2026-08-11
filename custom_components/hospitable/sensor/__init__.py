@@ -12,7 +12,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
-    CONF_SELECTED_PROPERTIES,
     CONF_TIMEZONE_OVERRIDES,
 )
 from custom_components.hospitable.sensor.property import build_property_sensors
@@ -33,15 +32,17 @@ async def async_setup_entry(
     properties = properties_coordinator.data or {}
 
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
-    selected = sorted(
-        set(entry.options.get(CONF_SELECTED_PROPERTIES, [])) or set(properties)
-    )
+    selected = runtime_data["selected_property_ids"]
+    known = runtime_data["known_property_ids"]
+    # Deselected properties keep their entities (built here) but are dropped
+    # from the monitored set, so the shared FR-056 presence predicate marks
+    # them unavailable while retaining their registry entries (FR-018).
     properties_coordinator.monitored_property_ids = set(selected)
     property_names = {
         property_id: (
             properties[property_id].name if property_id in properties else property_id
         )
-        for property_id in selected
+        for property_id in known
     }
 
     raw_overrides = entry.options.get(CONF_TIMEZONE_OVERRIDES)
@@ -53,7 +54,7 @@ async def async_setup_entry(
             if isinstance(value, str)
         }
     property_timezones: dict[str, tuple[str, str]] = {}
-    for property_id in selected:
+    for property_id in known:
         override = overrides.get(property_id)
         try:
             property_timezones[property_id] = await resolve_property_timezone(
