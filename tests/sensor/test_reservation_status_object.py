@@ -18,7 +18,6 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
@@ -173,11 +172,6 @@ def test_sensor_surfaces_sub_category_attribute() -> None:
     assert sensor.extra_state_attributes["status_sub_category"] == "declined"
 
 
-@pytest.mark.xfail(
-    reason="classify_occupancy compares an aware now against a naive check_in",
-    raises=TypeError,
-    strict=True,
-)
 def test_occupancy_tolerates_naive_checkin() -> None:
     """A naive scheduled check-in is treated as absent, never raising."""
     base = datetime.now(_ZONE).date()
