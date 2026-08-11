@@ -17,3 +17,17 @@ async def resolve_timezone(hass: Any, override: str | None) -> str:
     if zone is None:
         raise ValueError("timezone override must be an IANA name")
     return override
+
+
+async def resolve_property_timezone(hass: Any, override: str | None) -> tuple[str, str]:
+    """Resolve a property's effective IANA timezone and its source.
+
+    Returns the effective IANA zone name paired with ``"override"`` when
+    a per-property override supplied it, or ``"instance"`` when it falls
+    back to the Home Assistant instance timezone. A non-IANA override
+    (such as an upstream fixed offset) raises ``ValueError`` so it is
+    rejected rather than silently applied (FR-074).
+    """
+    if override is None:
+        return str(hass.config.time_zone), "instance"
+    return await resolve_timezone(hass, override), "override"
