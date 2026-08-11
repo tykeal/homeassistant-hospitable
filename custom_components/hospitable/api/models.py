@@ -195,9 +195,12 @@ class HospitableReservation:
         if not isinstance(status_payload, dict):
             raise HospitableResponseError("Reservation status is malformed")
         current = status_payload.get("current")
-        if not isinstance(current, dict) or "category" not in current:
+        if not isinstance(current, dict):
             raise HospitableResponseError("Reservation status current is malformed")
-        status_category = str(current["category"])
+        category = current.get("category")
+        if not isinstance(category, str) or not category:
+            raise HospitableResponseError("Reservation status category is malformed")
+        status_category = category
         sub_category = current.get("sub_category")
         status_sub_category = str(sub_category) if sub_category is not None else None
         return cls(

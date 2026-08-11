@@ -1,15 +1,17 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase tests pinning the live ``reservation_status`` object shape.
+"""Regression tests pinning the live ``reservation_status`` object shape.
 
 The live Hospitable API returns ``reservation_status.current`` as an
-object ``{category, sub_category}``, not the bare string every fixture
-and the current model assume. These tests encode the confirmed shape and
-must fail against the pre-fix code for the right reason: the model
-stringifies the object, so the status category becomes a stringified
-dict, the enum sensor reports ``unknown`` in production, and cancelled
-stays leak through ``is_forthcoming``. Each marker carries ``raises=`` so
-an unrelated failure cannot satisfy the expectation.
+object ``{category, sub_category}``, not the bare string that every
+fixture and the model once assumed. Because the fixtures and the code
+agreed with each other and were both wrong, the stringified object sent
+every reservation sensor to ``unknown`` in production and let cancelled
+and declined stays leak through ``is_forthcoming``. These tests guard
+the confirmed object shape end to end: the model reads ``current`` as an
+object and fails loudly on a malformed one, the sensor surfaces
+``status_sub_category``, occupancy tolerates a naive instant, and the
+enum sensor reports the derived state rather than ``unknown``.
 """
 
 from __future__ import annotations
@@ -112,6 +114,8 @@ def test_model_raises_on_malformed_current() -> None:
         {"history": []},
         {"current": "accepted", "history": []},
         {"current": {"sub_category": "declined"}, "history": []},
+        {"current": {"category": None, "sub_category": None}, "history": []},
+        {"current": {"category": "", "sub_category": None}, "history": []},
         {"current": None, "history": []},
     ]
     for shape in malformed_shapes:
