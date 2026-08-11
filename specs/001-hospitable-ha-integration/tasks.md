@@ -716,16 +716,16 @@ specification says so explicitly.
 
 ### Tests for User Story 3 (RED-PHASE COMMIT) ⚠️
 
-- [ ] T089 [P] [US3] `tests/sensor/test_property_timestamps.py`: assert
+- [x] T089 [P] [US3] `tests/sensor/test_property_timestamps.py`: assert
       `next_arrival` and `next_departure` are timestamp sensors
       preserving the reservation's own offset-aware instants, and that
       a property with no upcoming reservation reports `unknown` rather
       than a sentinel date. (FR-051)
-- [ ] T090 [P] [US3] `tests/sensor/test_upcoming_count.py`: assert the
+- [x] T090 [P] [US3] `tests/sensor/test_upcoming_count.py`: assert the
       upcoming-reservation count sensor counts only reservations in
       the configured forward window and only those in a status that
       represents a real forthcoming stay. (FR-052)
-- [ ] T091 [P] [US3] `tests/sensor/test_property_info.py`: assert the
+- [x] T091 [P] [US3] `tests/sensor/test_property_info.py`: assert the
       property-information sensor's state is the display name, and
       that it exposes exactly the attributes in
       `contracts/entities.md` — `address` (the upstream-composed
@@ -734,16 +734,16 @@ specification says so explicitly.
       `listings`, and `listings_available` — and that no coordinates,
       no street number or postcode, and no owner contact details
       appear. (FR-053, FR-062)
-- [ ] T092 [P] [US3] `tests/sensor/test_rename_stability.py`: assert
+- [x] T092 [P] [US3] `tests/sensor/test_rename_stability.py`: assert
       renaming a property upstream changes the display name but leaves
       the unique ID and therefore the entity registry entry and its
       recorded history intact. (FR-054, FR-055)
-- [ ] T093 [P] [US3] `tests/sensor/test_disappeared_property.py`:
+- [x] T093 [P] [US3] `tests/sensor/test_disappeared_property.py`:
       assert that when a monitored property disappears from the
       account its entities become unavailable, its registry entries
       and history are RETAINED, and a single explanatory warning is
       logged. (FR-056)
-- [ ] T094 [P] [US3] `tests/services/test_timezone_override.py`: assert
+- [x] T094 [P] [US3] `tests/services/test_timezone_override.py`: assert
       a per-property IANA override changes day-boundary and
       date-relative presentation only; that `effective_timezone` and
       `timezone_source` attributes report the zone in use and whether
@@ -751,26 +751,26 @@ specification says so explicitly.
       IANA name is rejected at the options step; and the **D-11 guard
       at the sensor layer** — no sensor reads any upstream `timezone`
       value. (FR-074)
-- [ ] T095 [US3] Run `uv run pytest --runxfail` scoped to T089–T094 and
+- [x] T095 [US3] Run `uv run pytest --runxfail` scoped to T089–T094 and
       commit the red phase.
 
 ### Implementation for User Story 3 (GREEN-PHASE COMMIT)
 
-- [ ] T096 [US3] Implement
+- [x] T096 [US3] Implement
       `custom_components/hospitable/sensor/property.py` —
       `next_arrival`, `next_departure`, `upcoming_reservations`, and
       `property_info`. Satisfies T089, T090, T091.
       (FR-051, FR-052, FR-053)
-- [ ] T097 [US3] Implement the disappeared-property path in
+- [x] T097 [US3] Implement the disappeared-property path in
       `custom_components/hospitable/coordinator.py` and
       `entity.py` — unavailable, retained, warned once. Satisfies
       T093. Note this shares its mechanism with FR-018 non-destructive
       deselection, completed in US4. (FR-056)
-- [ ] T098 [US3] Surface `effective_timezone` and `timezone_source` on
+- [x] T098 [US3] Surface `effective_timezone` and `timezone_source` on
       the relevant entities and apply the per-property override
       throughout the sensor layer. Satisfies T092, T094.
       (FR-054, FR-055, FR-074)
-- [ ] T099 [US3] Add property sensor names to `strings.json` and
+- [x] T099 [US3] Add property sensor names to `strings.json` and
       `translations/en.json`. (FR-064, FR-068)
 - [ ] T100 [US3] **OQ-004 verification**: check whether reservations
       exist against listings that are not surfaced as properties. The
@@ -779,9 +779,9 @@ specification says so explicitly.
       `spec.md` under OQ-004 and, if confirmed, document the limitation
       in the README (task T149). This is a verification and
       documentation task, not a behavior change.
-- [ ] T101 [US3] Sweep the diff for leftover markers and type-ignores
+- [x] T101 [US3] Sweep the diff for leftover markers and type-ignores
       from T089–T094; run the suite and mypy.
-- [ ] T102 [US3] Walk the US3 rows of `quickstart.md` and record the
+- [x] T102 [US3] Walk the US3 rows of `quickstart.md` and record the
       outcome.
 
 **Exit criteria (US3)**: every US3 acceptance scenario passing; the
