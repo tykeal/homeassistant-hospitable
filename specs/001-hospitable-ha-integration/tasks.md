@@ -997,28 +997,36 @@ and confirm it produces neither a reauth prompt nor a repair issue.
       from T123–T129; run the suite and mypy.
 - [x] T135 [US6] Walk the US6 rows of `quickstart.md` and record the
       outcome.
-- [x] T136 [US6] Map transport failures and non-JSON success bodies to
+- [x] T159 [US6] Map transport failures and non-JSON success bodies to
       typed errors in `custom_components/hospitable/api/client.py`
       (httpx.RequestError to HospitableConnectionError, non-JSON 200 to
       HospitableResponseError) and surface an actionable connection
       message in `coordinator.py`. Surfaced by US5 isolation testing,
       which found httpx.ConnectError escaping the client unmapped and
       bypassing the error-to-outcome mapping. (FR-064, FR-065)
-- [x] T137 [US6] Stop 429 escalating to a repair issue and clear repair
+- [x] T160 [US6] Stop 429 escalating to a repair issue and clear repair
       issues on recovery in `coordinator.py`. Found by contract-versus-
       implementation review: the blanket persistence check escalated 429
       to an ERROR repair issue despite the contract characterising it as
       self-resolving (SC-007), and repair issues outlived their
       condition. (FR-064, FR-065)
-- [x] T138 [US6] Wire `retry_after` in
+- [x] T161 [US6] Wire `retry_after` in
       `custom_components/hospitable/api/client.py` by reading and parsing
       the Retry-After header on a 429, tolerating its absence. Found by
       contract-versus-implementation review: the documented field was
       unconditionally None in production. (FR-064)
-- [x] T139 [US6] Guard `_log_rate_limit_once` in `coordinator.py` so a
+- [x] T162 [US6] Guard `_log_rate_limit_once` in `coordinator.py` so a
       throttle logs once per episode and re-logs after recovery, instead
       of on every 429. Found by review: the `_once` name asserted a
       behaviour the body lacked. (FR-064)
+
+> **Renumbering note**: the four tasks above were originally numbered
+> T136–T139 but collided with User Story 7, which already occupied
+> T136–T148. They were renumbered to T159–T162 to resolve the
+> collision; the US7 tasks were left unchanged. Their commit subjects
+> in git history still reference the original numbers T136–T139 (for
+> example `Docs(tasks): Record T136 transport error mapping`), so trace
+> those commits to these T159–T162 tasks, not to US7's T136–T139.
 
 **Exit criteria (US6)**: a revoked token produces an actionable reauth
 prompt within one interval; a scope-403 produces neither reauth nor a
@@ -1148,11 +1156,20 @@ pair.
       cleanup, which `xfail_strict` should already have caught — if
       one is found, investigate why the gate did not fire.
 - [ ] T154 **Silent-ignore audit**: re-read
-      `contracts/upstream-requests.md` and confirm each of the three
+      `contracts/upstream-requests.md` and confirm each of the five
       known upstream silent-ignore behaviors has a live assertion — a
-      bogus `listing_id` (never sent), a bogus `include=` (never sent,
-      and every sent include's key asserted present), and `http://`
-      pagination URLs (never followed). (FR-075)
+      bogus `listing_id` on the calendar route (never sent), a bogus
+      `include=` value (never sent, and every sent include's key
+      asserted present), `http://` pagination URLs (never followed), an
+      unrecognised parameter *name* such as `date_type=` or
+      `filter_date_type=` (accepted with no effect, while an
+      unrecognised *value* for an implemented parameter is rejected —
+      `date_query=bogus_value` returns HTTP 400 — so only registered
+      names are sent), and a recognised parameter name on an endpoint
+      that does not support it (`per_page` on `/channels`, silently
+      ignored with all 7 rows returned regardless). Neither an unknown
+      name nor a known-but-unsupported one produces any signal, so
+      HTTP 200 is never proof a request was honored. (FR-075)
 - [ ] T155 Walk the cross-cutting checks section of `quickstart.md` and
       record each outcome.
 - [ ] T156 Run the live success-criteria validation (SC-001, SC-002,
