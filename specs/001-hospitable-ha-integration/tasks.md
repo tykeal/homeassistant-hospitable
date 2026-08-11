@@ -810,58 +810,58 @@ entities.
 
 ### Tests for User Story 4 (RED-PHASE COMMIT) ⚠️
 
-- [ ] T103 [P] [US4] `tests/test_options_reload.py`: assert the update
+- [x] T103 [P] [US4] `tests/test_options_reload.py`: assert the update
       listener reloads the entry so that a changed interval, window, or
       property selection takes effect with NO Home Assistant restart
       (SC-011). (FR-017)
-- [ ] T104 [P] [US4] `tests/test_options_bounds.py`: assert every
+- [x] T104 [P] [US4] `tests/test_options_bounds.py`: assert every
       option is validated against its stated bound and that an
       out-of-range value produces a message NAMING the bound — the
       reservation interval floor of 1 minute, the property and calendar
       floor of 15 minutes, lookback 7–365, lookahead 1–730 — and never
       a bare validation code. (FR-016, FR-022, FR-064)
-- [ ] T105 [P] [US4] `tests/test_options_estimate.py`: assert the
+- [x] T105 [P] [US4] `tests/test_options_estimate.py`: assert the
       options screen displays the estimated daily request count, that
       it is clearly LABELLED an estimate, and that it recomputes as the
       user changes intervals or selection. (FR-072)
-- [ ] T106 [P] [US4] `tests/test_options_help_text.py`: assert the
+- [x] T106 [P] [US4] `tests/test_options_help_text.py`: assert the
       user-facing help text documents the trade-off between a shorter
       interval or a wider window and upstream request volume.
       (FR-023)
-- [ ] T107 [P] [US4] `tests/test_deselection.py`: assert deselecting a
+- [x] T107 [P] [US4] `tests/test_deselection.py`: assert deselecting a
       property STOPS polling it, marks its entities unavailable, and
       RETAINS its registry entries and recorded history; and that
       reselecting it resumes polling against the SAME unique IDs so
       history is continuous in both directions. (FR-018, FR-055)
-- [ ] T108 [P] [US4] `tests/test_interval_defaults.py`: assert the
+- [x] T108 [P] [US4] `tests/test_interval_defaults.py`: assert the
       shipped defaults are 5 minutes for reservations and 60 minutes
       for properties and calendar, and that the reservation window
       defaults to 90 days back and 90 forward.
       (FR-019, FR-020, FR-021)
-- [ ] T109 [US4] Run `uv run pytest --runxfail` scoped to T103–T108 and
+- [x] T109 [US4] Run `uv run pytest --runxfail` scoped to T103–T108 and
       commit the red phase.
 
 ### Implementation for User Story 4 (GREEN-PHASE COMMIT)
 
-- [ ] T110 [US4] Implement the options update listener and reload in
+- [x] T110 [US4] Implement the options update listener and reload in
       `custom_components/hospitable/__init__.py`. Satisfies T103.
       (FR-017)
-- [ ] T111 [US4] Complete the options-flow schema, bound validation
+- [x] T111 [US4] Complete the options-flow schema, bound validation
       messages, and help text in
       `custom_components/hospitable/config_flow.py`. Satisfies T104,
       T106, T108. (FR-016, FR-019 to FR-023, FR-064)
-- [ ] T112 [US4] Render the `services/estimator.py` result on the
+- [x] T112 [US4] Render the `services/estimator.py` result on the
       options screen with an explicit "estimate" label. Satisfies
       T105. (FR-072)
-- [ ] T113 [US4] Implement non-destructive deselection and reselection
+- [x] T113 [US4] Implement non-destructive deselection and reselection
       across `coordinator.py`, `entity.py`, and `sensor/__init__.py`,
       reusing the FR-056 mechanism. Satisfies T107. (FR-018)
-- [ ] T114 [US4] Add the options-flow labels, help text, and error
+- [x] T114 [US4] Add the options-flow labels, help text, and error
       strings to `strings.json` and `translations/en.json`.
       (FR-023, FR-064, FR-068)
-- [ ] T115 [US4] Sweep the diff for leftover markers and type-ignores
+- [x] T115 [US4] Sweep the diff for leftover markers and type-ignores
       from T103–T108; run the suite and mypy.
-- [ ] T116 [US4] Walk the US4 rows of `quickstart.md` and record the
+- [x] T116 [US4] Walk the US4 rows of `quickstart.md` and record the
       outcome.
 
 **Exit criteria (US4)**: option changes take effect with no restart;
