@@ -19,7 +19,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, STATE_UNAVAILABLE
 from homeassistant.helpers import entity_registry as er
@@ -160,11 +159,6 @@ async def test_availability_states_available_and_booked(
     await hass.async_block_till_done()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: forward_window must stay live but not recorded",
-    strict=True,
-)
 async def test_forward_window_is_live_but_unrecorded(
     hass: Any, respx_router: Any
 ) -> None:

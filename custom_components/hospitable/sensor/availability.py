@@ -46,6 +46,7 @@ class HospitableAvailabilitySensor(HospitableEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_translation_key = "availability"
     _attr_options = AVAILABILITY_OPTIONS
+    _unrecorded_attributes = frozenset({"forward_window"})
 
     def __init__(
         self,
