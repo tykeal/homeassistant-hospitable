@@ -83,3 +83,23 @@ def build_device_identifier(
 ) -> tuple[str, str]:
     """Build the device registry identifier tuple."""
     return (DOMAIN, f"{account_namespace}_{property_id}")
+
+
+def parse_device_identifier(
+    identifier: tuple[str, str], account_namespace: str
+) -> str | None:
+    """Return the property id encoded in a device identifier tuple.
+
+    This is the inverse of :func:`build_device_identifier`; keeping both
+    halves of the format in one place ensures a change to the encoding
+    breaks the round-trip test rather than silently discarding history.
+    Returns ``None`` when the identifier belongs to a foreign domain or a
+    different account namespace, preserving multi-account isolation.
+    """
+    domain, value = identifier
+    if domain != DOMAIN:
+        return None
+    prefix = f"{account_namespace}_"
+    if not value.startswith(prefix):
+        return None
+    return value[len(prefix) :]

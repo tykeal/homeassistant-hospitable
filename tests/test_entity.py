@@ -22,3 +22,18 @@ def test_unique_id_and_device_helpers() -> None:
         == "hospitable_beach_house_property_info"
     )
     assert build_device_identifier("acct", "prop") == ("hospitable", "acct_prop")
+
+
+def test_parse_device_identifier_round_trips() -> None:
+    """Assert parse inverts build and rejects foreign identifiers."""
+    from custom_components.hospitable.entity import (
+        build_device_identifier,
+        parse_device_identifier,
+    )
+
+    identifier = build_device_identifier("acct-0001", "prop-example-001")
+    assert parse_device_identifier(identifier, "acct-0001") == "prop-example-001"
+
+    assert parse_device_identifier(identifier, "acct-0002") is None
+    foreign = ("other_domain", "acct-0001_prop")
+    assert parse_device_identifier(foreign, "acct-0001") is None

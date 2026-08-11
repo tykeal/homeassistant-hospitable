@@ -19,7 +19,6 @@ from custom_components.hospitable.const import (
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
     CONF_TOKEN,
-    DOMAIN,
     VERSION,
 )
 from custom_components.hospitable.const import (
@@ -32,7 +31,10 @@ from custom_components.hospitable.coordinator import (
     HospitablePropertiesCoordinator,
     HospitableReservationsCoordinator,
 )
-from custom_components.hospitable.entity import build_device_identifier
+from custom_components.hospitable.entity import (
+    build_device_identifier,
+    parse_device_identifier,
+)
 from custom_components.hospitable.services.window import (
     LOOKAHEAD_DEFAULT,
     LOOKBACK_DEFAULT,
@@ -53,12 +55,12 @@ def _known_property_ids(
     survives; discovering those ids lets the sensor platform recreate the
     entities as unavailable rather than deleting them (FR-018, FR-055).
     """
-    prefix = f"{account_namespace}_"
     known: set[str] = set()
     for device in dr.async_entries_for_config_entry(registry, entry_id):
-        for domain, identifier in device.identifiers:
-            if domain == DOMAIN and identifier.startswith(prefix):
-                known.add(identifier[len(prefix) :])
+        for identifier in device.identifiers:
+            property_id = parse_device_identifier(identifier, account_namespace)
+            if property_id is not None:
+                known.add(property_id)
     return known
 
 
