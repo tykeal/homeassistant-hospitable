@@ -366,9 +366,10 @@ integration is capable of modifying the Hospitable calendar.
   integration constructs its own page requests instead.
 - **Hospitable returns HTTP 200 for a request it did not honor.** Live
   tests found multiple silently ignored inputs, including a bogus
-  calendar `listing_id`, invalid include names, and a `per_page`
-  parameter on the `/channels` endpoint that was ignored while the
-  endpoint returned every row. The integration
+  calendar `listing_id`, invalid include names, unrecognised parameter
+  names such as `date_type=`, and a `per_page` parameter on the
+  `/channels` endpoint that was ignored while the endpoint returned
+  every row. The integration
   validates response keys instead of treating success status alone as
   proof that an expansion or filter took effect.
 - **A reservation request is issued without a property filter.**
@@ -879,12 +880,18 @@ false negative on the integration's primary sensor.
   expansion with `include=`, it MUST assert that the expected response
   keys are present and MUST handle their absence explicitly rather
   than silently degrading. This is a standing client rule because live
-  testing found four distinct silent-ignore behaviors: Hospitable
+  testing found five distinct silent-ignore behaviors: Hospitable
   silently accepts invalid include names, silently discards the
-  calendar `listing_id` parameter, silently ignores the `per_page`
-  parameter on `/channels` while still returning HTTP 200, and returns
-  insecure pagination URLs that must not be followed verbatim.
-  (CONFIRMED)
+  calendar `listing_id` parameter, silently accepts and ignores
+  unrecognised query-parameter names such as `date_type=` and
+  `filter_date_type=` while rejecting an unrecognised *value* for an
+  implemented parameter (`date_query=bogus_value` returns HTTP 400),
+  silently ignores the `per_page` parameter on `/channels` even though
+  `per_page` is honored on other collection endpoints, and returns
+  insecure pagination URLs that must not be followed verbatim. The two
+  parameter-name cases are the most instructive: neither an unknown
+  name nor a known-but-unsupported one produces any signal, so a 200
+  alone can never prove a request was honored. (CONFIRMED)
 
 ### Key Entities
 
@@ -1257,8 +1264,12 @@ uncertainty.
   `meta: null`, `links: null`, and all seven rows unchanged. **Answer:**
   the endpoint is unpaginated and additionally *silently ignores* the
   `per_page` parameter, returning HTTP 200 for a request it did not
-  honor. This is a fourth instance of the silent-ignore behavior that
-  FR-075 exists to guard against; whether larger accounts ever receive
+  honor. This is a fifth instance of the silent-ignore behavior that
+  FR-075 exists to guard against, and a distinct one: unlike the
+  unrecognised parameter *names* the API also ignores, `per_page` is a
+  name the platform genuinely implements on other collection endpoints,
+  yet it is ignored here on an endpoint that does not support paging.
+  Whether larger accounts ever receive
   pagination metadata is now moot for this feature because the
   integration does not call `/channels` at all (see A-5).
   (CONFIRMED-BY-TEST)

@@ -191,11 +191,14 @@ that a request was honored.** Every optional request parameter the
 client sends must be paired with a post-condition assertion on the
 response, or must be documented as deliberately never sent.
 
-This is elevated above a note because this API has four independent,
-separately discovered silent-ignore behaviors — the fourth, `/channels`
-ignoring `per_page`, was found exactly as this rule predicted a further
-one would be. Treating any of them as an isolated bug to work around
-would leave the next one undiscovered.
+This is elevated above a note because this API has five independent,
+separately discovered silent-ignore behaviors — the most recent,
+`/channels` ignoring `per_page`, was found exactly as this rule
+predicted a further one would be. The set spans both poles of the
+hazard: an unrecognised parameter *name* (`date_type`) is silently
+ignored, and a *recognised* name (`per_page`) is silently ignored on an
+endpoint that does not support it. Treating any of them as an isolated
+bug to work around would leave the next one undiscovered.
 
 **The register of optional inputs**, which
 [contracts/upstream-requests.md](./contracts/upstream-requests.md)
@@ -212,6 +215,7 @@ carries normatively:
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
 | `per_page` on `/channels` | CONFIRMED-BY-TEST silently ignored (OQ-011) | NEVER SENT; endpoint is uncalled and unpaginated |
+| unknown parameter *name*, e.g. `date_type`, `filter_date_type` | CONFIRMED-BY-TEST silently accepted and ignored, while an unknown *value* is rejected (`date_query=bogus` → HTTP 400) | NEVER SENT; only registered parameter names are sent |
 | `date_query=checkin` | CONFIRMED-BY-TEST honored parameter and value | SEND; explicit even though it matches the current platform default |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
@@ -569,6 +573,16 @@ value returned HTTP 400 with "The date reference must be either
 `checkin` or `checkout`; the platform default is currently `checkin`.
 The fallback branch in FR-030 is documented but not taken.
 
+The same probe also tested two parameter *names* the platform does not
+implement, `date_type=` and `filter_date_type=`: both were accepted
+with HTTP 200 and changed nothing, whereas `date_query=bogus_value`
+was rejected with HTTP 400. That asymmetry is itself a first-class
+finding — an unrecognised parameter *name* is silently ignored, while
+an unrecognised *value* for an implemented parameter fails loudly — so
+a typo'd or speculatively guessed parameter name produces no signal at
+all. It is carried in the D-05 register as a silent-ignore behavior in
+its own right, distinct from the `date_query` resolution above.
+
 **Why it matters**: the ninety-day lookback default exists specifically
 because filtering is by check-in date (FR-022, and the Edge Cases
 discussion of long stays). If the real filter mode were, say, overlap
@@ -633,7 +647,7 @@ in `login`, and nothing in FR-001 through FR-075 needs it, so the
 lowest-risk handling of the endpoint is not to call it. A live test
 resolved OQ-011: `/channels` returned `meta: null` and `links: null`,
 and a `per_page=1` request returned the identical seven rows, so the
-endpoint is unpaginated and silently ignores `per_page` — the fourth
+endpoint is unpaginated and silently ignores `per_page` — the fifth
 silent-ignore behavior in the D-05 register. `ical_imports` arrives as
 a side effect of `include=listings` and is discarded at the model
 boundary, which is why its population state is irrelevant here; OQ-012

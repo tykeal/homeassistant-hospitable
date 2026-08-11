@@ -20,10 +20,11 @@ independently shippable phases.
 
 The technical approach is shaped by three forces:
 
-1. **The upstream API silently ignores inputs.** Four independent
+1. **The upstream API silently ignores inputs.** Five independent
    silent-ignore behaviors are CONFIRMED — a bogus calendar
-   `listing_id`, an invalid `include=` name, a `per_page` parameter
-   ignored on `/channels`, and pagination URLs returned with an
+   `listing_id`, an invalid `include=` name, an unrecognised parameter
+   name such as `date_type=`, a `per_page` parameter ignored on
+   `/channels`, and pagination URLs returned with an
    `http://` scheme. The client therefore treats HTTP
    200 as insufficient proof that a request was honored, and every
    optional input carries either a post-condition assertion or a
@@ -538,8 +539,8 @@ personal-data values and none of the synthetic token.
 ## Honored-Request Verification
 
 **HTTP 200 is not proof that a request was honored.** This API has
-four independent, separately discovered silent-ignore behaviors; the
-fourth, `/channels` ignoring `per_page`, was found exactly as this
+five independent, separately discovered silent-ignore behaviors; the
+most recent, `/channels` ignoring `per_page`, was found exactly as this
 rule predicted a further one would be, so treating any as an isolated
 bug would leave the next undiscovered. Every optional input the client
 can send therefore

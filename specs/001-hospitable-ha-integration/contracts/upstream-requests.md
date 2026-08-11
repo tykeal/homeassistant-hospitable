@@ -27,7 +27,7 @@ specified together.
 
 ## Honored-Request Verification
 
-**HTTP 200 is not proof that a request was honored.** Four
+**HTTP 200 is not proof that a request was honored.** Five
 independent silent-ignore behaviors are CONFIRMED upstream. Every
 optional input therefore appears in this register with either a
 post-condition or a prohibition.
@@ -45,6 +45,7 @@ post-condition or a prohibition.
 | `start_date`, `end_date` on `/reservations` | Effectively required | CONFIRMED | SEND always; re-filter locally |
 | `status[]` on `/reservations` | Honored | CONFIRMED (OQ-003) | NEVER SEND; status handling stays client-side |
 | `per_page` on `/channels` | Silently ignored; all rows returned | CONFIRMED-BY-TEST (OQ-011) | NEVER SEND; endpoint uncalled and unpaginated |
+| unknown parameter *name*, e.g. `date_type`, `filter_date_type` | Accepted, changes nothing; an unknown *value* is rejected instead (`date_query=bogus` → HTTP 400) | CONFIRMED-BY-TEST | NEVER SEND; only registered parameter names are sent |
 | `date_query=checkin` | Real, honored, and validated; value set is exactly `checkin` or `checkout`; platform default is currently `checkin` | CONFIRMED-BY-TEST; live probe 2026-08-09 | SEND always, even though it matches the current default, so a future platform default change cannot silently alter window semantics |
 
 A post-condition failure raises `HospitableIncludeMissingError` or
