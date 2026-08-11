@@ -57,13 +57,13 @@ Each selected or previously selected property has one Home Assistant
 device. Entity unique ids derive from the Hospitable account namespace,
 the property id, and the entity key, not from the display name.
 
-| Entity | Key | Device class | State | Main attributes |
+| Entity | Key | Classification | State | Main attributes |
 | --- | --- | --- | --- | --- |
 | Reservation status | `reservation_status` | Enum | `no_reservation`, `awaiting_checkin`, `occupied`, `checked_out`, `pending_request`, `checkpoint`, `cancelled`, `not_accepted`, `unknown` | `reservation_id`, `arrival_date`, `departure_date`, `nights`, `scheduled_checkin`, `scheduled_checkout`, guest counts, `booking_channel`, `channel_confirmation`, `booking_date`, `stay_type`, `status_sub_category`, `upcoming_reservations` |
 | Next arrival | `next_arrival` | Timestamp | Soonest future active check-in instant, or no value | None |
 | Next departure | `next_departure` | Timestamp | Soonest future active check-out instant, or no value | None |
-| Upcoming reservations | `upcoming_reservations` | Measurement | Count of forthcoming reservations | None |
-| Property info | `property_info` | Diagnostic sensor | Current property display name, or no value | `address`, `checkin_time`, `checkout_time`, `max_guests`, `effective_timezone`, `timezone_source`, `listings`, `listings_available` |
+| Upcoming reservations | `upcoming_reservations` | Measurement state class | Count of forthcoming reservations | None |
+| Property info | `property_info` | Diagnostic entity category | Current property display name, or no value | `address`, `checkin_time`, `checkout_time`, `max_guests`, `effective_timezone`, `timezone_source`, `listings`, `listings_available` |
 | Availability | `availability` | Enum | `available`, `booked`, `unknown` | `nightly_rate`, `currency`, `min_stay`, `closed_for_checkin`, `closed_for_checkout`, `forward_window` |
 
 Availability reads Hospitable's aggregate property calendar. It never
