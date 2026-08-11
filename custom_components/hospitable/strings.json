@@ -13,7 +13,7 @@
       },
       "reauth_confirm": {
         "title": "Update Hospitable token",
-        "description": "Enter a replacement Personal Access Token for this Hospitable account.",
+        "description": "Enter a replacement Personal Access Token for the Hospitable account {account}. Generate one under Apps > API access and confirm the account has paid Public API access.",
         "data": {"token": "Personal Access Token"}
       }
     },
@@ -21,8 +21,8 @@
       "cannot_connect": "Could not connect to Hospitable. Try again later.",
       "invalid_auth": "The token was rejected. Generate a replacement under Apps > API access, and confirm the account has paid Public API access.",
       "no_properties_selected": "Select at least one property.",
-      "option_bound": "The value is outside the permitted bound.",
-      "unknown": "Unexpected error"
+      "option_bound": "The value is outside the permitted range. Adjust it to within the allowed minimum and maximum, then try again.",
+      "unknown": "An unexpected error occurred. Check the Home Assistant logs for details and try again."
     },
     "abort": {
       "already_configured": "This Hospitable account is already configured.",
@@ -76,6 +76,16 @@
       "upcoming_reservations": {"name": "Upcoming reservations"},
       "property_info": {"name": "Property info"},
       "availability": {"name": "Availability"}
+    }
+  },
+  "issues": {
+    "forbidden_access": {
+      "title": "Hospitable access was refused",
+      "description": "Hospitable refused access to data for account {account}. This is not a token problem, so re-authenticating will not help. Confirm the account plan and permissions include the data this integration reads, then reload the integration."
+    },
+    "persistent_failure": {
+      "title": "Hospitable is repeatedly unavailable",
+      "description": "The Hospitable integration for account {account} has failed to refresh several times in a row. Check your network connection and the Hospitable status page, then reload the integration once service is restored."
     }
   }
 }

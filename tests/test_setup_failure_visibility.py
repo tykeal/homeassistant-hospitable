@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -37,14 +36,6 @@ def _entry() -> MockConfigEntry:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T129 a 401 during setup currently loads the entry "
-        "silently instead of surfacing auth failure"
-    ),
-)
 async def test_setup_401_surfaces_auth_failure(hass: Any, respx_router: Any) -> None:
     """A 401 during first refresh must not load the entry silently."""
     from custom_components.hospitable.api.const import BASE_URL
@@ -70,14 +61,6 @@ async def test_setup_401_surfaces_auth_failure(hass: Any, respx_router: Any) -> 
     assert entry.state is ConfigEntryState.SETUP_ERROR or reauth
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T129 a 5xx during setup currently loads the entry "
-        "silently instead of surfacing not-ready"
-    ),
-)
 async def test_setup_server_error_surfaces_not_ready(
     hass: Any, respx_router: Any
 ) -> None:

@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import issue_registry as ir
@@ -54,13 +53,6 @@ async def _setup_loaded(hass: Any, respx_router: Any) -> MockConfigEntry:
     return entry
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T127 a persistent 5xx failure does not yet raise a repair issue"
-    ),
-)
 async def test_persistent_failure_raises_repair_issue(
     hass: Any, respx_router: Any
 ) -> None:

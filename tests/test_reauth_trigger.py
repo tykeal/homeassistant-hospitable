@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -46,14 +45,6 @@ def _reauth_flows(hass: Any) -> list[dict[str, Any]]:
     ]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T123 401 does not yet raise ConfigEntryAuthFailed so no "
-        "reauth flow is started"
-    ),
-)
 async def test_401_triggers_reauth_naming_account(hass: Any, respx_router: Any) -> None:
     """A 401 during polling starts a reauth flow whose prompt names the account."""
     from custom_components.hospitable.api.const import BASE_URL

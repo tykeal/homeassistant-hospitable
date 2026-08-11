@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import issue_registry as ir
@@ -54,14 +53,6 @@ async def _setup_loaded(hass: Any, respx_router: Any) -> MockConfigEntry:
     return entry
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T125 non-scope 403 does not yet raise a repair issue "
-        "explaining the access problem"
-    ),
-)
 async def test_non_scope_403_raises_repair_issue(hass: Any, respx_router: Any) -> None:
     """A non-scope 403 creates a repair issue and starts no reauth flow."""
     from custom_components.hospitable.api.const import BASE_URL

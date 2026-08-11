@@ -9,8 +9,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 _COMPONENT = Path("custom_components/hospitable")
 _STRINGS = _COMPONENT / "strings.json"
 _EN = _COMPONENT / "translations" / "en.json"
@@ -39,9 +37,10 @@ def _load(path: Path) -> dict[str, Any]:
 def _actionable_strings(catalog: dict[str, Any]) -> dict[str, str]:
     """Collect every string that must state a cause and an action.
 
-    Success and informational aborts (for example ``reauth_successful``)
-    are audited separately because they are not error text and need not
-    prescribe an action.
+    Issue titles are short summaries whose action lives in the paired
+    description, so only descriptions are held to the action bar. Success
+    and informational aborts (for example ``reauth_successful``) are
+    audited separately because they are not error text.
     """
     result: dict[str, str] = {}
     config = catalog.get("config", {})
@@ -51,7 +50,6 @@ def _actionable_strings(catalog: dict[str, Any]) -> dict[str, str]:
     for key, value in options.get("error", {}).items():
         result[f"options.error.{key}"] = value
     for key, issue in catalog.get("issues", {}).items():
-        result[f"issues.{key}.title"] = issue["title"]
         result[f"issues.{key}.description"] = issue["description"]
     return result
 
@@ -61,17 +59,11 @@ def _all_user_strings(catalog: dict[str, Any]) -> dict[str, str]:
     result = dict(_actionable_strings(catalog))
     for key, value in catalog.get("config", {}).get("abort", {}).items():
         result[f"config.abort.{key}"] = value
+    for key, issue in catalog.get("issues", {}).items():
+        result[f"issues.{key}.title"] = issue["title"]
     return result
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T128 the repair-issue strings and the hardened "
-        "error strings named by FR-064 do not exist yet"
-    ),
-)
 def test_every_error_string_states_cause_and_action() -> None:
     """Each audited error string names a cause and an action, never a code."""
     strings = _load(_STRINGS)

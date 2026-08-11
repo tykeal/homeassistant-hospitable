@@ -55,14 +55,6 @@ async def _setup_loaded(hass: Any, respx_router: Any) -> MockConfigEntry:
     return entry
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason=(
-        "TDD red phase: T124 scope-403 is currently surfaced as UpdateFailed "
-        "instead of a tolerated capability limitation"
-    ),
-)
 async def test_scope_403_is_capability_limit(
     hass: Any, respx_router: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
