@@ -24,7 +24,7 @@
       "platform": "airbnb",
       "platform_id": "ABC123EXAMPLE",
       "reservation_status": {
-        "current": "accepted",
+        "current": {"category": "accepted", "sub_category": null},
         "history": []
       },
       "stay_type": "guest"

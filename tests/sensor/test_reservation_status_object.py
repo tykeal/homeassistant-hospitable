@@ -81,11 +81,6 @@ def _reservation_payload(
     return payload
 
 
-@pytest.mark.xfail(
-    reason="Model stringifies reservation_status.current instead of reading category",
-    raises=AssertionError,
-    strict=True,
-)
 def test_model_reads_category_from_object() -> None:
     """The category is read from ``current['category']``, not stringified."""
     payload = _reservation_payload(
@@ -99,11 +94,6 @@ def test_model_reads_category_from_object() -> None:
     assert reservation.status_category == "accepted"
 
 
-@pytest.mark.xfail(
-    reason="status_sub_category does not exist on the model yet",
-    raises=AttributeError,
-    strict=True,
-)
 def test_model_surfaces_sub_category() -> None:
     """A declined stay carries its ``declined`` sub_category on the model."""
     payload = _reservation_payload(
@@ -114,14 +104,9 @@ def test_model_surfaces_sub_category() -> None:
         status=_object_status("not accepted", "declined"),
     )
     reservation = HospitableReservation.from_api(payload)
-    assert reservation.status_sub_category == "declined"  # type: ignore[attr-defined]
+    assert reservation.status_sub_category == "declined"
 
 
-@pytest.mark.xfail(
-    reason="Malformed current is silently stringified instead of raising",
-    raises=AssertionError,
-    strict=True,
-)
 def test_model_raises_on_malformed_current() -> None:
     """An unexpected ``current`` shape fails loudly, never stringifies."""
     malformed_shapes: list[Any] = [
@@ -147,11 +132,6 @@ def test_model_raises_on_malformed_current() -> None:
         assert raised, f"expected HospitableResponseError for {shape!r}"
 
 
-@pytest.mark.xfail(
-    reason="Cancelled category is stringified, so is_forthcoming fails to exclude it",
-    raises=AssertionError,
-    strict=True,
-)
 def test_cancelled_excluded_by_is_forthcoming() -> None:
     """A cancelled future stay is excluded by ``is_forthcoming``."""
     payload = _reservation_payload(
@@ -244,11 +224,6 @@ def _reservations_envelope(reservations: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
-@pytest.mark.xfail(
-    reason="Object status stringifies, so the sensor maps to unknown in production",
-    raises=AssertionError,
-    strict=True,
-)
 async def test_sensor_reports_occupied_for_object_shape(
     hass: Any,
     respx_router: Any,

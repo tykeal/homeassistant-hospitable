@@ -65,7 +65,10 @@ def _reservation(
             "check_out": check_out,
         }
     )
-    payload["reservation_status"] = {"current": status_current, "history": []}
+    payload["reservation_status"] = {
+        "current": {"category": status_current, "sub_category": None},
+        "history": [],
+    }
     return HospitableReservation.from_api(payload)
 
 

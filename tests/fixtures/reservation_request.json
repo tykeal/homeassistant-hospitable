@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "request",
+        "current": {"category": "request", "sub_category": "request to book"},
         "history": []
       },
       "status": "request",

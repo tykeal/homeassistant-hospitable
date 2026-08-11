@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "accepted",
+        "current": {"category": "accepted", "sub_category": null},
         "history": []
       },
       "stay_type": "guest"
@@ -63,7 +63,7 @@
         }
       ],
       "reservation_status": {
-        "current": "cancelled",
+        "current": {"category": "cancelled", "sub_category": null},
         "history": []
       },
       "status": "cancelled",

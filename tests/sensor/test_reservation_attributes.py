@@ -135,7 +135,10 @@ def _relative_reservation(
             "check_out": f"{departure.isoformat()}T11:00:00-07:00",
         }
     )
-    payload["reservation_status"] = {"current": status_current, "history": []}
+    payload["reservation_status"] = {
+        "current": {"category": status_current, "sub_category": None},
+        "history": [],
+    }
     return HospitableReservation.from_api(payload)
 
 
