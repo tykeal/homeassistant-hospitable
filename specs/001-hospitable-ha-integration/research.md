@@ -636,17 +636,62 @@ absence of handling for an oversight.
 
 ### A-6: Unobserved reservation status categories
 
-**Tier**: UNVERIFIED. **Governs**: FR-043, OQ-013.
+**Tier**: CONFIRMED-BY-TEST (resolved). **Governs**: FR-043, OQ-013.
 
-`request` and `unknown` were not observed in a 621-reservation census.
-They remain fully mapped in the status table and are exercised by
-synthetic fixtures that deliberately contain them. Absence of evidence
-is not treated as evidence of absence.
+Resolved by a live census of every `reservation_status.current` and
+every `history` entry across 652 reservations. The `current` value is an
+object `{category, sub_category}`; the census of history entries was:
 
-**Fallback**: none needed. If they never occur, the mapping is dead but
-harmless. If they occur, they are handled. The genuinely risky path is
-a category *outside* the documented six, which FR-048 covers: map to
-`unknown`, log once per distinct value, never raise.
+| category | sub_category | count |
+| --- | --- | --- |
+| accepted | null | 541 |
+| cancelled | null | 162 |
+| not accepted | expired | 47 |
+| request | request to book | 39 |
+| not accepted | declined | 11 |
+| checkpoint | voided | 8 |
+| checkpoint | checkpoint | 7 |
+| request | pending verification | 3 |
+| request | request for payment | 2 |
+| request | awaiting approval | 2 |
+
+Findings:
+
+- `request` **never** appears as a *current* category but occurs 46
+  times in `history`. It remains fully mapped and is exercised by a
+  synthetic fixture.
+- `unknown` was **never** observed anywhere, as either a category or a
+  sub_category. The `unknown` fallback in `StatusMapper` nonetheless
+  **remains correct defensive behaviour** for an unrecognised future
+  value and MUST NOT be removed: FR-048 requires mapping an unknown
+  category to `unknown`, logging once, and never raising.
+
+**Fallback**: none needed for the observed categories. The genuinely
+risky path remains a category *outside* the documented six, which FR-048
+covers: map to `unknown`, log once per distinct value, never raise.
+
+### A-6a: Flat status disagrees with the structured path
+
+**Tier**: CONFIRMED-BY-TEST. **Governs**: FR-032, FR-048.
+
+A census of the deprecated flat `.status` string against
+`reservation_status.current` over 652 reservations:
+
+| flat `.status` | nested `category` | nested `sub_category` | count |
+| --- | --- | --- | --- |
+| accepted | accepted | null | 504 |
+| cancelled | cancelled | null | 118 |
+| denied | not accepted | declined | 11 |
+| cancelled | not accepted | expired | 10 |
+| checkpoint voided | checkpoint | voided | 8 |
+| checkpoint | checkpoint | checkpoint | 1 |
+
+The two sources **disagree in three of the six observed combinations**.
+Ten reservations report flat `cancelled` while the structured path says
+`not accepted` / `expired`, so a reader trusting the flat field would
+mislabel an expired stay as cancelled. This is hard evidence for FR-032
+and FR-048: status MUST be read from the structured path and never from
+the flat field, which is retained only as raw/deprecated evidence.
 
 ### A-7: Rate-limit headers
 
