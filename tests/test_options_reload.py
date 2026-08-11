@@ -14,7 +14,6 @@ from datetime import timedelta
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -59,11 +58,6 @@ def _entry() -> MockConfigEntry:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T110 options update listener/reload not wired",
-)
 async def test_options_change_reloads_without_restart(
     hass: Any, respx_router: Any
 ) -> None:

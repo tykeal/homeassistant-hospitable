@@ -71,11 +71,6 @@ def _base_input() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T111 bound validation messages not implemented",
-)
 @pytest.mark.parametrize(
     ("field", "value", "error_key", "bound_phrase"),
     [
@@ -117,11 +112,6 @@ async def test_out_of_range_option_names_bound(
     assert message.rstrip().endswith((".", "!"))
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T111 timezone override not wired into options step",
-)
 async def test_invalid_timezone_override_rejected_at_options_step(
     hass: Any,
 ) -> None:
@@ -145,11 +135,6 @@ async def test_invalid_timezone_override_rejected_at_options_step(
     assert "IANA" in messages["invalid_timezone"]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T111 options flow does not persist valid values",
-)
 async def test_valid_options_saved(hass: Any) -> None:
     """In-bounds values with a valid override are accepted and saved."""
     entry = _entry()

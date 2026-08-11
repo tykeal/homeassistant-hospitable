@@ -35,7 +35,7 @@
     "step": {
       "init": {
         "title": "Hospitable options",
-        "description": "Tune polling and property selection. Wider windows increase requests; shorter lookback can hide long in-progress stays.",
+        "description": "Tune polling and property selection. Estimated upstream requests per day: {estimate} (an estimate). Widening the window increases upstream requests per poll; shortening the lookback can hide in-progress long stays and make an occupied property report no reservation.",
         "data": {
           "selected_properties": "Properties",
           "reservation_interval_minutes": "Reservation polling interval (minutes)",
@@ -48,8 +48,11 @@
     },
     "error": {
       "no_properties_selected": "Select at least one property.",
-      "invalid_timezone": "Timezone overrides must be IANA names such as America/Los_Angeles.",
-      "option_bound": "The value is outside the permitted bound."
+      "reservation_interval_min": "The reservation polling interval must be at least 1 minute. Increase the value and try again.",
+      "property_interval_min": "The property polling interval must be at least 15 minutes. Increase the value and try again.",
+      "lookback_range": "The lookback must be between 7 and 365 days. Adjust the value and try again.",
+      "lookahead_range": "The lookahead must be between 1 and 730 days. Adjust the value and try again.",
+      "invalid_timezone": "Timezone overrides must be IANA names such as America/Los_Angeles. Correct the value and try again."
     }
   },
   "entity": {

@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -38,11 +37,6 @@ def _properties_side_effect(request: httpx.Request) -> httpx.Response:
     return httpx.Response(200, json=load_fixture(fixture))
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T111 options schema does not present shipped defaults",
-)
 async def test_options_flow_presents_shipped_defaults(
     hass: Any, respx_router: Any
 ) -> None:

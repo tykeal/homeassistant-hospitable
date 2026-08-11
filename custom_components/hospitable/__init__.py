@@ -19,6 +19,7 @@ from custom_components.hospitable.const import (
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
     CONF_TOKEN,
+    DOMAIN,
     VERSION,
 )
 from custom_components.hospitable.const import (
@@ -43,6 +44,24 @@ async def _async_update_options(hass: Any, entry: Any) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+def _known_property_ids(
+    registry: dr.DeviceRegistry, entry_id: str, account_namespace: str
+) -> set[str]:
+    """Return property ids that already have a device for this entry.
+
+    A deselected property keeps its device (and entities) so its history
+    survives; discovering those ids lets the sensor platform recreate the
+    entities as unavailable rather than deleting them (FR-018, FR-055).
+    """
+    prefix = f"{account_namespace}_"
+    known: set[str] = set()
+    for device in dr.async_entries_for_config_entry(registry, entry_id):
+        for domain, identifier in device.identifiers:
+            if domain == DOMAIN and identifier.startswith(prefix):
+                known.add(identifier[len(prefix) :])
+    return known
+
+
 async def async_setup_entry(hass: Any, entry: Any) -> bool:
     """Set up one Hospitable config entry and forward the sensor platform."""
     client = HospitableApiClient(
@@ -61,6 +80,11 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     properties = properties_coordinator.data or {}
     selected = sorted(selected_properties or set(properties))
 
+    registry = dr.async_get(hass)
+    known = sorted(
+        set(selected) | _known_property_ids(registry, entry.entry_id, account_namespace)
+    )
+
     reservations_coordinator = HospitableReservationsCoordinator(
         hass,
         client,
@@ -72,8 +96,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     )
     await reservations_coordinator.async_refresh()
 
-    registry = dr.async_get(hass)
-    for property_id in selected:
+    for property_id in known:
         property_model = properties.get(property_id)
         registry.async_get_or_create(
             config_entry_id=entry.entry_id,
@@ -89,6 +112,8 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
             "properties": properties_coordinator,
             "reservations": reservations_coordinator,
         },
+        "selected_property_ids": selected,
+        "known_property_ids": known,
         "listeners": [remove_listener],
     }
 

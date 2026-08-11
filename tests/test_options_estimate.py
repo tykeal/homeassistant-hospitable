@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -62,11 +61,6 @@ def _entry() -> MockConfigEntry:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T112 estimate not rendered on options screen",
-)
 async def test_options_screen_shows_labelled_estimate(
     hass: Any, respx_router: Any
 ) -> None:
@@ -102,11 +96,6 @@ async def test_options_screen_shows_labelled_estimate(
     await hass.async_block_till_done()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T112 estimate does not recompute on change",
-)
 async def test_estimate_recomputes_on_interval_change(
     hass: Any, respx_router: Any
 ) -> None:

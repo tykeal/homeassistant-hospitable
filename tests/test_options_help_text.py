@@ -14,8 +14,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 
 def _init_description(relative_path: str) -> str:
     """Return the options ``init`` step description from a strings file."""
@@ -37,11 +35,6 @@ def _assert_documents_tradeoff(description: str) -> None:
     assert "no reservation" in lowered
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T114 help text omits the occupied/no-reservation clause",
-)
 def test_strings_help_text_documents_tradeoff() -> None:
     """strings.json documents the window and lookback request trade-off."""
     _assert_documents_tradeoff(
@@ -49,11 +42,6 @@ def test_strings_help_text_documents_tradeoff() -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T114 English translation omits the full warning",
-)
 def test_translation_help_text_documents_tradeoff() -> None:
     """translations/en.json documents the same request trade-off."""
     _assert_documents_tradeoff(

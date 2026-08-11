@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
@@ -87,11 +86,6 @@ async def _apply_selection(
     await hass.async_block_till_done()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T113 non-destructive deselection not implemented",
-)
 async def test_deselection_and_reselection_preserve_identity(
     hass: Any, respx_router: Any
 ) -> None:
