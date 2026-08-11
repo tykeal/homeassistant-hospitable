@@ -191,9 +191,14 @@ that a request was honored.** Every optional request parameter the
 client sends must be paired with a post-condition assertion on the
 response, or must be documented as deliberately never sent.
 
-This is elevated above a note because this API has three independent,
-separately discovered silent-ignore behaviors. Treating them as three
-isolated bugs to work around would leave the fourth one undiscovered.
+This is elevated above a note because this API has five independent,
+separately discovered silent-ignore behaviors — the most recent,
+`/channels` ignoring `per_page`, was found exactly as this rule
+predicted a further one would be. The set spans both poles of the
+hazard: an unrecognised parameter *name* (`date_type`) is silently
+ignored, and a *recognised* name (`per_page`) is silently ignored on an
+endpoint that does not support it. Treating any of them as an isolated
+bug to work around would leave the next one undiscovered.
 
 **The register of optional inputs**, which
 [contracts/upstream-requests.md](./contracts/upstream-requests.md)
@@ -209,6 +214,8 @@ carries normatively:
 | `page`, `per_page` | CONFIRMED honored | Assert `meta.current_page` equals the page requested |
 | `properties[]` on `/reservations` | CONFIRMED required | Assert every returned reservation's property is in the requested set |
 | `status[]` on `/reservations` | CONFIRMED honored (OQ-003) | NEVER SENT; correctness stays client-side |
+| `per_page` on `/channels` | CONFIRMED-BY-TEST silently ignored (OQ-011) | NEVER SENT; endpoint is uncalled and unpaginated |
+| unknown parameter *name*, e.g. `date_type`, `filter_date_type` | CONFIRMED-BY-TEST silently accepted and ignored, while an unknown *value* is rejected (`date_query=bogus` → HTTP 400) | NEVER SENT; only registered parameter names are sent |
 | `date_query=checkin` | CONFIRMED-BY-TEST honored parameter and value | SEND; explicit even though it matches the current platform default |
 
 **Rationale**: The rule converts an open-ended hazard into a finite,
@@ -566,6 +573,16 @@ value returned HTTP 400 with "The date reference must be either
 `checkin` or `checkout`; the platform default is currently `checkin`.
 The fallback branch in FR-030 is documented but not taken.
 
+The same probe also tested two parameter *names* the platform does not
+implement, `date_type=` and `filter_date_type=`: both were accepted
+with HTTP 200 and changed nothing, whereas `date_query=bogus_value`
+was rejected with HTTP 400. That asymmetry is itself a first-class
+finding — an unrecognised parameter *name* is silently ignored, while
+an unrecognised *value* for an implemented parameter fails loudly — so
+a typo'd or speculatively guessed parameter name produces no signal at
+all. It is carried in the D-05 register as a silent-ignore behavior in
+its own right, distinct from the `date_query` resolution above.
+
 **Why it matters**: the ninety-day lookback default exists specifically
 because filtering is by check-in date (FR-022, and the Edge Cases
 discussion of long stays). If the real filter mode were, say, overlap
@@ -621,15 +638,22 @@ beyond the FR-039 bound.
 
 ### A-5: Channels pagination and iCal imports
 
-**Tier**: UNVERIFIED. **Governs**: OQ-011, OQ-012.
+**Tier**: OQ-011 RESOLVED (CONFIRMED-BY-TEST); OQ-012 unresolvable from
+the available account. **Governs**: OQ-011, OQ-012.
 
 Neither affects this feature. `/channels` is not called by this
 integration at all — it is account-level, it carries a clear-text email
 in `login`, and nothing in FR-001 through FR-075 needs it, so the
-lowest-risk handling of an endpoint with unverified pagination and
-known PII is not to call it. `ical_imports` arrives as a side effect of
-`include=listings` and is discarded at the model boundary, which is why
-its population state is irrelevant here.
+lowest-risk handling of the endpoint is not to call it. A live test
+resolved OQ-011: `/channels` returned `meta: null` and `links: null`,
+and a `per_page=1` request returned the identical seven rows, so the
+endpoint is unpaginated and silently ignores `per_page` — the fifth
+silent-ignore behavior in the D-05 register. `ical_imports` arrives as
+a side effect of `include=listings` and is discarded at the model
+boundary, which is why its population state is irrelevant here; OQ-012
+could not be resolved because no iCal imports are configured on the
+available account, and confirming a populated array would require an
+account that uses them.
 
 This is recorded so that a later specification does not mistake the
 absence of handling for an oversight.
@@ -695,30 +719,49 @@ the flat field, which is retained only as raw/deprecated evidence.
 
 ### A-7: Rate-limit headers
 
-**Tier**: UNVERIFIED. **Governs**: FR-036, OQ-005.
+**Tier**: CONFIRMED-BY-TEST for the success case; the 429 case remains
+UNVERIFIED. **Governs**: FR-036, OQ-005.
 
 The client reads `Retry-After` and any `X-RateLimit-*` headers *if
-present* and ignores their absence, which is the expected case. No code
-path requires them. No quota is hard-coded. This is stated because the
-opposite mistake — designing a token-bucket against headers that may
-not exist — is an easy one to make from SDK-author prose.
+present* and ignores their absence, which a live probe confirms is the
+actual behavior on success. The full response headers on a `200` from
+`GET /properties` were `date`, `content-type`, `cache-control`,
+`x-hospitable-trace`, `access-control-allow-origin`,
+`access-control-expose-headers`, and `strict-transport-security` —
+there was **no `X-RateLimit-*` header and no `Retry-After`**. The
+design's tolerance of their absence is therefore confirmed rather than
+assumed, and the opposite mistake — designing a token-bucket against
+headers that may not exist — is confirmed as one correctly avoided. No
+code path requires these headers and no quota is hard-coded. What
+remains genuinely unknown is whether a rate-limited `429` response
+carries `Retry-After`; no `429` has been observed and one will not be
+deliberately triggered, so the defensive `Retry-After` parsing in
+`custom_components/hospitable/api/retry.py` stays and remains correct.
 
 ### A-8: Reservations on unlisted listings
 
-**Tier**: LIKELY. **Governs**: OQ-004.
+**Tier**: UNANSWERABLE BY API DESIGN (OQ-004). **Governs**: OQ-004.
 
-A third party reports these are absent from the reservations endpoint.
-If true, a property could read as having no reservation in Home
-Assistant while Hospitable shows it booked. Nothing in the design can
-compensate, because the data would simply not be returned.
+The original third-party report claimed these are absent from the
+reservations endpoint. Live probing established (CONFIRMED-BY-TEST)
+that the question cannot be decided through the public API at all:
+`GET /reservations` without `properties[]` returns HTTP 400 with
+`"The properties field is required."`, `GET /listings` and
+`GET /properties/{id}/listings` both return 404, all 13 account
+properties report `listed: true`, and all 56 listings are surfaced via
+`GET /properties?include=listings`. Reservations therefore cannot be
+enumerated for a listing that is not already known, and no endpoint
+enumerates listings independently. The behavior is structurally
+undecidable, not merely untested.
 
-**Handling**: this is a documentation obligation, not a code one. The
-user-facing README must state the limitation once it is verified. A US3
-task records the verification step. Notably, the availability sensor
-from US7 reads the *aggregate* property calendar, which CONFIRMED
-includes bookings from every sales channel — so if OQ-004 is true, the
-availability sensor and the reservation sensor will disagree for such a
-property, and that disagreement is the detection signal.
+**Handling**: this remains a documentation obligation, not a code one,
+and that conclusion is now firmly established rather than provisional.
+The user-facing README (task T149) must state the limitation. Notably,
+the availability sensor from US7 reads the *aggregate* property
+calendar, which CONFIRMED includes bookings from every sales channel —
+so if such reservations exist, the availability sensor and the
+reservation sensor will disagree for such a property, and that
+disagreement is the only observable detection signal.
 
 ## Deferred scope: webhooks and OAuth
 

@@ -772,7 +772,7 @@ specification says so explicitly.
       (FR-054, FR-055, FR-074)
 - [x] T099 [US3] Add property sensor names to `strings.json` and
       `translations/en.json`. (FR-064, FR-068)
-- [ ] T100 [US3] **OQ-004 verification**: check whether reservations
+- [x] T100 [US3] **OQ-004 verification**: check whether reservations
       exist against listings that are not surfaced as properties. The
       detection signal is the availability sensor and the reservation
       sensor disagreeing for the same property. Record the finding in

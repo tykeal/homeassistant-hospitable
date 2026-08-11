@@ -366,7 +366,10 @@ integration is capable of modifying the Hospitable calendar.
   integration constructs its own page requests instead.
 - **Hospitable returns HTTP 200 for a request it did not honor.** Live
   tests found multiple silently ignored inputs, including a bogus
-  calendar `listing_id` and invalid include names. The integration
+  calendar `listing_id`, invalid include names, unrecognised parameter
+  names such as `date_type=`, and a `per_page` parameter on the
+  `/channels` endpoint that was ignored while the endpoint returned
+  every row. The integration
   validates response keys instead of treating success status alone as
   proof that an expansion or filter took effect.
 - **A reservation request is issued without a property filter.**
@@ -877,10 +880,18 @@ false negative on the integration's primary sensor.
   expansion with `include=`, it MUST assert that the expected response
   keys are present and MUST handle their absence explicitly rather
   than silently degrading. This is a standing client rule because live
-  testing found Hospitable silently accepts invalid include names,
-  silently discards the calendar `listing_id` parameter, and returns
-  insecure pagination URLs that must not be followed verbatim.
-  (CONFIRMED)
+  testing found five distinct silent-ignore behaviors: Hospitable
+  silently accepts invalid include names, silently discards the
+  calendar `listing_id` parameter, silently accepts and ignores
+  unrecognised query-parameter names such as `date_type=` and
+  `filter_date_type=` while rejecting an unrecognised *value* for an
+  implemented parameter (`date_query=bogus_value` returns HTTP 400),
+  silently ignores the `per_page` parameter on `/channels` even though
+  `per_page` is honored on other collection endpoints, and returns
+  insecure pagination URLs that must not be followed verbatim. The two
+  parameter-name cases are the most instructive: neither an unknown
+  name nor a known-but-unsupported one produces any signal, so a 200
+  alone can never prove a request was honored. (CONFIRMED)
 
 ### Key Entities
 
@@ -1089,9 +1100,11 @@ false negative on the integration's primary sensor.
   per-property data. The tested account returned seven rows with
   `data` fields `user_id`, `name`, `login`, `platform`, and `picture`;
   the platform census was four `airbnb`, one `booking`, one `direct`,
-  and one `manual`. Its `meta` value was null; whether the endpoint
-  paginates at larger scale is unverified. (CONFIRMED response shape;
-  pagination UNVERIFIED)
+  and one `manual`. Its `meta` value was null; a follow-up request with
+  `per_page=1` returned the identical seven rows with `meta` and
+  `links` still null, so the endpoint is unpaginated and silently
+  ignores `per_page`, returning HTTP 200 for a parameter it did not
+  honor. (CONFIRMED-BY-TEST response shape and pagination absence)
 - The Hospitable Public API surface remains at version two, carried in
   the request path.
 
@@ -1159,22 +1172,35 @@ uncertainty.
   integration still MUST NOT depend on server-side status filtering
   for correctness; complete status handling remains client-side after
   retrieval.
-- **OQ-004 — Reservations on unlisted listings (LIKELY, needs
-  verification).** A third party reports that reservations belonging
-  to unlisted or unpublished channel listings are absent entirely from
-  the reservations endpoint, despite appearing in Hospitable's own
-  calendar interface. If true, this is a data-completeness limitation
-  that users must be told about, because a property could appear
-  vacant in Home Assistant while Hospitable shows it as booked. This
-  must be verified and, if confirmed, documented in user-facing
-  documentation.
-- **OQ-005 — Rate limiting (CONFIRMED absent, behavior UNVERIFIED).**
-  No general numeric rate limit is published. Whether any rate-limit
-  or retry-delay headers are returned at all, and under what
-  conditions HTTP 429 is issued, is unverified. The chosen defaults
-  are conservative precisely because there is nothing to calibrate
-  against; they should be revisited if Hospitable publishes limits or
-  if observed behavior provides evidence.
+- **OQ-004 — Reservations on unlisted listings (UNANSWERABLE BY API
+  DESIGN).** The question asked whether reservations exist against
+  listings that are not surfaced as properties, so that a property
+  could appear vacant in Home Assistant while Hospitable shows it
+  booked. Live probing established the following (CONFIRMED-BY-TEST):
+  `GET /reservations` without a `properties[]` parameter returns HTTP
+  400 with `"The properties field is required."`; `GET /listings`
+  returns 404; `GET /properties/{id}/listings` returns 404; all 13
+  properties on the account report `listed: true`; and all 56 listings
+  are surfaced via `GET /properties?include=listings`. These facts
+  together make the underlying question structurally undecidable
+  through the public API: reservations cannot be enumerated for a
+  listing that is not already known, because the reservations endpoint
+  refuses to answer without an explicit property list, and no endpoint
+  enumerates listings independently. This is not merely untested — it
+  is unanswerable by API design, and no further probing can resolve
+  it. It remains a documentation obligation: the user-facing README
+  (task T149) must carry this limitation.
+- **OQ-005 — Rate limiting (CONFIRMED absent, 429 behavior
+  UNVERIFIED).** No general numeric rate limit is published. A live
+  probe of the full response headers on a `200` from `GET /properties`
+  found no `X-RateLimit-*` header and no `Retry-After`, so the design's
+  tolerance of their absence on success is confirmed (see A-7). Whether
+  a rate-limited HTTP 429 response carries `Retry-After`, and under what
+  conditions 429 is issued, remains unverified and will not be
+  deliberately triggered. The chosen defaults are conservative
+  precisely because there is nothing to calibrate against; they should
+  be revisited if Hospitable publishes limits or if observed behavior
+  provides evidence.
 - **OQ-006 — Insecure pagination links (CONFIRMED, permanence
   unknown).** Pagination link values are returned with an insecure
   scheme. It is unknown whether this is a deliberate upstream
@@ -1232,16 +1258,31 @@ uncertainty.
   baseline listing, proving the parameter is silently discarded; that
   is harmless for this feature because the desired calendar is the
   aggregate calendar.
-- **OQ-011 — Channels pagination at scale (UNVERIFIED).** A live test
-  found `GET /v2/channels` and observed `meta: null` with seven rows.
-  It is unknown whether larger accounts receive pagination metadata or
-  whether this endpoint remains unpaginated at scale.
-- **OQ-012 — iCal import population (UNVERIFIED).** The properties
-  endpoint adds `ical_imports` when `include=listings` is requested,
-  but all ten tested properties returned an empty array. It is unknown
-  whether accounts that actually configure iCal imports ever receive
-  populated entries, and no behavior in this specification depends on
-  that array.
+- **OQ-011 — Channels pagination at scale (RESOLVED).** A live test
+  found `GET /v2/channels` returned `meta: null`, `links: null`, and
+  seven rows. A follow-up request with `per_page=1` returned the same
+  `meta: null`, `links: null`, and all seven rows unchanged. **Answer:**
+  the endpoint is unpaginated and additionally *silently ignores* the
+  `per_page` parameter, returning HTTP 200 for a request it did not
+  honor. This is a fifth instance of the silent-ignore behavior that
+  FR-075 exists to guard against, and a distinct one: unlike the
+  unrecognised parameter *names* the API also ignores, `per_page` is a
+  name the platform genuinely implements on other collection endpoints,
+  yet it is ignored here on an endpoint that does not support paging.
+  Whether larger accounts ever receive
+  pagination metadata is now moot for this feature because the
+  integration does not call `/channels` at all (see A-5).
+  (CONFIRMED-BY-TEST)
+- **OQ-012 — iCal import population (UNRESOLVABLE FROM AVAILABLE
+  ACCOUNT).** The properties endpoint adds `ical_imports` when
+  `include=listings` is requested, but all 13 tested properties
+  returned an empty array because no iCal imports are configured on
+  this account. Resolving whether accounts that actually configure iCal
+  imports ever receive populated entries would require access to an
+  account that uses them, which is not available; this is a genuine
+  access limitation rather than an unperformed test. No behavior in
+  this specification depends on that array, which is why it is safe to
+  leave open.
 - **OQ-013 — Request and unknown status occurrence (UNVERIFIED).** The
   documented reservation categories include request and unknown, but a
   621-reservation live census did not observe either one. They remain
