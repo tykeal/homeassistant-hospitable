@@ -16,7 +16,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -55,11 +54,6 @@ def _mock_all_endpoints(respx_router: Any) -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T145 calendar coordinator not wired into lifecycle",
-)
 async def test_full_lifecycle_issues_only_get_requests(
     hass: Any, respx_router: Any
 ) -> None:

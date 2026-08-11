@@ -75,7 +75,14 @@
       "next_departure": {"name": "Next departure"},
       "upcoming_reservations": {"name": "Upcoming reservations"},
       "property_info": {"name": "Property info"},
-      "availability": {"name": "Availability"}
+      "availability": {
+        "name": "Availability",
+        "state": {
+          "available": "Available",
+          "booked": "Booked",
+          "unknown": "Unknown"
+        }
+      }
     }
   },
   "issues": {

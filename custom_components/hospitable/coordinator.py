@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, NoReturn
+from typing import NoReturn
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -27,6 +27,7 @@ from custom_components.hospitable.api.exceptions import (
 )
 from custom_components.hospitable.api.models import (
     HospitableProperty,
+    HospitablePropertyCalendar,
     HospitableReservation,
 )
 from custom_components.hospitable.const import CONF_ACCOUNT_NAMESPACE, DOMAIN
@@ -336,8 +337,17 @@ class HospitablePropertiesCoordinator(
         return properties
 
 
-class HospitableCalendarCoordinator(HospitableDataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for calendar data, wired by US7."""
+class HospitableCalendarCoordinator(
+    HospitableDataUpdateCoordinator[dict[str, HospitablePropertyCalendar]]
+):
+    """Coordinator for per-property aggregate calendar data.
+
+    Each refresh fans out one calendar fetch per selected property. A
+    failure fetching a single property's calendar degrades only that
+    property: its last-good calendar is retained and the surviving
+    properties still deliver fresh data. The refresh raises ``UpdateFailed``
+    only when every property failed (FR-061, FR-071).
+    """
 
     default_minutes = 60
     floor_minutes = 15
@@ -347,10 +357,12 @@ class HospitableCalendarCoordinator(HospitableDataUpdateCoordinator[dict[str, An
         hass: HomeAssistant,
         client: HospitableApiClient,
         *,
+        property_ids: list[str] | None = None,
+        lookahead_days: int = 90,
         config_entry: ConfigEntry | None = None,
         interval_minutes: int | None = None,
     ) -> None:
-        """Initialize the calendar coordinator."""
+        """Initialize the calendar coordinator with its property fan-out."""
         super().__init__(
             hass,
             name=f"{DOMAIN} calendar",
@@ -358,7 +370,26 @@ class HospitableCalendarCoordinator(HospitableDataUpdateCoordinator[dict[str, An
             interval_minutes=interval_minutes,
         )
         self._client = client
+        self._property_ids = list(property_ids or [])
+        self._lookahead_days = lookahead_days
 
-    async def _fetch_data(self) -> dict[str, Any]:
-        """Return calendar data once US7 wires the per-property fetch."""
-        return {}
+    async def _fetch_data(self) -> dict[str, HospitablePropertyCalendar]:
+        """Fetch each property's calendar with per-property isolation."""
+        today = dt_util.utcnow().date()
+        end = today + timedelta(days=self._lookahead_days)
+        # Seed with the previous cycle so a property that fails this cycle
+        # retains its last-good calendar rather than vanishing.
+        result: dict[str, HospitablePropertyCalendar] = dict(self.data or {})
+        succeeded = False
+        last_error: HospitableError | None = None
+        for property_id in self._property_ids:
+            try:
+                result[property_id] = await self._client.get_calendar(
+                    property_id, today, end
+                )
+                succeeded = True
+            except HospitableError as exc:
+                last_error = exc
+        if self._property_ids and not succeeded and last_error is not None:
+            self._raise_for_api_error(last_error)
+        return result

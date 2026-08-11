@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase availability pricing tests (T137, FR-060).
+"""Availability pricing tests (T137, FR-060).
 
 Monetary values are integer minor currency units in the domain model and
 are converted to a display float exactly once, in the sensor layer, via
@@ -11,21 +11,12 @@ amount rather than being assumed.
 
 from __future__ import annotations
 
-import pytest
-
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T144 calendar model classes not implemented",
-)
 def test_model_holds_integer_minor_units() -> None:
     """The calendar day model holds an int minor-unit amount, never a float."""
-    from custom_components.hospitable.api.models import (  # type: ignore[attr-defined]
-        HospitablePropertyCalendar,
-    )
+    from custom_components.hospitable.api.models import HospitablePropertyCalendar
 
     payload = load_fixture("calendar_prop1.json")["data"]
     calendar = HospitablePropertyCalendar.from_api("prop-example-001", payload)
@@ -42,11 +33,6 @@ def test_model_holds_integer_minor_units() -> None:
     assert null_price_day.currency is None
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T144 calendar model classes not implemented",
-)
 def test_single_conversion_preserves_odd_minor_units() -> None:
     """A non-round minor-unit value converts exactly, proving no early math.
 
@@ -54,9 +40,7 @@ def test_single_conversion_preserves_odd_minor_units() -> None:
     before the single ``minor_units_to_float`` conversion point would risk
     accumulating rounding error and losing the trailing cent.
     """
-    from custom_components.hospitable.api.models import (  # type: ignore[attr-defined]
-        HospitablePropertyCalendar,
-    )
+    from custom_components.hospitable.api.models import HospitablePropertyCalendar
     from custom_components.hospitable.sensor.helpers import minor_units_to_float
 
     payload = load_fixture("calendar_prop1.json")["data"]

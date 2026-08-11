@@ -17,28 +17,13 @@ from typing import Any
 from urllib.parse import parse_qs
 
 import httpx
-import pytest
 
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T143 api.calendar params builder not implemented",
-)
 def test_calendar_params_send_window_and_omit_listing_id() -> None:
     """The params builder sends only the window, never a listing id."""
-    import importlib
-
-    # ``import_module`` defers resolution to call time so the missing
-    # module is an expected ``ModuleNotFoundError`` rather than a
-    # collection error, and returns ``Any`` so no ``type: ignore`` is
-    # needed while the module does not exist.
-    calendar_module = importlib.import_module(
-        "custom_components.hospitable.api.calendar"
-    )
-    build_calendar_params = calendar_module.build_calendar_params
+    from custom_components.hospitable.api.calendar import build_calendar_params
 
     params = build_calendar_params(date(2026, 8, 11), date(2026, 8, 25))
     assert params["start_date"] == "2026-08-11"
@@ -47,11 +32,6 @@ def test_calendar_params_send_window_and_omit_listing_id() -> None:
     assert set(params) == {"start_date", "end_date"}
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T143 client.get_calendar not implemented",
-)
 async def test_client_calendar_sends_window_only(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -75,11 +55,6 @@ async def test_client_calendar_sends_window_only(
     assert "listing_id" not in query
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T143 client.get_calendar not implemented",
-)
 async def test_client_calendar_ignores_cosmetic_response_metadata(
     api_client_factory: Any,
     mock_httpx_client: Any,

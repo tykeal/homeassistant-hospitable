@@ -232,3 +232,117 @@ class HospitableAccount:
     def from_api(cls, payload: dict[str, Any]) -> HospitableAccount:
         """Build an account from a /user response."""
         return cls(str(payload["data"]["id"]))
+
+
+AVAILABILITY_AVAILABLE = "available"
+AVAILABILITY_BOOKED = "booked"
+AVAILABILITY_UNKNOWN = "unknown"
+
+
+def _map_availability(status: dict[str, Any]) -> str:
+    """Map a calendar day's status object to an availability state.
+
+    ``status.available`` is the authoritative signal. ``available: true``
+    is ``available``. ``available: false`` only claims ``booked`` when the
+    reason is the confirmed ``RESERVED`` value; any other unavailable
+    reason (for example a host block) maps to the honest ``unknown``
+    rather than asserting a guest booking that may not exist (FR-058).
+    """
+    available = status.get("available")
+    reason = str(status.get("reason") or "")
+    if available is True:
+        return AVAILABILITY_AVAILABLE
+    if available is False and reason.upper() == "RESERVED":
+        return AVAILABILITY_BOOKED
+    return AVAILABILITY_UNKNOWN
+
+
+@dataclass(frozen=True)
+class HospitableCalendarDay:
+    """One aggregate calendar day for a property.
+
+    Monetary values are held only as integer minor currency units
+    accompanied by a currency code; the model never carries a float. The
+    single minor-unit-to-float conversion happens later, in the sensor
+    layer (FR-060).
+    """
+
+    date: str
+    availability: str
+    price_minor_units: int | None
+    currency: str | None
+    min_stay: int | None
+    closed_for_checkin: bool | None
+    closed_for_checkout: bool | None
+    note: str | None
+
+    @classmethod
+    def from_api(cls, payload: dict[str, Any]) -> HospitableCalendarDay:
+        """Build a calendar day, degrading absent fields to ``None``."""
+        status = payload.get("status")
+        if not isinstance(status, dict):
+            status = {}
+        price = payload.get("price")
+        if isinstance(price, dict):
+            amount = price.get("amount")
+            price_minor_units = (
+                int(amount) if isinstance(amount, (int, float)) else None
+            )
+            raw_currency = price.get("currency")
+            currency = raw_currency if isinstance(raw_currency, str) else None
+        else:
+            price_minor_units = None
+            currency = None
+        min_stay = payload.get("min_stay")
+        note = payload.get("note")
+        return cls(
+            str(payload.get("date", "")),
+            _map_availability(status),
+            price_minor_units,
+            currency,
+            int(min_stay) if isinstance(min_stay, (int, float)) else None,
+            payload.get("closed_for_checkin")
+            if isinstance(payload.get("closed_for_checkin"), bool)
+            else None,
+            payload.get("closed_for_checkout")
+            if isinstance(payload.get("closed_for_checkout"), bool)
+            else None,
+            note if isinstance(note, str) else None,
+        )
+
+
+@dataclass(frozen=True)
+class HospitablePropertyCalendar:
+    """A property's aggregate forward calendar across all sales channels.
+
+    The response ``listing_id`` and ``provider`` are cosmetic metadata
+    describing an aggregate across every channel, not a scope selector, so
+    they are intentionally not carried on this model (FR-058).
+    """
+
+    property_id: str
+    start_date: str
+    end_date: str
+    days: tuple[HospitableCalendarDay, ...]
+
+    @classmethod
+    def from_api(
+        cls, property_id: str, payload: dict[str, Any]
+    ) -> HospitablePropertyCalendar:
+        """Build a calendar from the response ``data`` object."""
+        if not isinstance(payload, dict):
+            payload = {}
+        raw_days = payload.get("days", [])
+        if not isinstance(raw_days, list):
+            raw_days = []
+        days = tuple(
+            HospitableCalendarDay.from_api(item)
+            for item in raw_days
+            if isinstance(item, dict)
+        )
+        return cls(
+            str(property_id),
+            str(payload.get("start_date", "")),
+            str(payload.get("end_date", "")),
+            days,
+        )

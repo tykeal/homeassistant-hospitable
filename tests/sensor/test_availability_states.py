@@ -19,7 +19,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, STATE_UNAVAILABLE
 from homeassistant.helpers import entity_registry as er
@@ -101,11 +100,6 @@ def _mock_core_endpoints(respx_router: Any) -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T144/T145 availability sensor not implemented",
-)
 async def test_availability_states_available_and_booked(
     hass: Any, respx_router: Any
 ) -> None:
@@ -165,11 +159,6 @@ async def test_availability_states_available_and_booked(
     await hass.async_block_till_done()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T144 defensive unknown-reason mapping missing",
-)
 async def test_unrecognised_reason_maps_to_unknown_not_booked(
     hass: Any, respx_router: Any
 ) -> None:

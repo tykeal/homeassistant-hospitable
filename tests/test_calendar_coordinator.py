@@ -15,16 +15,10 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 
 from tests.helpers import load_fixture
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    strict=True,
-    reason="TDD red phase: T145 calendar coordinator property fan-out missing",
-)
 async def test_calendar_per_property_failure_isolation(
     hass: Any,
     respx_router: Any,
@@ -58,8 +52,7 @@ async def test_calendar_per_property_failure_isolation(
     )
 
     client = api_client_factory(mock_httpx_client, synthetic_token)
-    calendar_factory: Any = HospitableCalendarCoordinator
-    coordinator = calendar_factory(
+    coordinator = HospitableCalendarCoordinator(
         hass,
         client,
         property_ids=["prop-example-001", "prop-example-002"],
@@ -88,11 +81,6 @@ async def test_calendar_per_property_failure_isolation(
     assert set(properties.data) == {"prop-example-001", "prop-example-002"}
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    strict=True,
-    reason="TDD red phase: T145 calendar coordinator all-fail path missing",
-)
 async def test_calendar_refresh_fails_only_when_every_property_fails(
     hass: Any,
     respx_router: Any,
@@ -114,8 +102,7 @@ async def test_calendar_refresh_fails_only_when_every_property_fails(
     )
 
     client = api_client_factory(mock_httpx_client, synthetic_token)
-    calendar_factory: Any = HospitableCalendarCoordinator
-    coordinator = calendar_factory(
+    coordinator = HospitableCalendarCoordinator(
         hass,
         client,
         property_ids=["prop-example-001", "prop-example-002"],
