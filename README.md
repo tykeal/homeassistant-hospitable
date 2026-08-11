@@ -94,22 +94,39 @@ pages = max(1, ceil(last_observed_reservation_count / 100))
 ```
 
 For SC-004's example of ten selected properties and no more than 500
-reservations in the window, the actual code gives:
+reservations in the window, the actual code gives this formula:
 
 | Component | Arithmetic | Requests/day |
 | --- | --- | --- |
 | Properties | `24 * 1` page, assuming at most 100 account properties | 24 |
-| Calendar | `24 * 10` selected properties | 240 |
+| Calendar | `24 * selected_property_count` | 240 for 10 selected properties |
 | Reservations | `288 * 1` batch `* 5` pages | 1,440 |
 | **Total** | `24 + 240 + 1,440` | **1,704** |
 
 That matches the task text and is below SC-004's 2,000 requests/day
-ceiling. The property endpoint is paginated, so accounts with more than
-100 total properties add another property-list request per property poll
-for each extra page. Calendar traffic scales directly with the number
-of selected properties. Reservation traffic scales with the selected
+ceiling for the ten-property scenario. The general formula is:
+
+```text
+daily_requests =
+  floor(1440 / property_interval_minutes) * property_pages
+  + floor(1440 / property_interval_minutes) * selected_property_count
+  + floor(1440 / reservation_interval_minutes) * reservation_batches
+    * reservation_pages
+```
+
+The property endpoint is paginated, so accounts with more than 100
+total properties add another property-list request per property poll for
+each extra page. Calendar traffic scales directly with the number of
+selected properties. Reservation traffic scales with the selected
 property batches and the number of reservation pages in the configured
 window.
+
+A live sequential refresh measured on 2026-08-11 against a 13-property
+account took 15.2 seconds total: properties 0.56 seconds, reservations
+0.77 seconds, and 13 calendar fetches 13.9 seconds. That is a point-in-
+time measurement, not a guarantee. It is below SC-003's 30-second
+threshold even without concurrency; the integration fetches calendars
+concurrently.
 
 ## Terminology
 
