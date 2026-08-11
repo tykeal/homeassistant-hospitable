@@ -997,6 +997,13 @@ and confirm it produces neither a reauth prompt nor a repair issue.
       from T123–T129; run the suite and mypy.
 - [x] T135 [US6] Walk the US6 rows of `quickstart.md` and record the
       outcome.
+- [x] T136 [US6] Map transport failures and non-JSON success bodies to
+      typed errors in `custom_components/hospitable/api/client.py`
+      (httpx.RequestError to HospitableConnectionError, non-JSON 200 to
+      HospitableResponseError) and surface an actionable connection
+      message in `coordinator.py`. Surfaced by US5 isolation testing,
+      which found httpx.ConnectError escaping the client unmapped and
+      bypassing the error-to-outcome mapping. (FR-064, FR-065)
 
 **Exit criteria (US6)**: a revoked token produces an actionable reauth
 prompt within one interval; a scope-403 produces neither reauth nor a
