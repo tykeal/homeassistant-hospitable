@@ -165,6 +165,19 @@ value that was never parsed cannot be forgotten at a new call site.
 The `/channels` endpoint is not called by this integration for exactly
 this reason: nothing needs it, and it carries a clear-text email.
 
+## Forward-looking: the request trace identifier
+
+Observed but not yet exploited: every Hospitable response carries an
+`x-hospitable-trace` header holding a per-request trace identifier
+(CONFIRMED-BY-TEST on a `200` from `GET /properties`). Nothing in the
+codebase currently captures it. Surfacing it in error logs and in the
+diagnostics dump would let a user file a Hospitable support ticket that
+the vendor can act on directly, because the identifier ties a failed
+request back to Hospitable's own request logs. The value is opaque and
+carries no personal data, so it is safe to emit under the allowlist. It
+is recorded here as an opportunity only; no requirement or task in this
+specification depends on it.
+
 ## Verification
 
 SC-008 requires an audit finding zero occurrences of the token and zero
