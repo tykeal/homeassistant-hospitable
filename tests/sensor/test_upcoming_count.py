@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase tests for the upcoming-reservations count sensor.
+"""Tests for the upcoming-reservations count sensor.
 
 Covers T090 (FR-052): the count sensor counts only reservations that are
 real forthcoming stays, using the shared ``is_forthcoming`` predicate so
@@ -14,10 +14,12 @@ from datetime import UTC, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 
-import pytest
 from homeassistant.components.sensor import SensorStateClass
 
 from custom_components.hospitable.api.models import HospitableReservation
+from custom_components.hospitable.sensor.property import (
+    HospitableUpcomingReservationsSensor,
+)
 from custom_components.hospitable.services.selection import is_forthcoming
 from tests.helpers import load_fixture
 
@@ -51,10 +53,6 @@ def _reservation(
 
 def _count_sensor(reservations: list[HospitableReservation]) -> Any:
     """Build an upcoming-reservations count sensor on fake coordinators."""
-    from custom_components.hospitable.sensor.property import (  # type: ignore
-        HospitableUpcomingReservationsSensor,
-    )
-
     reservations_coordinator = SimpleNamespace(
         data=reservations, consecutive_failures=0
     )
@@ -72,22 +70,12 @@ def _count_sensor(reservations: list[HospitableReservation]) -> Any:
     )
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T090 sensor/property.py not implemented",
-)
 def test_count_declares_measurement_state_class() -> None:
     """The count sensor uses the ``MEASUREMENT`` state class."""
     sensor = _count_sensor([_reservation("res-a", 3, 5)])
     assert sensor.state_class is SensorStateClass.MEASUREMENT
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T090 sensor/property.py not implemented",
-)
 def test_count_excludes_past_and_cancelled() -> None:
     """The count includes only forthcoming, non-cancelled reservations."""
     reservations = [
@@ -100,11 +88,6 @@ def test_count_excludes_past_and_cancelled() -> None:
     assert sensor.native_value == 2
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T090 sensor/property.py not implemented",
-)
 def test_count_matches_is_forthcoming_predicate() -> None:
     """The count equals the number of reservations ``is_forthcoming`` accepts."""
     now = datetime.now(UTC)
@@ -120,11 +103,6 @@ def test_count_matches_is_forthcoming_predicate() -> None:
     assert sensor.native_value == expected
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T090 sensor/property.py not implemented",
-)
 def test_count_zero_when_no_forthcoming() -> None:
     """With only past reservations the count is zero, never ``None``."""
     sensor = _count_sensor([_reservation("res-past", -10, -8)])

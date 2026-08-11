@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase tests for the property-information diagnostic sensor.
+"""Tests for the property-information diagnostic sensor.
 
 Covers T091 (FR-053, FR-062): the ``property_info`` sensor's state is the
 display name and it exposes exactly the eight contract attributes with no
@@ -13,7 +13,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, EntityCategory
 from homeassistant.helpers import entity_registry as er
@@ -27,6 +26,7 @@ from custom_components.hospitable.const import (
     DOMAIN,
 )
 from custom_components.hospitable.entity import build_unique_id
+from custom_components.hospitable.sensor.property import HospitablePropertyInfoSensor
 from tests.helpers import load_fixture
 
 EXPECTED_ATTRIBUTES = {
@@ -40,12 +40,13 @@ EXPECTED_ATTRIBUTES = {
     "listings_available",
 }
 
-# Sensitive tokens that must never appear in any property_info attribute.
+# The address attribute is the upstream-composed ``address.display``
+# string, which the contract explicitly permits. The guard therefore
+# targets the structured leak vectors that must never appear: raw
+# coordinates and any owner contact detail.
 FORBIDDEN_VALUES = {
     "37.1001",
     "-122.1001",
-    "Example Avenue",
-    "90210",
     "host@example.com",
     "Example Host",
 }
@@ -63,10 +64,6 @@ def _info_sensor(
     timezone_source: str = "instance",
 ) -> Any:
     """Build a property_info sensor on a fake properties coordinator."""
-    from custom_components.hospitable.sensor.property import (  # type: ignore
-        HospitablePropertyInfoSensor,
-    )
-
     properties_coordinator = SimpleNamespace(
         data={property_model.property_id: property_model},
         consecutive_failures=0,
@@ -82,44 +79,24 @@ def _info_sensor(
     )
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T091 sensor/property.py not implemented",
-)
 def test_state_is_display_name() -> None:
     """The sensor state is the property's display name."""
     sensor = _info_sensor(_property())
     assert sensor.native_value == "Example Beach House"
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T091 sensor/property.py not implemented",
-)
 def test_entity_category_is_diagnostic() -> None:
     """The sensor is a diagnostic entity."""
     sensor = _info_sensor(_property())
     assert sensor.entity_category is EntityCategory.DIAGNOSTIC
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T091 sensor/property.py not implemented",
-)
 def test_attribute_keys_match_contract_exactly() -> None:
     """The attribute keys match the entities.md contract exactly."""
     sensor = _info_sensor(_property())
     assert set(sensor.extra_state_attributes) == EXPECTED_ATTRIBUTES
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T091 sensor/property.py not implemented",
-)
 def test_attribute_values_and_types() -> None:
     """Attribute values follow the contract types and the address is display."""
     sensor = _info_sensor(
@@ -138,11 +115,6 @@ def test_attribute_values_and_types() -> None:
     ]
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T091 sensor/property.py not implemented",
-)
 def test_no_coordinates_or_contact_details_leak() -> None:
     """No coordinates, street number, postcode, or owner contact appear."""
     sensor = _info_sensor(_property())
@@ -165,11 +137,6 @@ def _reservations_payload() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T091 property_info not created by platform",
-)
 async def test_property_info_end_to_end(
     hass: Any,
     respx_router: Any,

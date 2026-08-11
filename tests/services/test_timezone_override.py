@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase tests for per-property timezone override resolution.
+"""Tests for per-property timezone override resolution.
 
 Covers T094 (FR-074): a per-property IANA override changes day-boundary
 and date-relative presentation only; ``effective_timezone`` and
@@ -17,6 +17,12 @@ from typing import Any, cast
 import pytest
 
 from custom_components.hospitable.api.models import HospitableProperty
+from custom_components.hospitable.sensor.property import (
+    HospitablePropertyInfoSensor,
+)
+from custom_components.hospitable.services.timezones import (
+    resolve_property_timezone,
+)
 from tests.helpers import load_fixture
 
 
@@ -25,64 +31,28 @@ def _property() -> HospitableProperty:
     return HospitableProperty.from_api(load_fixture("properties_page1.json")["data"][0])
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T094 resolve_property_timezone not implemented",
-)
 async def test_no_override_reports_instance_source(hass: Any) -> None:
     """With no override the instance timezone and ``instance`` source apply."""
-    from custom_components.hospitable.services.timezones import (  # type: ignore[attr-defined]
-        resolve_property_timezone,
-    )
-
     effective, source = await resolve_property_timezone(hass, None)
     assert effective == str(hass.config.time_zone)
     assert source == "instance"
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T094 resolve_property_timezone not implemented",
-)
 async def test_override_reports_override_source(hass: Any) -> None:
     """A valid override changes the zone and reports the ``override`` source."""
-    from custom_components.hospitable.services.timezones import (  # type: ignore[attr-defined]
-        resolve_property_timezone,
-    )
-
     effective, source = await resolve_property_timezone(hass, "America/New_York")
     assert effective == "America/New_York"
     assert source == "override"
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T094 resolve_property_timezone not implemented",
-)
 async def test_invalid_iana_override_rejected(hass: Any) -> None:
     """A non-IANA override (a fixed offset) is rejected with ``ValueError``."""
-    from custom_components.hospitable.services.timezones import (  # type: ignore[attr-defined]
-        resolve_property_timezone,
-    )
-
     with pytest.raises(ValueError):
         await resolve_property_timezone(hass, "-0700")
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T094 sensor/property.py not implemented",
-)
 def test_sensor_layer_never_reads_upstream_timezone() -> None:
     """The property_info sensor never surfaces the upstream fixed offset."""
-    from custom_components.hospitable.sensor.property import (  # type: ignore
-        HospitablePropertyInfoSensor,
-    )
-
     property_model = _property()
     # D-11: the sanitized model deliberately drops the upstream timezone.
     assert not hasattr(property_model, "timezone")

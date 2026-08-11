@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase test for rename stability of property entities.
+"""Test for rename stability of property entities.
 
 Covers T092 (FR-054, FR-055): renaming a property upstream changes the
 display name but leaves the unique ID, entity registry entry, and its
@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
@@ -54,11 +53,6 @@ def _empty_reservations() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T092 property_info sensor not created by platform",
-)
 async def test_rename_preserves_identifiers(
     hass: Any,
     respx_router: Any,

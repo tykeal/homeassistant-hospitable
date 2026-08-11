@@ -12,7 +12,10 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 
 from custom_components.hospitable.api.models import HospitableReservation
-from custom_components.hospitable.coordinator import HospitableReservationsCoordinator
+from custom_components.hospitable.coordinator import (
+    HospitablePropertiesCoordinator,
+    HospitableReservationsCoordinator,
+)
 from custom_components.hospitable.entity import (
     HospitableEntity,
     build_device_identifier,
@@ -75,6 +78,7 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
         self,
         coordinator: HospitableReservationsCoordinator,
         *,
+        properties_coordinator: HospitablePropertiesCoordinator | None = None,
         account_namespace: str,
         property_id: str,
         property_name: str,
@@ -84,6 +88,9 @@ class HospitableReservationSensor(HospitableEntity, SensorEntity):
         self._property_id = property_id
         self._status_mapper = StatusMapper()
         self._occupancy_warned: set[tuple[str, str]] = set()
+        if properties_coordinator is not None:
+            self._presence_coordinator = properties_coordinator
+            self._presence_property_id = property_id
         self._attr_unique_id = build_unique_id(
             account_namespace, property_id, "reservation_status"
         )
@@ -158,11 +165,13 @@ def build_reservation_sensors(
     coordinator: HospitableReservationsCoordinator,
     account_namespace: str,
     property_names: dict[str, str],
+    properties_coordinator: HospitablePropertiesCoordinator | None = None,
 ) -> list[HospitableReservationSensor]:
     """Build exactly one reservation status sensor per property."""
     return [
         HospitableReservationSensor(
             coordinator,
+            properties_coordinator=properties_coordinator,
             account_namespace=account_namespace,
             property_id=property_id,
             property_name=property_name,

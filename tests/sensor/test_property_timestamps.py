@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase tests for the next-arrival/next-departure timestamp sensors.
+"""Tests for the next-arrival/next-departure timestamp sensors.
 
 These cover T089 (FR-051): ``next_arrival`` and ``next_departure`` are
 ``TIMESTAMP`` sensors whose state is the reservation's own offset-aware
@@ -15,7 +15,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
-import pytest
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
@@ -30,6 +29,10 @@ from custom_components.hospitable.const import (
     DOMAIN,
 )
 from custom_components.hospitable.entity import build_unique_id
+from custom_components.hospitable.sensor.property import (
+    HospitableNextArrivalSensor,
+    HospitableNextDepartureSensor,
+)
 from tests.helpers import load_fixture
 
 _ZONE = timezone(timedelta(hours=-7))
@@ -63,11 +66,6 @@ def _reservation(
 
 def _timestamp_sensors(reservations: list[HospitableReservation]) -> tuple[Any, Any]:
     """Build next-arrival and next-departure sensors on fake coordinators."""
-    from custom_components.hospitable.sensor.property import (  # type: ignore
-        HospitableNextArrivalSensor,
-        HospitableNextDepartureSensor,
-    )
-
     reservations_coordinator = SimpleNamespace(
         data=reservations, consecutive_failures=0
     )
@@ -89,11 +87,6 @@ def _timestamp_sensors(reservations: list[HospitableReservation]) -> tuple[Any, 
     return arrival, departure
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T089 sensor/property.py not implemented",
-)
 def test_timestamp_sensors_declare_timestamp_device_class() -> None:
     """Both timestamp sensors advertise ``SensorDeviceClass.TIMESTAMP``."""
     arrival, departure = _timestamp_sensors(
@@ -103,11 +96,6 @@ def test_timestamp_sensors_declare_timestamp_device_class() -> None:
     assert departure.device_class is SensorDeviceClass.TIMESTAMP
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T089 sensor/property.py not implemented",
-)
 def test_next_arrival_preserves_offset_aware_instant() -> None:
     """Next arrival is the reservation's own offset-aware check-in moment."""
     arrival, _ = _timestamp_sensors(
@@ -120,11 +108,6 @@ def test_next_arrival_preserves_offset_aware_instant() -> None:
     assert value.hour == 16
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T089 sensor/property.py not implemented",
-)
 def test_next_departure_preserves_offset_aware_instant() -> None:
     """Next departure is the reservation's own offset-aware check-out moment."""
     _, departure = _timestamp_sensors(
@@ -136,11 +119,6 @@ def test_next_departure_preserves_offset_aware_instant() -> None:
     assert value.hour == 11
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T089 sensor/property.py not implemented",
-)
 def test_no_future_reservation_reports_none_not_stale() -> None:
     """With only a past reservation both sensors report ``None``, not stale."""
     arrival, departure = _timestamp_sensors(
@@ -150,11 +128,6 @@ def test_no_future_reservation_reports_none_not_stale() -> None:
     assert departure.native_value is None
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: T089 sensor/property.py not implemented",
-)
 def test_cancelled_future_reservation_is_not_next_arrival() -> None:
     """A cancelled future stay never becomes the next arrival or departure."""
     arrival, departure = _timestamp_sensors(
@@ -219,11 +192,6 @@ def _reservations_payload() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T089 timestamp sensors not created by platform",
-)
 async def test_timestamp_sensors_end_to_end(
     hass: Any,
     respx_router: Any,

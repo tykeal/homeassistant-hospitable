@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase test for the disappeared-property lifecycle path.
+"""Test for the disappeared-property lifecycle path.
 
 Covers T093 (FR-056): when a monitored property disappears from the
 account its entities become unavailable, its registry entries and
@@ -56,11 +56,6 @@ def _empty_reservations() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T093 disappeared-property path not implemented",
-)
 async def test_disappeared_property_unavailable_retained_warned_once(
     hass: Any,
     respx_router: Any,

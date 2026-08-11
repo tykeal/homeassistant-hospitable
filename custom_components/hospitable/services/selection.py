@@ -85,6 +85,16 @@ def select_reservation(
     return ranked[0], list(ranked[1:])
 
 
+def is_active(reservation: HospitableReservation) -> bool:
+    """Return whether a reservation is neither cancelled nor declined.
+
+    This is the status half of ``is_forthcoming`` without the date
+    predicate, used by the next-arrival and next-departure timestamp
+    sensors, which reason about scheduled instants rather than dates.
+    """
+    return reservation.status_category not in _INACTIVE_CATEGORIES
+
+
 def is_forthcoming(reservation: HospitableReservation, now: datetime) -> bool:
     """Return whether a reservation is a real forthcoming stay.
 

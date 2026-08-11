@@ -23,6 +23,7 @@ from custom_components.hospitable.api.models import (
     HospitableReservation,
 )
 from custom_components.hospitable.const import DOMAIN
+from custom_components.hospitable.services.lifecycle import note_disappearances
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,13 +149,29 @@ class HospitablePropertiesCoordinator(
             interval_minutes=interval_minutes,
         )
         self._client = client
+        self.monitored_property_ids: set[str] = set()
+        self._disappeared_warned: set[str] = set()
 
     async def _fetch_data(self) -> dict[str, HospitableProperty]:
-        """Fetch every property keyed by immutable identifier."""
+        """Fetch every property keyed by immutable identifier.
+
+        A monitored property that vanishes from the account is logged
+        once and left to the entity availability policy, which reports it
+        unavailable without deleting its registry entry (FR-056).
+        """
         try:
-            return await self._client.get_properties()
+            properties = await self._client.get_properties()
         except HospitableError as exc:
             raise UpdateFailed(str(exc)) from exc
+        current_ids = set(properties)
+        self._disappeared_warned &= current_ids
+        note_disappearances(
+            self.monitored_property_ids,
+            current_ids,
+            self._disappeared_warned,
+            _LOGGER,
+        )
+        return properties
 
 
 class HospitableCalendarCoordinator(HospitableDataUpdateCoordinator[dict[str, Any]]):
