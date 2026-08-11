@@ -1112,6 +1112,14 @@ dimension into the single-dimensional reservation enum.
       from T136–T141; run the suite and mypy.
 - [x] T148 [US7] Walk the US7 rows of `quickstart.md` and record the
       outcome.
+- [ ] T163 [US7] Add per-property consecutive-failure tracking to
+      `HospitableCalendarCoordinator` so a property's availability sensor
+      degrades to `unavailable` after `MAX_CONSECUTIVE_FAILURES`
+      consecutive per-property calendar failures, while transient blips
+      retain last-good and recovery resets the counter. Reconciles both
+      halves of `research.md` D-15 (retain last-good AND degrade the
+      affected sensor); found by contract-versus-implementation review
+      of D-15. (FR-057, FR-061)
 
 **Exit criteria (US7)**: `booked` never rendered as `unavailable`;
 per-property calendar failure isolation proven; a full lifecycle
