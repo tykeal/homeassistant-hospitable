@@ -1180,12 +1180,12 @@ pair.
       HTTP 200 is never proof a request was honored. (FR-075)
 - [X] T155 Walk the cross-cutting checks section of `quickstart.md` and
       record each outcome.
-- [ ] T156 Run the live success-criteria validation (SC-001, SC-002,
+- [X] T156 Run the live success-criteria validation (SC-001, SC-002,
       SC-003, SC-005, SC-006, SC-013) against a real account after CI
       is green, and record the measured values.
 - [X] T157 Re-verify `REUSE.toml` covers every path added across all
       phases with `uv run reuse lint`.
-- [ ] T158 Update `spec.md`'s open-questions table with the status of
+- [X] T158 Update `spec.md`'s open-questions table with the status of
       every OQ the implementation resolved or left open, and update
       `research.md`'s assumption table with the final state of A-1
       through A-8. Say plainly which remain UNVERIFIED.

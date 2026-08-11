@@ -356,18 +356,29 @@ Run at the end of every phase.
 | Coverage over `custom_components/` maintained or increased | Principle I | PASS. `uv run pytest --cov=custom_components --cov-report=term-missing tests/` passed 164 tests and reported 95% total coverage. |
 | Every `xfail` marker on `main` has an open task | Principle XII | MIXED. Executable code and tests have zero `pytest.mark.xfail` or `type: ignore[import-not-found]` matches. A whole-repository grep still finds those literal strings in governance/specification prose, including `.specify/memory/constitution.md`, which Phase 10 must not edit; `xfail_strict` does not apply to Markdown prose. |
 
-## Optional live validation
+## Live validation
 
-Only after CI is green, and only with a token from an account the
-validator owns.
+Run on 2026-08-11T17:32Z by the project manager against a live account
+with 13 properties for the window 2026-05-13 through 2026-11-09. No
+live response body is committed here.
 
-| Step | Notes |
+Property inventory returned 13 properties with `meta.total` 13. An
+earlier probe that saw 10 properties did not paginate past the default
+page size; the integration client paginates via `meta.last_page`, so
+that probe was not evidence of a code defect.
+
+| Criterion | Final live result |
 | --- | --- |
-| Complete setup end to end | SC-001 targets under three minutes |
-| Change a reservation upstream | SC-002 targets reflection within one interval |
-| Time a full refresh with ten properties | SC-003 targets under thirty seconds |
-| Leave it running | SC-005 targets thirty days without intervention |
-| Rename a property upstream | SC-006 requires 100% identifier and history preservation |
+| SC-001 setup under three minutes | **NOT MEASURED.** This requires a human walking the config flow UI. |
+| SC-002 change reflected within one polling interval for 95% of observations | **PARTIALLY SUPPORTED.** Feasibility was measured only: a reservation poll took 0.77 s against the five-minute default interval. The 95%-of-observations claim was not measured because no live reservation was mutated and observed over time. |
+| SC-003 full refresh under 30 seconds | **PASS.** Sequential wall-clock total was 15.23 s: properties 0.56 s; the first reservations page 0.77 s with response metadata reporting 208 total reservations and `last_page` 3; and 13 calendar requests 13.89 s returning 2,353 day-records, all 13 succeeding. This is an upper bound because the probe was sequential while the integration fetches calendars concurrently. |
+| SC-005 30 consecutive days unattended | **NOT MEASURED.** This requires 30 days of elapsed runtime. |
+| SC-006 rename preserves identifiers and history | **PASS by construction, supported by live data.** Property `id` is a 36-character opaque string. The live account had 13 distinct ids and 13 distinct names, and `id` is independent of `name`. Entity unique ids and device identifiers derive from the account namespace plus property id, never from the display name, through `build_unique_id` and `build_device_identifier` in `custom_components/hospitable/entity.py`; `tests/sensor/test_rename_stability.py::test_rename_preserves_identifiers` covers the rename path. |
+| SC-013 no operation blocks the event loop over 100 ms | **PASS by source audit, not profiling.** Static scanning of `custom_components/hospitable/` found no blocking I/O: no `open(`, no `time.sleep`, no `subprocess`, no synchronous `requests`, and no bare `zoneinfo.ZoneInfo(...)` construction. All upstream I/O goes through the async `httpx` client. True event-loop profiling on Raspberry-Pi-class hardware was not performed. |
+
+Incidental A-7 recheck: the `GET /properties` response carried
+`x-hospitable-trace` but no `X-RateLimit-*` and no `Retry-After`,
+consistent with the existing A-7 finding.
 
 **Never commit a live response**, even redacted. Fixtures mirror
 observed shapes with invented values, and a redaction slip in a fixture
