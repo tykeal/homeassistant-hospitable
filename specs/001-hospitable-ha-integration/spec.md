@@ -592,8 +592,14 @@ false negative on the integration's primary sensor.
   published limit)
 - **FR-032**: The integration MUST read reservation status from the
   current-status field of the platform's structured reservation status
-  object. It MUST NOT read the platform's deprecated flat status or
-  status-history fields. (CONFIRMED)
+  object. That field, `reservation_status.current`, is itself an object
+  carrying a `category` and a `sub_category`; the integration MUST read
+  the category from `current.category` and MUST NOT stringify `current`.
+  It MUST NOT read the platform's deprecated flat status or
+  status-history fields: a live census of 652 reservations found the
+  flat status disagreeing with the structured path in three of six
+  observed combinations, so the flat field would mislabel ten expired
+  stays as cancelled. (CONFIRMED-BY-TEST)
 - **FR-033**: The integration MUST request guest information as an
   include on the reservation query when guest data is surfaced,
   because Hospitable exposes no standalone guest resource, and MUST
@@ -909,10 +915,11 @@ false negative on the integration's primary sensor.
   endpoint-agnostic redaction requirements as account, listing, and
   channel personal data.
 - **Reservation status**: The structured status object on a
-  Reservation, carrying a current value and a history. Its categories
-  are request, accepted, cancelled, not accepted, unknown, and
-  checkpoint. The integration reads this object and never the
-  deprecated flat status fields.
+  Reservation, carrying a current value and a history. Its current value
+  is an object of `category` and `sub_category`; its categories are
+  request, accepted, cancelled, not accepted, unknown, and checkpoint.
+  The integration reads this object and never the deprecated flat status
+  fields, which a live census proved unreliable.
 - **Money amount**: Every monetary value the platform returns,
   expressed as an integer count of minor currency units together with
   a currency code and a preformatted display string.
