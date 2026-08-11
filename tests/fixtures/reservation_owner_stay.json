@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "accepted",
+        "current": {"category": "accepted", "sub_category": null},
         "history": []
       },
       "stay_type": "owner"

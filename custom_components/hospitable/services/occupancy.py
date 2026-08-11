@@ -43,13 +43,21 @@ class OccupancyResult:
 
 
 def parse_scheduled_instant(raw: str | None) -> datetime | None:
-    """Parse an offset-aware scheduled instant, or return ``None``."""
+    """Parse an offset-aware scheduled instant, or return ``None``.
+
+    A value that parses but lacks a UTC offset is treated as absent
+    rather than returned, so naive instants never reach a comparison
+    against the offset-aware ``now`` and cannot raise ``TypeError``.
+    """
     if not isinstance(raw, str):
         return None
     try:
-        return datetime.fromisoformat(raw)
+        instant = datetime.fromisoformat(raw)
     except ValueError:
         return None
+    if instant.tzinfo is None:
+        return None
+    return instant
 
 
 def classify_occupancy(

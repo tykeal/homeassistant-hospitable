@@ -162,6 +162,7 @@ class HospitableReservation:
     reservation_id: str
     property_id: str
     status_category: str
+    status_sub_category: str | None
     raw_status: str | None
     arrival_date: date
     departure_date: date
@@ -193,11 +194,20 @@ class HospitableReservation:
         status_payload = payload.get("reservation_status")
         if not isinstance(status_payload, dict):
             raise HospitableResponseError("Reservation status is malformed")
-        status = status_payload.get("current")
+        current = status_payload.get("current")
+        if not isinstance(current, dict):
+            raise HospitableResponseError("Reservation status current is malformed")
+        category = current.get("category")
+        if not isinstance(category, str) or not category:
+            raise HospitableResponseError("Reservation status category is malformed")
+        status_category = category
+        sub_category = current.get("sub_category")
+        status_sub_category = str(sub_category) if sub_category is not None else None
         return cls(
             str(payload.get("id", "")),
             property_id,
-            str(status),
+            status_category,
+            status_sub_category,
             payload.get("status"),
             arrival.date(),
             departure.date(),

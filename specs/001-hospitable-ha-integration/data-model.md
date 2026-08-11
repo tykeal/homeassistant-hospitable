@@ -124,8 +124,9 @@ Built from an item of `GET /reservations`.
 | --- | --- | --- | --- | --- |
 | `reservation_id` | `str` | `id` | CONFIRMED | FR-044 deterministic tiebreak; FR-046 attribute |
 | `property_id` | `str` | property reference | CONFIRMED | Asserted to be in the requested set (D-05) |
-| `status_category` | `ReservationStatusCategory` | `reservation_status.current` | CONFIRMED-BY-TEST | FR-032; live probe 2026-08-09 confirmed `reservation_status` has `{current, history}` |
-| `raw_status` | `str` | `status` | CONFIRMED-BY-TEST | Retained for the FR-048 log-once path |
+| `status_category` | `ReservationStatusCategory` | `reservation_status.current.category` | CONFIRMED-BY-TEST | FR-032; live probe confirmed `reservation_status.current` is an object `{category, sub_category}`, so the category is read from `current.category`, never by stringifying `current` |
+| `status_sub_category` | `str \| None` | `reservation_status.current.sub_category` | CONFIRMED-BY-TEST | Live census: `null` for accepted/cancelled, `declined`/`expired` under `not accepted`, `voided`/`checkpoint` under `checkpoint`, `request to book` and others under `request`; surfaced as an attribute so declined vs expired and checkpoint vs voided are distinguishable |
+| `raw_status` | `str` | `status` | CONFIRMED-BY-TEST | Deprecated flat field, retained only as raw evidence; a 652-reservation census showed it disagreeing with `current` in three of six observed combinations, so it never drives logic or user-facing state (FR-032/FR-048) |
 | `arrival_date` | `datetime` | `arrival_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
 | `departure_date` | `datetime` | `departure_date` | CONFIRMED-BY-TEST | Midnight-anchored date serialized as an offset-aware datetime; live probe 2026-08-09 |
 | `nights` | `int \| None` | `nights` | CONFIRMED-BY-TEST | FR-046; live probe 2026-08-09 |
@@ -222,7 +223,8 @@ candidate is present.
 
 | Role | Candidate keys, in order | Tier | Absent behavior |
 | --- | --- | --- | --- |
-| Reservation status category | `reservation_status.current` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` — FR-032 makes this load-bearing, so it must fail loudly |
+| Reservation status category | `reservation_status.current.category` | CONFIRMED-BY-TEST; live probe confirmed `current` is an object `{category, sub_category}` | `HospitableResponseError` — FR-032 makes this load-bearing, so a missing, non-mapping, or category-less `current` must fail loudly rather than stringify |
+| Reservation status sub-category | `reservation_status.current.sub_category` | CONFIRMED-BY-TEST; live census | Attribute reports `None`; never drives state |
 | Reservation arrival datetime | `arrival_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError`; FR-044 and FR-045 cannot run without it |
 | Reservation departure datetime | `departure_date` | CONFIRMED-BY-TEST; live probe 2026-08-09 | `HospitableResponseError` |
 | Reservation nights | `nights` | CONFIRMED-BY-TEST; live probe 2026-08-09 | Attribute reports `None`; state is unaffected (FR-046) |

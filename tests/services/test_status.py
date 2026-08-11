@@ -61,7 +61,10 @@ def test_status_read_from_structured_path_only() -> None:
     mapper = _status_mapper()
     payload = load_fixture("reservation_accepted.json")["data"][0]
     payload["status"] = "cancelled"
-    payload["reservation_status"]["current"] = "accepted"
+    payload["reservation_status"]["current"] = {
+        "category": "accepted",
+        "sub_category": None,
+    }
     reservation = HospitableReservation.from_api(payload)
     assert reservation.status_category == "accepted"
     assert reservation.raw_status == "cancelled"

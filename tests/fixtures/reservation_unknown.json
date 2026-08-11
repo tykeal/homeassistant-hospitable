@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "unknown",
+        "current": {"category": "unknown", "sub_category": null},
         "history": []
       },
       "status": "unknown",

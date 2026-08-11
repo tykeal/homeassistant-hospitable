@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "checkpoint",
+        "current": {"category": "checkpoint", "sub_category": "checkpoint"},
         "history": []
       },
       "status": "checkpoint",

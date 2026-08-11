@@ -29,7 +29,7 @@
         }
       ],
       "reservation_status": {
-        "current": "not accepted",
+        "current": {"category": "not accepted", "sub_category": "declined"},
         "history": []
       },
       "status": "not accepted",

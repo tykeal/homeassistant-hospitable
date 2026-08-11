@@ -29,8 +29,19 @@
         }
       ],
       "reservation_status": {
-        "current": "accepted",
-        "history": []
+        "current": {"category": "accepted", "sub_category": null},
+        "history": [
+          {
+            "category": "request",
+            "sub_category": "request to book",
+            "changed_at": "2026-06-09T21:26:54+00:00"
+          },
+          {
+            "category": "accepted",
+            "sub_category": null,
+            "changed_at": "2026-06-09T21:30:00+00:00"
+          }
+        ]
       },
       "status": "accepted",
       "stay_type": "guest"
