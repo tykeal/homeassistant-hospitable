@@ -1,0 +1,657 @@
+<!--
+SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# Feature Specification: Actions (Services) for Lookup and Guest Messaging
+
+**Feature Branch**: `002-actions-and-messaging`
+
+**Created**: 2026-08-11
+
+**Status**: Draft
+
+**Input**: User description: "Actions (services) for lookup and guest
+messaging — send message, read thread, lookup reservations, get
+property info, task/cleaning sensors, unread indicators, and guest
+name exposure on reservation entities."
+
+## Overview
+
+Spec 001 delivered a strictly read-only, polling-based integration.
+This specification extends it with the first write capability — guest
+messaging — alongside lookup actions, task sensors, message-presence
+indicators, and guest identity exposure on reservation entities.
+
+The extension is carefully scoped: every write is user-invoked through
+a Home Assistant service call. No coordinator, poll, setup, reload, or
+unload path may issue a write. The existing `test_no_writes.py`
+lifecycle assertion is narrowed from "no non-GET requests anywhere" to
+"no non-GET requests in the polling lifecycle," preserving its
+protective intent while acknowledging that explicit user actions now
+perform POSTs.
+
+### Evidence confidence legend
+
+This specification uses the same confidence tiers as spec 001.
+
+| Marker | Meaning |
+| --- | --- |
+| **CONFIRMED-BY-TEST** | Verified empirically against a live Hospitable account (read-only probes only; no POST has ever been executed). |
+| **CONFIRMED-BY-SPEC** | Read directly from Hospitable's own OpenAPI export, but not confirmed by a live grant. |
+| **DOCUMENTED** | Stated in Hospitable's current official documentation, but not verified empirically. |
+| **LIKELY** | Reported by an independent third party who claims live verification, but not reproduced by this project. |
+| **UNVERIFIED** | Single-source, undocumented, or inferred. Must not be relied upon without a test. |
+
+### Critical architectural decision: narrowing the read-only guarantee
+
+Spec 001 established a structural read-only guarantee: the API client
+exposed only `_get`, and `test_no_writes.py` asserted every captured
+request across setup, refresh, reload, and unload was a GET.
+
+This specification introduces the first POST (guest messaging). The
+new boundary is:
+
+> **Writes occur ONLY via explicit user-invoked service calls; never
+> from polling, coordinators, setup, reload, or unload. The
+> `test_no_writes.py` assertion is narrowed to cover the polling
+> lifecycle (setup → refresh → options change → reload → unload) and
+> remains a hard gate. No write may originate from any automated path.**
+
+This narrowing is stated as functional requirements FR-001 through
+FR-004 below.
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 — Send a message to a guest (Priority: P1)
+
+As a property manager, I want to send a text message to a guest for a
+specific reservation through a Home Assistant service call, so that my
+automations can send check-in instructions, welcome messages, or
+notifications triggered by property events.
+
+**Why this priority**: This is the core ask and the reason this
+specification exists. It introduces the first write capability and
+establishes the architectural pattern all future writes will follow.
+
+**Independent Test**: Invoke the service call with a reservation
+identifier and message body, confirm the integration issues a POST to
+`/reservations/{uuid}/messages` with the correct payload, and confirm
+it returns a correlation response indicating acceptance.
+
+**Acceptance Scenarios**:
+
+1. **Given** a valid reservation UUID and a non-empty message body,
+   **When** the user invokes the send-message service, **Then** the
+   integration issues a POST to the Hospitable messaging endpoint and
+   reports acceptance (HTTP 202).
+2. **Given** a message body and optional image URLs (up to 3),
+   **When** the user invokes the send-message service, **Then** the
+   images are included in the request payload.
+3. **Given** an Airbnb reservation and a valid co-host `sender_id`,
+   **When** the user invokes the send-message service with that
+   sender_id, **Then** the message is sent on behalf of the co-host.
+4. **Given** a non-Airbnb reservation and a `sender_id`, **When** the
+   user invokes the send-message service, **Then** the integration
+   rejects the call with a validation error explaining that sender_id
+   is only supported for Airbnb reservations.
+5. **Given** a reservation that does not exist or is not accessible,
+   **When** the user invokes the send-message service, **Then** the
+   integration reports a clear error without crashing.
+6. **Given** the rate limit is reached (2/min per reservation or
+   50/5min per token), **When** the user invokes the service, **Then**
+   the integration reports a rate-limit error with a human-readable
+   explanation.
+7. **Given** the service is called during a coordinator refresh,
+   **When** the refresh completes, **Then** no write was issued by the
+   refresh; only the explicit service call issued a POST.
+
+---
+
+### User Story 2 — Read the message thread for a reservation (Priority: P2)
+
+As a property manager, I want to retrieve the full message thread for
+a reservation through a service call, so that I can display
+conversation context in dashboards or feed it into automation logic.
+
+**Why this priority**: Reading messages complements sending them and
+uses a confirmed GET endpoint. It exercises the lookup-action pattern
+that all other lookup services share.
+
+**Independent Test**: Invoke the read-messages service with a
+reservation UUID and confirm it returns the message array with sender,
+body, timestamp, and attachments.
+
+**Acceptance Scenarios**:
+
+1. **Given** a valid reservation UUID with messages, **When** the user
+   invokes the read-messages service, **Then** it returns the message
+   array with each message's body, sender_type, sender_role,
+   created_at, and attachments.
+2. **Given** a reservation with no messages, **When** the service is
+   invoked, **Then** it returns an empty array without error.
+3. **Given** an invalid reservation UUID, **When** the service is
+   invoked, **Then** it returns a not-found result
+   (`{"found": false, ...}`), not an exception.
+
+---
+
+### User Story 3 — Lookup actions for reservations and properties (Priority: P3)
+
+As a property manager, I want service calls that look up reservation
+details, list reservations for a property, and retrieve property
+information, so that my automations and scripts can query live data on
+demand without depending solely on polled state.
+
+**Why this priority**: Lookup actions are the read-only complement to
+messaging and are low-risk because they issue only GET requests. They
+establish the service-registration infrastructure that messaging also
+uses.
+
+**Independent Test**: Invoke each lookup service and confirm it returns
+structured data matching the Hospitable API response shape, with
+not-found handled as a return value.
+
+**Acceptance Scenarios**:
+
+1. **Given** a reservation UUID, **When** the user invokes
+   find-reservation, **Then** it returns the reservation object or
+   `{"found": false}`.
+2. **Given** a property identifier, **When** the user invokes
+   get-reservations, **Then** it returns the list of reservations for
+   that property within the configured window.
+3. **Given** a property identifier, **When** the user invokes
+   get-property-info, **Then** it returns the property's details
+   including listings and co-hosts.
+4. **Given** multiple config entries, **When** a lookup is called
+   without specifying `config_entry_id`, **Then** if exactly one entry
+   exists it is auto-selected; if multiple exist, a
+   ServiceValidationError explains that `config_entry_id` is required.
+
+---
+
+### User Story 4 — Task and cleaning sensors (Priority: P4)
+
+As a property manager, I want Home Assistant to poll the `/tasks`
+endpoint and expose task/cleaning sensors per property, so that I can
+automate cleaning schedules, see assignment status, and trigger
+notifications when tasks change state.
+
+**Why this priority**: Tasks are a distinct polling domain that
+enriches property management automations. They use only GET requests
+and the endpoint is confirmed accessible.
+
+**Independent Test**: Confirm each selected property exposes a
+next-task sensor and a task-count sensor updated from the `/tasks`
+endpoint, and that pagination is handled correctly.
+
+**Acceptance Scenarios**:
+
+1. **Given** a property with upcoming tasks, **When** the task
+   coordinator polls, **Then** the property's next-task sensor reports
+   the soonest task with its type, assignment status, progress, and
+   scheduled date.
+2. **Given** tasks span multiple pages, **When** the coordinator
+   polls, **Then** all pages are fetched and no tasks are silently
+   lost.
+3. **Given** a property with no tasks in the window, **When** the
+   coordinator polls, **Then** the next-task sensor reports no value
+   rather than becoming unavailable.
+4. **Given** a task whose type is Maintenance (task_type 5, service_id
+   8), **When** the sensor displays it, **Then** it is correctly
+   labelled Maintenance, not conflated with another type.
+
+---
+
+### User Story 5 — Message presence indicators (Priority: P5)
+
+As a property manager, I want per-property sensors showing the last
+message timestamp and whether there are unread messages, so that I can
+build dashboard indicators and trigger notification automations.
+
+**Why this priority**: These sensors are lightweight additions that
+derive from data already available on the reservation payload
+(`last_message_at`), requiring no new endpoint calls during polling.
+
+**Independent Test**: Confirm each property with an active reservation
+exposes a `last_message_at` timestamp sensor, and that an unread
+indicator is derivable from the message data.
+
+**Acceptance Scenarios**:
+
+1. **Given** a property's active reservation has `last_message_at`
+   set, **When** the reservation coordinator polls, **Then** the
+   property's last-message-at sensor reports that timestamp.
+2. **Given** a property with no active reservation or no messages,
+   **When** the coordinator polls, **Then** the sensor reports no
+   value rather than becoming unavailable.
+
+---
+
+### User Story 6 — Guest name and contact on reservation entities (Priority: P6)
+
+As a property manager, I want the guest's name visible as an attribute
+on the reservation status entity, so that my dashboards and
+automations can reference who is arriving or currently in-house.
+
+**Why this priority**: Guest identity is high-value for automations
+(e.g., welcome messages, door labels) but carries PII obligations.
+It is last because it depends on the privacy framework already being
+proven.
+
+**Independent Test**: Confirm the reservation status entity's
+attributes include the guest name, and confirm that logs and
+diagnostics never contain the guest name unredacted.
+
+**Acceptance Scenarios**:
+
+1. **Given** a reservation with guest data available, **When** the
+   reservation coordinator polls, **Then** the reservation status
+   entity attributes include `guest_name`.
+2. **Given** a reservation with guest contact data, **When** the
+   coordinator polls, **Then** contact fields are available as
+   attributes.
+3. **Given** any log level or diagnostics download, **When** the
+   output is audited, **Then** guest names, email addresses, phone
+   numbers, and message bodies are never present unredacted.
+4. **Given** guest data is absent from the reservation payload,
+   **When** the entity updates, **Then** guest attributes report no
+   value rather than raising or becoming unavailable.
+
+---
+
+### Edge Cases
+
+- **A service call is issued while no config entries are loaded.**
+  ServiceValidationError explaining no Hospitable accounts are
+  configured.
+- **A service call targets a reservation on a different config entry
+  than expected.** Multi-entry disambiguation requires
+  `config_entry_id` when ambiguous.
+- **The `/tasks` endpoint returns an error for one property in a
+  multi-property account.** Task sensor for that property becomes
+  unavailable; other properties are unaffected (D-15 failure
+  isolation).
+- **A message send returns HTTP 422.** The error is surfaced as a
+  HomeAssistantError with the validation detail from the response.
+- **Rate limit hit mid-automation.** The service returns an error; it
+  does not retry silently, because silent retries in a user-invoked
+  action delay feedback and risk exceeding the budget further.
+- **Maintenance task has task_type 5 but service_id 8.** These two
+  enum namespaces are NOT interchangeable. Confusing them would
+  mislabel maintenance as something else. The mapping must be
+  explicit.
+- **`GET /tasks` called without `properties[]`.** Returns HTTP 400.
+  The integration must ALWAYS include `properties[]` and MUST NOT
+  include date parameters (they are not required and their interaction
+  with the response is not verified).
+- **Message pagination unknown.** Only 7 messages observed;
+  `meta`/`links` not present in test response. The implementation
+  must handle both paginated and non-paginated responses defensively.
+- **Entity_id vs reservation_uuid input.** Services that accept a
+  reservation target must accept EITHER an `entity_id` (reading UUID
+  from entity attributes) OR an explicit `reservation_uuid`, and must
+  validate that exactly one is supplied.
+- **Co-host sender_id for non-Airbnb reservation.** Rejected
+  client-side with ServiceValidationError before any API call.
+- **`last_message_at` is null on a reservation.** The sensor reports
+  no value.
+- **Guest data is absent.** The `include=` response key check (FR-075
+  from spec 001) applies. Guest attributes report no value.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+#### Write boundary and lifecycle integrity
+
+- **FR-001**: No write request (POST, PUT, PATCH, DELETE) may
+  originate from a coordinator refresh, a sensor update, integration
+  setup, reload, or unload. Writes occur ONLY in direct response to a
+  user-invoked Home Assistant service call. This replaces the absolute
+  prohibition of spec 001 FR-059 with a narrowed boundary and is
+  NON-NEGOTIABLE.
+- **FR-002**: The existing `test_no_writes.py` MUST be preserved in
+  narrowed form. It MUST continue to assert that every request
+  captured during the polling lifecycle (setup → coordinator refresh →
+  options change → reload → unload) is a GET. It MUST NOT be deleted.
+- **FR-003**: The API client MUST expose a `_post` method (or
+  equivalent restricted method) callable only from service-call
+  handlers, never from coordinators. The architectural isolation MUST
+  be enforced by code structure (separate module path), not merely by
+  convention.
+- **FR-004**: Service-call handlers MUST NOT call coordinator refresh
+  or trigger any polling side effect. A service call is a one-shot
+  operation that returns its result directly.
+
+#### Service registration infrastructure
+
+- **FR-005**: Services MUST be registered from `async_setup_entry`
+  using a table-driven pattern, following Hostaway's proven approach.
+  Registration MUST be idempotent: if services are already registered
+  (from an earlier config entry), registration MUST be skipped.
+- **FR-006**: Services MUST be removed when the LAST config entry for
+  the domain unloads. While any entry remains loaded, services remain
+  registered.
+- **FR-007**: All service names, descriptions, and field labels MUST
+  appear in both `strings.json` and `translations/en.json` for proper
+  i18n support. Service definitions MUST NOT rely solely on
+  `services.yaml` for user-facing text.
+- **FR-008**: Multi-entry disambiguation MUST follow this pattern:
+  optional `config_entry_id` field on every service; zero loaded
+  entries → ServiceValidationError; exactly one → auto-select;
+  multiple → ServiceValidationError requiring `config_entry_id`.
+
+#### Send message service
+
+- **FR-009**: The integration MUST expose a `send_message` service
+  that issues `POST /reservations/{uuid}/messages`. (DOCUMENTED —
+  never executed against a live account)
+- **FR-010**: The `send_message` service MUST accept: `body` (string,
+  required), `images` (list of URI strings, optional, max 3),
+  `sender_id` (string, optional — co-host user_id). The service MUST
+  also accept a reservation target as either `entity_id` or
+  `reservation_uuid` (exactly one required).
+- **FR-011**: The service MUST report the result as "accepted for
+  delivery" and MUST NOT claim "message sent" or "delivered". HTTP 202
+  means the API queued the message; delivery is asynchronous and
+  unconfirmed. (DOCUMENTED)
+- **FR-012**: If the 202 response body contains a `sent_reference_id`
+  or equivalent correlation identifier, the service MUST return it to
+  the caller. The exact shape of the 202 response body is UNVERIFIED.
+- **FR-013**: The service MUST reject a `sender_id` for non-Airbnb
+  reservations with a ServiceValidationError before issuing any API
+  call. `sender_id` is only supported for Airbnb reservations.
+  (DOCUMENTED)
+- **FR-014**: The service MUST validate image count (max 3) locally
+  before issuing the API call. (DOCUMENTED)
+- **FR-015**: The service MUST handle documented error responses:
+  HTTP 400 (bad request) and HTTP 422 (validation error) as
+  ServiceValidationError; any other API failure as HomeAssistantError.
+  (DOCUMENTED responses: 202, 400, 422)
+- **FR-016**: A 403 on the send endpoint MUST be treated as a
+  permanent capability limitation (consistent with spec 001 FR-038),
+  surfaced as a HomeAssistantError explaining the limitation. It MUST
+  NOT trigger reauthentication. (403 is NOT documented for this
+  endpoint; this is defensive handling only.)
+
+#### Rate-limit enforcement for messaging
+
+- **FR-017**: The integration MUST respect the documented messaging
+  rate limits: 2 messages per minute per reservation, and 50 messages
+  per 5 minutes per PAT user (token). (DOCUMENTED)
+- **FR-018**: Rate-limit accounting MUST key on the TOKEN value, not
+  the config entry identifier. Two config entries using the same PAT
+  share one budget; entries with different PATs have independent
+  budgets. This integration is multi-account, so this distinction
+  matters.
+- **FR-019**: When a rate limit would be exceeded, the service MUST
+  reject the call immediately with a ServiceValidationError explaining
+  which limit applies (per-reservation or per-token) and approximately
+  when it will reset. It MUST NOT silently queue or retry.
+
+#### Read messages service
+
+- **FR-020**: The integration MUST expose a `get_messages` service
+  that issues `GET /reservations/{uuid}/messages` and returns the
+  message array. (CONFIRMED-BY-TEST)
+- **FR-021**: The service MUST use `SupportsResponse.ONLY`, meaning it
+  returns structured data and fires no event.
+- **FR-022**: The service MUST accept a reservation target as either
+  `entity_id` or `reservation_uuid` (exactly one required).
+- **FR-023**: If the endpoint paginates, the service MUST page through
+  all results. Whether this endpoint paginates is UNVERIFIED (only
+  `{data}` observed with 7 messages, no `meta`/`links`).
+- **FR-024**: Message bodies are personal data and MUST NOT be logged
+  at any level. The service returns them to the caller but the
+  integration itself never writes them to logs or diagnostics.
+
+#### Lookup services
+
+- **FR-025**: The integration MUST expose a `find_reservation` service
+  that returns reservation details for a given UUID, using
+  `SupportsResponse.ONLY`. Not-found is a return value
+  (`{"found": false, "reservation": null}`), not an exception.
+- **FR-026**: The integration MUST expose a `get_reservations` service
+  that returns reservations for a given property within the configured
+  window, using `SupportsResponse.ONLY`.
+- **FR-027**: The integration MUST expose a `get_property_info`
+  service that returns property details including listings and
+  co-hosts, using `SupportsResponse.ONLY`.
+- **FR-028**: All lookup services MUST handle not-found as a return
+  value (`{"found": false, ...}`), not as an exception. API failures
+  (network, auth, server errors) MUST raise HomeAssistantError.
+- **FR-029**: All lookup services MUST accept the optional
+  `config_entry_id` field for multi-entry disambiguation (FR-008).
+
+#### Task sensors
+
+- **FR-030**: The integration MUST poll `GET /tasks` with the
+  `properties[]` parameter set to the selected properties and MUST NOT
+  include date parameters (the endpoint does not require them and their
+  interaction is not verified). (CONFIRMED-BY-TEST: `properties[]`
+  required; bare call or dates-only → 400)
+- **FR-031**: The integration MUST paginate `/tasks` from day one.
+  A naive single-page fetch silently loses tasks. (CONFIRMED-BY-TEST:
+  164 tasks across 13 properties, `meta.last_page: 2`)
+- **FR-032**: The integration MUST expose per-property task sensors:
+  at minimum a next-task sensor (type, status, progress, scheduled
+  date) and a task-count sensor.
+- **FR-033**: Task type mapping MUST explicitly distinguish task_type
+  IDs from service_type IDs. These are two different enums:
+  Maintenance is task_type 5 but service_id 8. Conflating them would
+  silently mislabel maintenance tasks. (CONFIRMED-BY-TEST: meta
+  vocabularies show the divergence)
+- **FR-034**: The task coordinator MUST use a separate polling cadence
+  (configurable, default and floor TBD in planning) and MUST implement
+  failure isolation per D-15: a failure for one property MUST NOT
+  prevent other properties from updating.
+- **FR-035**: Task sensor data MUST include the assignment status and
+  progress status vocabularies from the `/tasks` meta response.
+  (CONFIRMED-BY-TEST: assignment_statuses and progress_statuses
+  enumerated in meta)
+
+#### Message presence sensors
+
+- **FR-036**: The integration MUST expose a `last_message_at` sensor
+  per property, derived from the `last_message_at` field on the
+  property's operationally relevant reservation. This field is already
+  present on the reservation payload and requires no additional API
+  call. (CONFIRMED-BY-TEST: `last_message_at` is one of 21 top-level
+  reservation keys)
+- **FR-037**: The integration MUST expose an unread-message indicator
+  sensor per property. The mechanism for determining "unread" is
+  UNVERIFIED — the reservation payload carries `last_message_at` and
+  the message objects carry `sender_type`, but no explicit "read" flag
+  has been observed. The implementation MUST document its heuristic
+  (e.g., last message has `sender_type: "guest"` more recently than
+  any host message).
+- **FR-038**: These sensors MUST derive from existing polled data and
+  MUST NOT issue additional API calls during the polling lifecycle.
+
+#### Guest identity on reservation entities
+
+- **FR-039**: The reservation status entity MUST expose `guest_name`
+  as an attribute when guest data is available on the reservation
+  payload. (CONFIRMED-BY-TEST: guest data available via
+  `include=` on reservations — spec 001 assumption table)
+- **FR-040**: The reservation status entity MAY expose additional
+  guest contact fields (email, phone) as attributes, subject to the
+  PII controls of FR-041 through FR-043.
+- **FR-041**: Guest names, email addresses, phone numbers, and message
+  content MUST NEVER appear in logs at any level. This extends spec 001
+  FR-062 and FR-073 to the new fields.
+- **FR-042**: Guest PII fields MUST be redacted from diagnostics
+  output. Diagnostics MUST show the presence of guest data (e.g.,
+  `"guest_name": "**REDACTED**"`) rather than omitting the field
+  entirely, so that troubleshooting can distinguish "field absent from
+  API" from "field present but redacted."
+- **FR-043**: Exposing guest PII as entity attributes is acceptable
+  because Home Assistant entity state is local to the instance and is
+  not transmitted externally by the integration. The spec 001 FR-073
+  redaction requirement applies to logs and diagnostics output, not to
+  entity state visible only within the user's own Home Assistant.
+
+#### Service input patterns
+
+- **FR-044**: Services that target a reservation MUST accept EITHER an
+  `entity_id` (from which the reservation UUID is read from entity
+  attributes) OR an explicit `reservation_uuid`. Exactly one MUST be
+  supplied; providing both or neither is a ServiceValidationError.
+- **FR-045**: `ServiceValidationError` MUST be used for
+  user-correctable problems (bad input, rate limit, disambiguation).
+  `HomeAssistantError` MUST be used for API failures (network, server
+  error, permanent capability limitation).
+
+### Key Entities
+
+- **Task**: A scheduled operational activity for a property (cleaning,
+  check-in, check-out, concierge, maintenance). Identified by a
+  numeric ID. Carries a task_type (1–5), a service_type/service_id
+  (1–8, NOT interchangeable with task_type), assignment_status,
+  progress_status, scheduled date, and property association.
+- **Message**: A single message in a reservation's conversation
+  thread. Identified by a numeric ID. Carries body, sender_type,
+  sender_role, sender object, created_at, content_type, attachments,
+  and conversation_id.
+- **Guest**: The person on a reservation. Exposed as attributes on the
+  reservation entity (name, optionally contact details). Personal data
+  subject to strict logging/diagnostics redaction.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: A user can send a guest message via service call and
+  receive an "accepted for delivery" response within 5 seconds under
+  normal network conditions.
+- **SC-002**: The polling lifecycle test (`test_no_writes.py`)
+  continues to pass with zero non-GET requests across setup, refresh,
+  options change, reload, and unload — proving that writes remain
+  confined to explicit service calls.
+- **SC-003**: An audit of all logs at every level and a full
+  diagnostics download finds zero occurrences of guest names, email
+  addresses, phone numbers, or message bodies unredacted.
+- **SC-004**: All `/tasks` pages are fetched without data loss — the
+  task count reported by sensors matches the total across all pages
+  returned by the API.
+- **SC-005**: Rate-limit enforcement prevents message sends from
+  exceeding the documented limits (2/min/reservation, 50/5min/token)
+  in 100% of test scenarios.
+- **SC-006**: Multi-entry disambiguation correctly auto-selects when
+  one entry exists and correctly rejects with an explanatory error when
+  multiple entries exist and no `config_entry_id` is provided.
+- **SC-007**: Lookup services return structured data within 10 seconds
+  and never fire events or produce side effects.
+- **SC-008**: Task sensors correctly label Maintenance tasks as
+  Maintenance (not as task_type-5's misleading service_id) in 100% of
+  cases.
+- **SC-009**: Guest name is visible as a reservation entity attribute
+  when present in the API response, and absent (not errored) when the
+  API does not include it.
+
+## Assumptions
+
+### About the platform
+
+- `POST /reservations/{uuid}/messages` returns HTTP 202 on success.
+  We have NEVER executed a POST against the live account. Everything
+  about send behaviour is DOCUMENTED, never CONFIRMED-BY-TEST.
+- The 202 response body shape (whether it returns `sent_reference_id`)
+  is UNVERIFIED.
+- Whether `GET /reservations/{uuid}/messages` paginates is UNVERIFIED
+  (only `{data}` observed with 7 messages; no `meta`/`links`).
+- Whether messaging requires a particular plan tier or scope beyond
+  what the owner's current token provides is UNVERIFIED.
+- The `/tasks` endpoint is reachable with a Personal Access Token
+  that has read permissions. (CONFIRMED-BY-TEST: 200 response
+  obtained)
+- `GET /tasks` requires `properties[]` and does NOT require dates.
+  (CONFIRMED-BY-TEST)
+- Task pagination is real and mandatory: 164 tasks across 2 pages
+  observed. (CONFIRMED-BY-TEST)
+- The task_type/service_type enum divergence (Maintenance = task_type
+  5 but service_id 8) is stable API behaviour, not a bug.
+  (CONFIRMED-BY-TEST)
+- `last_message_at` is present on the base reservation payload and
+  requires no additional include or API call. (CONFIRMED-BY-TEST)
+- The `conversation_id` field on reservations is stable and usable as
+  a thread key. (CONFIRMED-BY-TEST)
+- Co-host user_id is discoverable via
+  `GET /properties?include=listings` → `listings[].co_hosts[].user_id`.
+  (CONFIRMED-BY-TEST: 8 of 13 properties have co_hosts)
+- Platform census includes platforms not previously catalogued: `gvr`
+  (probable Google Vacation Rentals) and `manual`.
+  (CONFIRMED-BY-TEST)
+
+### About this integration
+
+- The existing service-package structure (`custom_components/
+  hospitable/services/`) is the correct location for service-call
+  handlers, distinct from the coordinator/sensor polling path.
+- `SupportsResponse.ONLY` is the correct response mode for lookup
+  services (return data, no event fired).
+- Rate-limit accounting must be per-token because the integration is
+  multi-account and two config entries can share a PAT.
+- The Hostaway reference integration's table-driven service
+  registration pattern is the proven approach to adopt.
+- Guest PII in entity attributes is acceptable because entity state is
+  instance-local. PII in logs/diagnostics is not.
+
+## Open Questions
+
+- **OQ-001 — Send response body shape (UNVERIFIED).** The exact JSON
+  shape of the HTTP 202 response from
+  `POST /reservations/{uuid}/messages` has never been observed. If it
+  contains `sent_reference_id`, that is the correlation handle for
+  delivery confirmation. This must be discovered during
+  implementation, ideally via a controlled test send to a test
+  reservation.
+- **OQ-002 — Message pagination (UNVERIFIED).** Whether
+  `GET /reservations/{uuid}/messages` paginates is unknown. Only 7
+  messages were observed in a single `{data}` envelope with no
+  `meta`/`links`. Long conversations may paginate. The implementation
+  must handle both cases.
+- **OQ-003 — Unread detection heuristic.** No explicit "read" or
+  "unread" flag has been observed on message objects or the reservation
+  payload. The unread indicator must use a heuristic (e.g., last
+  message sender_type is "guest" with no subsequent host message).
+  The chosen heuristic must be documented and may need user feedback.
+- **OQ-004 — Task polling cadence.** The appropriate default and floor
+  for task polling is not yet determined. Tasks change less frequently
+  than reservations but more frequently than properties. A default of
+  15–30 minutes is reasonable but must be validated in planning.
+- **OQ-005 — Messaging scope requirement (UNVERIFIED).** The exact
+  scope name required for sending messages is unknown. The owner's
+  token was created with read+write but the vendor does not enumerate
+  granted scopes. If a scope is required that the current token lacks,
+  messaging will fail at runtime with a 403.
+- **OQ-006 — Guest include on reservations.** Spec 001 noted
+  `include=guests` was a "no-op" on `/reservations` (returned 200,
+  no added keys). However, guest count data is on the base payload.
+  Whether guest *identity* (name, contact) requires a different include
+  or is already present without one must be confirmed during
+  implementation. (CONFIRMED-BY-TEST that guest counts are on base
+  payload; identity availability UNVERIFIED without include testing)
+
+## Out of Scope
+
+- **Webhooks for real-time message delivery confirmation.** Deferred
+  to the webhooks specification.
+- **Automated/scheduled message sending.** This spec provides the
+  service call; automation authors wire it into their own triggers.
+- **Message templates.** `/messages/templates` returned 404.
+  (CONFIRMED-BY-TEST: endpoint does not exist)
+- **Calendar writes.** Remain absolutely prohibited (spec 001 FR-059
+  continues to apply to calendar operations).
+- **Door codes and enrichment.** Remain out of scope (vendor-gated).
+- **OAuth.** Deferred as in spec 001.
+- **Review reading/responding.** Out of scope.
+- **Inquiry/pre-booking threads.** Out of scope.
+- **Team/teammate management.** Out of scope.
+- **Direct webhook registration via API.** No such endpoint exists.
+- **Image upload.** The `images` field accepts URIs; the integration
+  does not host or upload images itself.
+- **Delivery confirmation tracking.** Beyond reporting the 202
+  correlation ID (if available), the integration does not track
+  whether messages were ultimately delivered.
