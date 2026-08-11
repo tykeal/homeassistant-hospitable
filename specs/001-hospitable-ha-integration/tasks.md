@@ -895,27 +895,27 @@ red phase — T122 is the template for that.
 
 ### Tests for User Story 5
 
-- [ ] T117 [P] [US5] `tests/test_multi_entry.py`: set up FIVE config
+- [X] T117 [P] [US5] `tests/test_multi_entry.py`: set up FIVE config
       entries with distinct account namespaces and assert zero
       unique-ID collisions across the entity registry (SC-010).
       (FR-012, FR-055)
-- [ ] T118 [P] [US5] `tests/test_multi_entry_naming.py`: assert two
+- [X] T118 [P] [US5] `tests/test_multi_entry_naming.py`: assert two
       accounts owning identically named properties produce distinct
       unique IDs, distinct devices, and distinct suggested entity IDs.
       (FR-054, FR-055)
-- [ ] T119 [P] [US5] `tests/test_multi_entry_isolation.py`: assert one
+- [X] T119 [P] [US5] `tests/test_multi_entry_isolation.py`: assert one
       entry's authentication failure, rate-limit response, or poll
       failure does not disturb another entry's coordinators or
       entities. (FR-012)
-- [ ] T120 [P] [US5] `tests/test_duplicate_account.py`: assert adding a
+- [X] T120 [P] [US5] `tests/test_duplicate_account.py`: assert adding a
       second entry for an account already configured is ABORTED with
       an actionable message, while a different account is accepted.
       (FR-013)
-- [ ] T121 [P] [US5] `tests/test_reauth_account_match.py`: assert a
+- [X] T121 [P] [US5] `tests/test_reauth_account_match.py`: assert a
       reauth whose new token belongs to a DIFFERENT account is
       aborted rather than silently re-pointing the entry at another
       account. (FR-013, FR-014)
-- [ ] T122 [US5] **Conditional red phase.** If any of T117–T121
+- [X] T122 [US5] **Conditional red phase.** If any of T117–T121
       uncovers a genuine behavior gap rather than merely documenting
       existing behavior, convert the failing assertion into a proper
       red-phase commit — `xfail(raises=..., strict=True)`, deferred
