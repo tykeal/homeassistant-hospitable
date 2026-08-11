@@ -1,0 +1,48 @@
+{
+  "data": {
+    "days": [
+      {
+        "date": "2026-08-11",
+        "day": "TUESDAY",
+        "min_stay": 3,
+        "note": null,
+        "closed_for_checkin": false,
+        "closed_for_checkout": true,
+        "status": {
+          "reason": "RESERVED",
+          "source": null,
+          "source_type": "RESERVATION",
+          "available": false
+        },
+        "price": {
+          "amount": 12500,
+          "currency": "USD",
+          "formatted": "$125.00"
+        }
+      },
+      {
+        "date": "2026-08-12",
+        "day": "WEDNESDAY",
+        "min_stay": 3,
+        "note": null,
+        "closed_for_checkin": false,
+        "closed_for_checkout": false,
+        "status": {
+          "reason": "AVAILABLE",
+          "source": null,
+          "source_type": "PLATFORM",
+          "available": true
+        },
+        "price": {
+          "amount": 12500,
+          "currency": "USD",
+          "formatted": "$125.00"
+        }
+      }
+    ],
+    "start_date": "2026-08-11",
+    "end_date": "2026-08-12",
+    "listing_id": "listing-cosmetic-0002",
+    "provider": "airbnb-official"
+  }
+}
