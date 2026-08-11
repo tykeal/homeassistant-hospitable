@@ -1059,59 +1059,67 @@ dimension into the single-dimensional reservation enum.
 
 ### Tests for User Story 7 (RED-PHASE COMMIT) ⚠️
 
-- [ ] T136 [P] [US7] `tests/sensor/test_availability_states.py`: assert
+- [x] T136 [P] [US7] `tests/sensor/test_availability_states.py`: assert
       one availability sensor per property whose state is `available`,
       `booked`, or `unknown`, and that the literal `unavailable` is
       NEVER used as a state value for a booked night. (FR-058)
-- [ ] T137 [P] [US7] `tests/sensor/test_availability_pricing.py`:
+- [x] T137 [P] [US7] `tests/sensor/test_availability_pricing.py`:
       assert monetary values are held as INTEGER MINOR UNITS in the
       model and converted to a display value exactly ONCE, in the
       sensor layer, alongside the currency code. Assert no float
       arithmetic occurs before that point. (FR-060)
-- [ ] T138 [P] [US7] `tests/api/test_calendar.py`: assert
+- [x] T138 [P] [US7] `tests/api/test_calendar.py`: assert
       `GET /properties/{id}/calendar` sends `start_date` and
       `end_date` for the forward window, that `listing_id` is NEVER
       sent, and that `listing_id`/`provider` in the response are
       treated as cosmetic metadata — the response is an AGGREGATE
       across sales channels and is not scoped by them.
       (FR-058, FR-075)
-- [ ] T139 [P] [US7] `tests/test_calendar_coordinator.py`: assert the
+- [x] T139 [P] [US7] `tests/test_calendar_coordinator.py`: assert the
       calendar coordinator refreshes on the PROPERTY cadence (60-minute
       default, 15-minute floor) and that a failure fetching ONE
       property's calendar does not fail the others or the properties
       coordinator. (FR-061, FR-071)
-- [ ] T140 [P] [US7] `tests/test_no_writes.py`: a WHOLE-LIFECYCLE
+- [x] T140 [P] [US7] `tests/test_no_writes.py`: a WHOLE-LIFECYCLE
       assertion — set up, refresh every coordinator, change options,
       reload, and unload, then assert the `respx` router recorded ZERO
       requests whose method is not `GET`. Calendar data is read-only
       and no modification endpoint is reachable. (FR-059)
-- [ ] T141 [US7] Extend `tests/test_init.py`: assert
+- [x] T141 [US7] Extend `tests/test_init.py`: assert
       `async_setup_entry` now instantiates ALL THREE coordinators.
       (FR-071)
-- [ ] T142 [US7] Run `uv run pytest --runxfail` scoped to T136–T141 and
+- [x] T142 [US7] Run `uv run pytest --runxfail` scoped to T136–T141 and
       commit the red phase.
 
 ### Implementation for User Story 7 (GREEN-PHASE COMMIT)
 
-- [ ] T143 [P] [US7] Implement the calendar fetch path in
+- [x] T143 [P] [US7] Implement the calendar fetch path in
       `custom_components/hospitable/api/client.py` (or a dedicated
       `api/calendar.py` if the module split reads better) with no
       `listing_id` parameter. Satisfies T138. (FR-058, FR-075)
-- [ ] T144 [US7] Implement
+- [x] T144 [US7] Implement
       `custom_components/hospitable/sensor/availability.py` — enum
       state plus nightly rate attributes converted from minor units
       once. Satisfies T136, T137. (FR-058, FR-060)
-- [ ] T145 [US7] Wire the calendar coordinator into
+- [x] T145 [US7] Wire the calendar coordinator into
       `async_setup_entry` in `custom_components/hospitable/__init__.py`
       on the property cadence with per-property failure isolation.
       Satisfies T139, T141. (FR-061, FR-071)
-- [ ] T146 [US7] Add availability sensor names and state translations
+- [x] T146 [US7] Add availability sensor names and state translations
       to `strings.json` and `translations/en.json`, using "booked"
       rather than "unavailable". (FR-058, FR-064, FR-068)
-- [ ] T147 [US7] Sweep the diff for leftover markers and type-ignores
+- [x] T147 [US7] Sweep the diff for leftover markers and type-ignores
       from T136–T141; run the suite and mypy.
-- [ ] T148 [US7] Walk the US7 rows of `quickstart.md` and record the
+- [x] T148 [US7] Walk the US7 rows of `quickstart.md` and record the
       outcome.
+- [x] T163 [US7] Add per-property consecutive-failure tracking to
+      `HospitableCalendarCoordinator` so a property's availability sensor
+      degrades to `unavailable` after `MAX_CONSECUTIVE_FAILURES`
+      consecutive per-property calendar failures, while transient blips
+      retain last-good and recovery resets the counter. Reconciles both
+      halves of `research.md` D-15 (retain last-good AND degrade the
+      affected sensor); found by contract-versus-implementation review
+      of D-15. (FR-057, FR-061)
 
 **Exit criteria (US7)**: `booked` never rendered as `unavailable`;
 per-property calendar failure isolation proven; a full lifecycle

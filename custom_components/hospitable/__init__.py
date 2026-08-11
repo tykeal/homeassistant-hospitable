@@ -28,6 +28,7 @@ from custom_components.hospitable.const import (
     PLATFORMS as PLATFORMS,
 )
 from custom_components.hospitable.coordinator import (
+    HospitableCalendarCoordinator,
     HospitablePropertiesCoordinator,
     HospitableReservationsCoordinator,
 )
@@ -98,6 +99,19 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     )
     await reservations_coordinator.async_config_entry_first_refresh()
 
+    calendar_coordinator = HospitableCalendarCoordinator(
+        hass,
+        client,
+        property_ids=list(selected),
+        lookahead_days=entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT),
+        config_entry=entry,
+        interval_minutes=entry.options.get(CONF_PROPERTY_INTERVAL),
+    )
+    # Calendar data is supplementary, so a total failure must not block
+    # the whole entry: refresh without raising ConfigEntryNotReady. Its
+    # entities report unavailable until the next successful poll (FR-061).
+    await calendar_coordinator.async_refresh()
+
     for property_id in known:
         property_model = properties.get(property_id)
         registry.async_get_or_create(
@@ -113,6 +127,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         "coordinators": {
             "properties": properties_coordinator,
             "reservations": reservations_coordinator,
+            "calendar": calendar_coordinator,
         },
         "selected_property_ids": selected,
         "known_property_ids": known,

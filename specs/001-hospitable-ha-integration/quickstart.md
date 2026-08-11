@@ -305,6 +305,40 @@ The zero-writes assertion is the FR-059 proof. It is a whole-lifecycle
 assertion over the `respx` router rather than a review promise, because
 FR-059 is absolute.
 
+Outcome (implemented and verified in `feat/us7-availability`):
+
+- Open night today → `available`, carrying `nightly_rate` and
+  `currency` attributes. Verified by an end-to-end state-machine test.
+- Booked today → `booked`, and the entity is simultaneously asserted to
+  not be in Home Assistant's `unavailable` state, so a sold night is
+  never conflated with a broken integration.
+- Integer minor units → the model field is an `int` and the sensor is
+  the single conversion point via `minor_units_to_float`; a `6001`
+  minor-unit value renders exactly, guarding against early float
+  arithmetic.
+- Property cadence (60-minute default, 15-minute floor) confirmed.
+- One property's 500 leaves the survivors' data present and correct and
+  the properties coordinator's `last_update_success` and
+  `consecutive_failures` untouched. The failing property retains its
+  last-good calendar through two strikes and its availability sensor
+  degrades to `unavailable` on the third consecutive per-property
+  failure (D-15, FR-057), recovering when a fetch next succeeds.
+- Full lifecycle (setup, refresh every coordinator, options change,
+  reload, unload) records only `GET` requests.
+
+Known limitations:
+
+- Today the live API only reports `AVAILABLE`/`RESERVED`, so an
+  unavailable night that is a host block rather than a guest booking
+  maps to the honest `unknown` state, not `booked`. That defensive
+  branch is proven with a synthetic fixture carrying an unrecognised
+  reason; it exists to be correct if the vocabulary widens, not because
+  the value appears in production data today.
+- The nightly rate reflects the aggregate calendar across every sales
+  channel. The response `listing_id` and `provider` are cosmetic and are
+  never surfaced as a scope, so the rate must not be read as
+  channel-specific.
+
 ## Cross-cutting checks
 
 Run at the end of every phase.

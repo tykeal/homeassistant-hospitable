@@ -11,8 +11,10 @@ from typing import Any
 import httpx
 
 from custom_components.hospitable.api.auth import TokenProvider, build_auth_headers
+from custom_components.hospitable.api.calendar import build_calendar_params
 from custom_components.hospitable.api.const import (
     BASE_URL,
+    CALENDAR_PATH,
     PER_PAGE_MAX,
     PROPERTIES_PATH,
     RESERVATIONS_PATH,
@@ -30,6 +32,7 @@ from custom_components.hospitable.api.exceptions import (
 from custom_components.hospitable.api.models import (
     HospitableAccount,
     HospitableProperty,
+    HospitablePropertyCalendar,
     HospitableReservation,
 )
 from custom_components.hospitable.api.properties import build_properties_params
@@ -187,3 +190,23 @@ class HospitableApiClient:
                     break
                 page += 1
         return reservations
+
+    async def get_calendar(
+        self, property_id: str, start: date, end: date
+    ) -> HospitablePropertyCalendar:
+        """Return one property's aggregate forward calendar.
+
+        The response ``data`` is an object, not a list, so the list
+        envelope parser is intentionally not applied. ``listing_id`` is
+        never sent, and the cosmetic response ``listing_id``/``provider``
+        are ignored: parsing keys off the requested property id, which is
+        already the aggregate across every sales channel (FR-058, FR-075).
+        """
+        payload = await self._get(
+            CALENDAR_PATH.format(id=property_id),
+            params=build_calendar_params(start, end),
+        )
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            data = {}
+        return HospitablePropertyCalendar.from_api(property_id, data)
