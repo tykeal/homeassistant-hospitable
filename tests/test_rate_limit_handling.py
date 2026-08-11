@@ -114,3 +114,33 @@ async def test_persistent_repair_issue_clears_on_recovery(
 
     assert coordinator.last_update_success is True
     assert _domain_issues(hass) == []
+
+
+async def test_recovery_does_not_clear_other_coordinator_issue(
+    hass: Any, respx_router: Any
+) -> None:
+    """One coordinator's success leaves another's repair issue intact."""
+    from custom_components.hospitable.api.const import BASE_URL
+
+    entry = await _setup_loaded(hass, respx_router)
+    respx_router.get(f"{BASE_URL}/reservations").mock(
+        return_value=httpx.Response(500, json=load_fixture("error_500.json"))
+    )
+    reservations = entry.runtime_data["coordinators"]["reservations"]
+    for _ in range(3):
+        await reservations.async_refresh()
+    await hass.async_block_till_done()
+    assert len(_domain_issues(hass)) == 1
+
+    respx_router.get(f"{BASE_URL}/properties").mock(
+        side_effect=[
+            httpx.Response(200, json=load_fixture("properties_page1.json")),
+            httpx.Response(200, json=load_fixture("properties_page2.json")),
+        ]
+    )
+    properties = entry.runtime_data["coordinators"]["properties"]
+    await properties.async_refresh()
+    await hass.async_block_till_done()
+
+    assert properties.last_update_success is True
+    assert len(_domain_issues(hass)) == 1

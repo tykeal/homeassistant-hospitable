@@ -138,6 +138,18 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             exc.endpoint or self.name,
         )
 
+    def _issue_id(self, kind: str) -> str:
+        """Return a repair issue id namespaced to this coordinator.
+
+        Both the properties and reservations coordinators share an entry
+        id, so keying only on the entry would let one coordinator's
+        recovery clear a repair issue the other coordinator still owns.
+        The coordinator name disambiguates them.
+        """
+        assert self.config_entry is not None
+        slug = self.name.replace(" ", "_")
+        return f"{kind}_{slug}_{self.config_entry.entry_id}"
+
     def _create_repair_issue(self, kind: str, translation_key: str) -> None:
         """Register a repair issue naming the affected account."""
         if self.config_entry is None:
@@ -145,7 +157,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
         ir.async_create_issue(
             self.hass,
             DOMAIN,
-            f"{kind}_{self.config_entry.entry_id}",
+            self._issue_id(kind),
             is_fixable=False,
             severity=ir.IssueSeverity.ERROR,
             translation_key=translation_key,
@@ -162,9 +174,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
         if self.config_entry is None:
             return
         for kind in ("forbidden", "persistent"):
-            ir.async_delete_issue(
-                self.hass, DOMAIN, f"{kind}_{self.config_entry.entry_id}"
-            )
+            ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(kind))
 
     def _log_rate_limit_once(self, exc: HospitableRateLimitError) -> None:
         """Log a 429 as a transient throttle, recording any retry delay.
