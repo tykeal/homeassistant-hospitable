@@ -51,6 +51,27 @@ PROPERTY_INFO_ATTRIBUTES = (
 )
 
 
+def _soonest_future_instant(
+    raw_values: list[str | None], now: datetime
+) -> datetime | None:
+    """Return the soonest offset-aware instant strictly after ``now``.
+
+    Each raw value is parsed with :func:`parse_scheduled_instant`. A
+    value that is missing, unparsable, or naive (lacking a UTC offset)
+    is skipped rather than compared, because comparing a naive instant to
+    the aware ``now`` would raise ``TypeError`` and the contract requires
+    offset-aware scheduled instants.
+    """
+    future = []
+    for raw in raw_values:
+        instant = parse_scheduled_instant(raw)
+        if instant is None or instant.tzinfo is None:
+            continue
+        if instant > now:
+            future.append(instant)
+    return min(future) if future else None
+
+
 class _HospitablePropertyReservationEntity(HospitableEntity, SensorEntity):
     """Base for property sensors driven by reservation coordinator data."""
 
@@ -101,15 +122,14 @@ class HospitableNextArrivalSensor(_HospitablePropertyReservationEntity):
     def native_value(self) -> datetime | None:
         """Return the soonest future check-in instant, or ``None``."""
         now = dt_util.utcnow()
-        instants = [
-            parse_scheduled_instant(reservation.scheduled_checkin_raw)
-            for reservation in self._property_reservations()
-            if is_active(reservation)
-        ]
-        future = [
-            instant for instant in instants if instant is not None and instant > now
-        ]
-        return min(future) if future else None
+        return _soonest_future_instant(
+            [
+                reservation.scheduled_checkin_raw
+                for reservation in self._property_reservations()
+                if is_active(reservation)
+            ],
+            now,
+        )
 
 
 class HospitableNextDepartureSensor(_HospitablePropertyReservationEntity):
@@ -123,15 +143,14 @@ class HospitableNextDepartureSensor(_HospitablePropertyReservationEntity):
     def native_value(self) -> datetime | None:
         """Return the soonest future check-out instant, or ``None``."""
         now = dt_util.utcnow()
-        instants = [
-            parse_scheduled_instant(reservation.scheduled_checkout_raw)
-            for reservation in self._property_reservations()
-            if is_active(reservation)
-        ]
-        future = [
-            instant for instant in instants if instant is not None and instant > now
-        ]
-        return min(future) if future else None
+        return _soonest_future_instant(
+            [
+                reservation.scheduled_checkout_raw
+                for reservation in self._property_reservations()
+                if is_active(reservation)
+            ],
+            now,
+        )
 
 
 class HospitableUpcomingReservationsSensor(_HospitablePropertyReservationEntity):

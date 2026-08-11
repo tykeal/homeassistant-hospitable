@@ -137,6 +137,16 @@ def test_cancelled_future_reservation_is_not_next_arrival() -> None:
     assert departure.native_value is None
 
 
+def test_naive_scheduled_instant_is_skipped_not_crashing() -> None:
+    """An offset-less scheduled instant is skipped, not compared to now."""
+    reservation = _reservation("res-naive", "prop-example-001", 3, 5)
+    object.__setattr__(reservation, "scheduled_checkin_raw", "2999-01-01T16:00:00")
+    object.__setattr__(reservation, "scheduled_checkout_raw", "2999-01-01T11:00:00")
+    arrival, departure = _timestamp_sensors([reservation])
+    assert arrival.native_value is None
+    assert departure.native_value is None
+
+
 def _occupied_reservation(reservation_id: str, property_id: str) -> dict[str, Any]:
     """Build an accepted reservation arriving in the future for a property."""
     base = datetime.now(_ZONE).date()
