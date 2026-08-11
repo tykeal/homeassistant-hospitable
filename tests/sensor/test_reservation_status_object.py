@@ -167,6 +167,38 @@ def test_cancelled_excluded_by_is_forthcoming() -> None:
 
 
 @pytest.mark.xfail(
+    reason="Reservation sensor does not expose status_sub_category yet",
+    raises=KeyError,
+    strict=True,
+)
+def test_sensor_surfaces_sub_category_attribute() -> None:
+    """The reservation sensor exposes ``status_sub_category`` as an attribute."""
+    from types import SimpleNamespace
+    from typing import cast
+
+    from custom_components.hospitable.sensor.reservation import (
+        HospitableReservationSensor,
+    )
+
+    payload = _reservation_payload(
+        "res-obj-sub",
+        "prop-example-001",
+        arrival_offset=1,
+        departure_offset=3,
+        status=_object_status("not accepted", "declined"),
+    )
+    reservation = HospitableReservation.from_api(payload)
+    coordinator = SimpleNamespace(data=[reservation], consecutive_failures=0)
+    sensor = HospitableReservationSensor(
+        cast(Any, coordinator),
+        account_namespace="acct",
+        property_id="prop-example-001",
+        property_name="Example",
+    )
+    assert sensor.extra_state_attributes["status_sub_category"] == "declined"
+
+
+@pytest.mark.xfail(
     reason="classify_occupancy compares an aware now against a naive check_in",
     raises=TypeError,
     strict=True,
