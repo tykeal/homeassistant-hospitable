@@ -705,20 +705,28 @@ not exist — is an easy one to make from SDK-author prose.
 
 ### A-8: Reservations on unlisted listings
 
-**Tier**: LIKELY. **Governs**: OQ-004.
+**Tier**: UNANSWERABLE BY API DESIGN (OQ-004). **Governs**: OQ-004.
 
-A third party reports these are absent from the reservations endpoint.
-If true, a property could read as having no reservation in Home
-Assistant while Hospitable shows it booked. Nothing in the design can
-compensate, because the data would simply not be returned.
+The original third-party report claimed these are absent from the
+reservations endpoint. Live probing established (CONFIRMED-BY-TEST)
+that the question cannot be decided through the public API at all:
+`GET /reservations` without `properties[]` returns HTTP 400 with
+`"The properties field is required."`, `GET /listings` and
+`GET /properties/{id}/listings` both return 404, all 13 account
+properties report `listed: true`, and all 56 listings are surfaced via
+`GET /properties?include=listings`. Reservations therefore cannot be
+enumerated for a listing that is not already known, and no endpoint
+enumerates listings independently. The behavior is structurally
+undecidable, not merely untested.
 
-**Handling**: this is a documentation obligation, not a code one. The
-user-facing README must state the limitation once it is verified. A US3
-task records the verification step. Notably, the availability sensor
-from US7 reads the *aggregate* property calendar, which CONFIRMED
-includes bookings from every sales channel — so if OQ-004 is true, the
-availability sensor and the reservation sensor will disagree for such a
-property, and that disagreement is the detection signal.
+**Handling**: this remains a documentation obligation, not a code one,
+and that conclusion is now firmly established rather than provisional.
+The user-facing README (task T149) must state the limitation. Notably,
+the availability sensor from US7 reads the *aggregate* property
+calendar, which CONFIRMED includes bookings from every sales channel —
+so if such reservations exist, the availability sensor and the
+reservation sensor will disagree for such a property, and that
+disagreement is the only observable detection signal.
 
 ## Deferred scope: webhooks and OAuth
 

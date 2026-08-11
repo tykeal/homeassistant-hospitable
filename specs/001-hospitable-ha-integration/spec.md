@@ -1159,15 +1159,24 @@ uncertainty.
   integration still MUST NOT depend on server-side status filtering
   for correctness; complete status handling remains client-side after
   retrieval.
-- **OQ-004 — Reservations on unlisted listings (LIKELY, needs
-  verification).** A third party reports that reservations belonging
-  to unlisted or unpublished channel listings are absent entirely from
-  the reservations endpoint, despite appearing in Hospitable's own
-  calendar interface. If true, this is a data-completeness limitation
-  that users must be told about, because a property could appear
-  vacant in Home Assistant while Hospitable shows it as booked. This
-  must be verified and, if confirmed, documented in user-facing
-  documentation.
+- **OQ-004 — Reservations on unlisted listings (UNANSWERABLE BY API
+  DESIGN).** The question asked whether reservations exist against
+  listings that are not surfaced as properties, so that a property
+  could appear vacant in Home Assistant while Hospitable shows it
+  booked. Live probing established the following (CONFIRMED-BY-TEST):
+  `GET /reservations` without a `properties[]` parameter returns HTTP
+  400 with `"The properties field is required."`; `GET /listings`
+  returns 404; `GET /properties/{id}/listings` returns 404; all 13
+  properties on the account report `listed: true`; and all 56 listings
+  are surfaced via `GET /properties?include=listings`. These facts
+  together make the underlying question structurally undecidable
+  through the public API: reservations cannot be enumerated for a
+  listing that is not already known, because the reservations endpoint
+  refuses to answer without an explicit property list, and no endpoint
+  enumerates listings independently. This is not merely untested — it
+  is unanswerable by API design, and no further probing can resolve
+  it. It remains a documentation obligation: the user-facing README
+  (task T149) must carry this limitation.
 - **OQ-005 — Rate limiting (CONFIRMED absent, behavior UNVERIFIED).**
   No general numeric rate limit is published. Whether any rate-limit
   or retry-delay headers are returned at all, and under what
