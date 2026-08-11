@@ -438,7 +438,7 @@ diagnostics never contain the guest name unredacted.
   at minimum a next-task sensor (type, status, progress, scheduled
   date) and a task-count sensor.
 - **FR-033**: Task type mapping MUST explicitly distinguish task_type
-  IDs from service_type IDs. These are two different enums:
+  IDs from service_id values. These are two different enums:
   Maintenance is task_type 5 but service_id 8. Conflating them would
   silently mislabel maintenance tasks. (CONFIRMED-BY-TEST: meta
   vocabularies show the divergence)
@@ -507,7 +507,7 @@ diagnostics never contain the guest name unredacted.
 
 - **Task**: A scheduled operational activity for a property (cleaning,
   check-in, check-out, concierge, maintenance). Identified by a
-  numeric ID. Carries a task_type (1–5), a service_type/service_id
+  numeric ID. Carries a task_type (1–5), a service_id
   (1–8, NOT interchangeable with task_type), assignment_status,
   progress_status, scheduled date, and property association.
 - **Message**: A single message in a reservation's conversation
@@ -570,7 +570,7 @@ diagnostics never contain the guest name unredacted.
   (CONFIRMED-BY-TEST)
 - Task pagination is real and mandatory: 164 tasks across 2 pages
   observed. (CONFIRMED-BY-TEST)
-- The task_type/service_type enum divergence (Maintenance = task_type
+- The task_type/service_id enum divergence (Maintenance = task_type
   5 but service_id 8) is stable API behaviour, not a bug.
   (CONFIRMED-BY-TEST)
 - `last_message_at` is present on the base reservation payload and
