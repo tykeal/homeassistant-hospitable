@@ -1143,17 +1143,20 @@ uncertainty.
   automatically generates smart-lock codes for accepted reservations
   and documents that it "can only manage the codes it creates". How an
   API-set enrichment value would interact with, override, or conflict
-  with an account-generated code is entirely undocumented. This does
-  not affect the present specification, which writes nothing, but it
-  must be resolved before any future door-code specification is
-  written.
+  with an account-generated code is entirely undocumented. The
+  `/enrichment` endpoint returned HTTP 403 for the same reservation UUID
+  that returned HTTP 200 from `GET /reservations/{uuid}`, confirming a
+  vendor plan gate. This does not affect the present specification,
+  which writes nothing, and door codes are deferred to a future
+  specification.
 - **OQ-002 — Property timezone format (RESOLVED).** FR-074 depends on
   evaluating property-local day boundaries in a timezone that observes
   the property's daylight-saving rules. **Answer:** a live test against
-  a real account found that all ten properties returned `timezone` as
-  `-0700`, a fixed UTC offset rather than an IANA zone. That value is
-  DST-blind and possibly time-varying if the API renders the zone's
-  current offset, so it is strictly worse than either the Home
+  a real account found that the ten sampled properties from the
+  endpoint's default first page returned `timezone` as `-0700`, a fixed
+  UTC offset rather than an IANA zone. That value is DST-blind and
+  possibly time-varying if the API renders the zone's current offset,
+  so it is strictly worse than either the Home
   Assistant instance timezone or a user-supplied IANA override and is
   dropped from the design. Reservation occupancy instead uses the
   reservation's own offset-aware `check_in` and `check_out` timestamps.
@@ -1196,10 +1199,11 @@ uncertainty.
   found no `X-RateLimit-*` header and no `Retry-After`, so the design's
   tolerance of their absence on success is confirmed (see A-7). Whether
   a rate-limited HTTP 429 response carries `Retry-After`, and under what
-  conditions 429 is issued, remains unverified and will not be
-  deliberately triggered. The chosen defaults are conservative
-  precisely because there is nothing to calibrate against; they should
-  be revisited if Hospitable publishes limits or if observed behavior
+  conditions 429 is issued, remains unverified. The project
+  deliberately chose not to intentionally trigger a rate limit against a
+  production account. The chosen defaults are conservative precisely
+  because there is nothing to calibrate against; they should be
+  revisited if Hospitable publishes limits or if observed behavior
   provides evidence.
 - **OQ-006 — Insecure pagination links (CONFIRMED, permanence
   unknown).** Pagination link values are returned with an insecure
@@ -1210,20 +1214,24 @@ uncertainty.
 - **OQ-007 — Token expiry visibility (UNVERIFIED).** Personal Access
   Tokens expire after one year and Hospitable displays the expiry date
   in its interface, but it is unverified whether expiry is discoverable
-  through the API. If it is, the integration could warn ahead of
-  expiry instead of only reacting to rejection. If it is not, reactive
-  handling under FR-065 is the only option.
+  through the API. The live account's Personal Access Token was not
+  expired or revoked to observe the behavior. If expiry metadata is
+  available, the integration could warn ahead of expiry instead of only
+  reacting to rejection. If it is not, reactive handling under FR-065 is
+  the only option.
 - **OQ-008 — Reservation status category coverage (RESOLVED).** The
   published reservation status categories are known, but this question
   asked whether live data would reveal categories outside that list or
   a hidden checked-in category that would change FR-043 or FR-045.
-  **Answer:** a live census across 621 reservations in the window
-  2025-01-01 through 2026-12-31 found 480 accepted, 112 cancelled, 21
-  not accepted, and 8 checkpoint reservations. No categories outside
-  the documented six were observed, and no checked-in status was
-  observed. FR-043 still retains request and unknown because they are
-  documented categories; their absence from this one account is
-  absence of evidence, not evidence of absence.
+  **Answer:** a live current-status census across 652 reservations
+  found 504 accepted, 118 cancelled, 21 not accepted, and 9 checkpoint
+  reservations. No current categories outside the documented six were
+  observed, no current `request` or `unknown` category was observed,
+  and no checked-in status was observed. FR-043 still retains request
+  and unknown because they are documented categories; their absence from
+  this one account's current statuses is absence of evidence, not
+  evidence of absence. OQ-013 records the separate history finding for
+  `request`.
 - **OQ-009 — Stable account identifier (RESOLVED).** FR-013 and
   FR-055 both depend on the platform exposing a stable, immutable
   account identifier that a Personal Access Token can retrieve. This
@@ -1283,11 +1291,14 @@ uncertainty.
   access limitation rather than an unperformed test. No behavior in
   this specification depends on that array, which is why it is safe to
   leave open.
-- **OQ-013 — Request and unknown status occurrence (UNVERIFIED).** The
-  documented reservation categories include request and unknown, but a
-  621-reservation live census did not observe either one. They remain
-  in FR-043 because one account's absence of examples is not proof
-  that the platform cannot return them.
+- **OQ-013 — Request and unknown status occurrence (PARTIALLY
+  VERIFIED).** The documented reservation categories include request and
+  unknown. In a 652-reservation live census, `request` appeared 46 times
+  in status history but never as a current category, and `unknown` was
+  never observed anywhere. Handling for both remains defensive and
+  untested against real current-category data, so they remain in FR-043
+  because one account's absence of current examples is not proof that
+  the platform cannot return them.
 
 ## Out of Scope
 

@@ -660,9 +660,9 @@ absence of handling for an oversight.
 
 ### A-6: Unobserved reservation status categories
 
-**Tier**: CONFIRMED-BY-TEST (resolved). **Governs**: FR-043, OQ-013.
+**Tier**: PARTIALLY VERIFIED. **Governs**: FR-043, OQ-013.
 
-Resolved by a live census of every `reservation_status.current` and
+Assessed by a live census of every `reservation_status.current` and
 every `history` entry across 652 reservations. The `current` value is an
 object `{category, sub_category}`; the census of history entries was:
 
@@ -683,16 +683,19 @@ Findings:
 
 - `request` **never** appears as a *current* category but occurs 46
   times in `history`. It remains fully mapped and is exercised by a
-  synthetic fixture.
+  synthetic fixture, but the current-category path remains untested
+  against real `request` data.
 - `unknown` was **never** observed anywhere, as either a category or a
   sub_category. The `unknown` fallback in `StatusMapper` nonetheless
   **remains correct defensive behaviour** for an unrecognised future
   value and MUST NOT be removed: FR-048 requires mapping an unknown
-  category to `unknown`, logging once, and never raising.
+  category to `unknown`, logging once, and never raising. This path
+  remains defensive and untested against real `unknown` data.
 
 **Fallback**: none needed for the observed categories. The genuinely
 risky path remains a category *outside* the documented six, which FR-048
 covers: map to `unknown`, log once per distinct value, never raise.
+OQ-013 is therefore only partially verified, not fully resolved.
 
 ### A-6a: Flat status disagrees with the structured path
 
@@ -734,8 +737,9 @@ assumed, and the opposite mistake — designing a token-bucket against
 headers that may not exist — is confirmed as one correctly avoided. No
 code path requires these headers and no quota is hard-coded. What
 remains genuinely unknown is whether a rate-limited `429` response
-carries `Retry-After`; no `429` has been observed and one will not be
-deliberately triggered, so the defensive `Retry-After` parsing in
+carries `Retry-After`; no `429` has been observed. The project
+intentionally chose not to trigger a rate limit against a production
+account, so the defensive `Retry-After` parsing in
 `custom_components/hospitable/api/retry.py` stays and remains correct.
 
 ### A-8: Reservations on unlisted listings
