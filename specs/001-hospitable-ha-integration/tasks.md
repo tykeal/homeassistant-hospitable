@@ -1004,6 +1004,17 @@ and confirm it produces neither a reauth prompt nor a repair issue.
       message in `coordinator.py`. Surfaced by US5 isolation testing,
       which found httpx.ConnectError escaping the client unmapped and
       bypassing the error-to-outcome mapping. (FR-064, FR-065)
+- [x] T137 [US6] Stop 429 escalating to a repair issue and clear repair
+      issues on recovery in `coordinator.py`. Found by contract-versus-
+      implementation review: the blanket persistence check escalated 429
+      to an ERROR repair issue despite the contract characterising it as
+      self-resolving (SC-007), and repair issues outlived their
+      condition. (FR-064, FR-065)
+- [x] T138 [US6] Wire `retry_after` in
+      `custom_components/hospitable/api/client.py` by reading and parsing
+      the Retry-After header on a 429, tolerating its absence. Found by
+      contract-versus-implementation review: the documented field was
+      unconditionally None in production. (FR-064)
 
 **Exit criteria (US6)**: a revoked token produces an actionable reauth
 prompt within one interval; a scope-403 produces neither reauth nor a
