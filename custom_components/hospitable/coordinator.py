@@ -106,21 +106,22 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
 
         A scope-403 means the credential cannot reach a capability; it is
         not an authentication failure, so it triggers neither reauth nor a
-        repair issue. The affected data is simply omitted.
+        repair issue. The coordinator is not marked as failing and retains
+        its last-known values (FR-057).
         """
         if self._logged_scope_limitation:
             return
         self._logged_scope_limitation = True
         _LOGGER.warning(
             "Hospitable capability is unavailable for this credential type "
-            "on %s; the affected data will be omitted. No action is needed "
-            "unless you expect this capability, in which case use a "
-            "credential that grants it",
+            "on %s; retaining last-known values. No action is needed unless "
+            "you expect this capability, in which case use a credential that "
+            "grants it",
             exc.endpoint or self.name,
         )
 
     def _create_repair_issue(self, kind: str, translation_key: str) -> None:
-        """Raise a persistent repair issue naming the affected account."""
+        """Register a repair issue naming the affected account."""
         if self.config_entry is None:
             return
         ir.async_create_issue(
