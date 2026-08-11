@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import issue_registry as ir
@@ -144,3 +145,72 @@ async def test_recovery_does_not_clear_other_coordinator_issue(
 
     assert properties.last_update_success is True
     assert len(_domain_issues(hass)) == 1
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=True,
+    reason="TDD red phase T139: rate-limit log fires on every 429, not once",
+)
+async def test_rate_limit_logs_once_per_episode(
+    hass: Any, respx_router: Any, caplog: Any
+) -> None:
+    """A sustained throttle logs a single warning, not one per poll."""
+    import logging
+
+    from custom_components.hospitable.api.const import BASE_URL
+
+    entry = await _setup_loaded(hass, respx_router)
+    respx_router.get(f"{BASE_URL}/reservations").mock(
+        return_value=httpx.Response(429, json={"message": "Too Many Requests"})
+    )
+    coordinator = entry.runtime_data["coordinators"]["reservations"]
+
+    with caplog.at_level(
+        logging.WARNING, logger="custom_components.hospitable.coordinator"
+    ):
+        await coordinator.async_refresh()
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+    throttle_logs = [
+        r for r in caplog.records if "retrying on the next poll" in r.getMessage()
+    ]
+    assert len(throttle_logs) == 1
+
+
+async def test_rate_limit_logs_again_after_recovery(
+    hass: Any, respx_router: Any, caplog: Any
+) -> None:
+    """A new throttle after a recovery logs again, never staying silent."""
+    import logging
+
+    from custom_components.hospitable.api.const import BASE_URL
+
+    entry = await _setup_loaded(hass, respx_router)
+    coordinator = entry.runtime_data["coordinators"]["reservations"]
+
+    with caplog.at_level(
+        logging.WARNING, logger="custom_components.hospitable.coordinator"
+    ):
+        respx_router.get(f"{BASE_URL}/reservations").mock(
+            return_value=httpx.Response(429, json={"message": "Too Many Requests"})
+        )
+        await coordinator.async_refresh()
+        respx_router.get(f"{BASE_URL}/reservations").mock(
+            return_value=httpx.Response(
+                200, json=load_fixture("reservations_page1.json")
+            )
+        )
+        await coordinator.async_refresh()
+        respx_router.get(f"{BASE_URL}/reservations").mock(
+            return_value=httpx.Response(429, json={"message": "Too Many Requests"})
+        )
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+    throttle_logs = [
+        r for r in caplog.records if "retrying on the next poll" in r.getMessage()
+    ]
+    assert coordinator.last_update_success is False
+    assert len(throttle_logs) == 2
