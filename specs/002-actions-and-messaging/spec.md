@@ -226,7 +226,7 @@ guest.
    set, **When** the reservation coordinator polls, **Then** the
    property's last-message-at sensor reports that timestamp.
 2. **Given** a property with no active reservation or no messages,
-   **When** the coordinator polls, **Then** the last-message-at
+   **When** the reservation coordinator polls, **Then** the last-message-at
    sensor reports no value rather than becoming unavailable.
 3. **Given** the awaiting-host-reply option is enabled, **When** the
    most recent message in a reservation thread has `sender_type`
