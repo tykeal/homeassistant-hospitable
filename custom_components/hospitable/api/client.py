@@ -49,6 +49,7 @@ from custom_components.hospitable.api.reservations import (
 from custom_components.hospitable.api.responses import (
     assert_include,
     parse_error_envelope,
+    resolve_last_page,
     validate_list_envelope,
 )
 from custom_components.hospitable.api.retry import parse_retry_after
@@ -248,9 +249,7 @@ class HospitableApiClient:
             items = validate_list_envelope(payload, expected_page=page)
             assert_include(items, "listings", endpoint=PROPERTIES_PATH)
             payloads.extend(items)
-            meta = payload.get("meta", {})
-            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
-            if page >= int(last_page):
+            if page >= resolve_last_page(payload, page):
                 break
             page += 1
         return payloads
@@ -291,11 +290,7 @@ class HospitableApiClient:
                 for key in wanted:
                     assert_include(items, key, endpoint=RESERVATIONS_PATH)
                 payloads.extend(items)
-                meta = payload.get("meta", {})
-                last_page = (
-                    meta.get("last_page", page) if isinstance(meta, dict) else page
-                )
-                if page >= int(last_page):
+                if page >= resolve_last_page(payload, page):
                     break
                 page += 1
         return payloads
@@ -318,9 +313,7 @@ class HospitableApiClient:
             for item in items:
                 model = HospitableProperty.from_api(item)
                 properties[model.property_id] = model
-            meta = payload.get("meta", {})
-            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
-            if page >= int(last_page):
+            if page >= resolve_last_page(payload, page):
                 break
             page += 1
         return properties
@@ -351,11 +344,7 @@ class HospitableApiClient:
                         and start <= model.arrival_date <= end
                     ):
                         reservations.append(model)
-                meta = payload.get("meta", {})
-                last_page = (
-                    meta.get("last_page", page) if isinstance(meta, dict) else page
-                )
-                if page >= int(last_page):
+                if page >= resolve_last_page(payload, page):
                     break
                 page += 1
         return reservations
@@ -395,9 +384,7 @@ class HospitableApiClient:
             # table, so labels match the account's own configuration.
             vocabularies = TaskVocabularies.from_meta(payload.get("meta"))
             tasks.extend(HospitableTask.from_api(item, vocabularies) for item in items)
-            meta = payload.get("meta", {})
-            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
-            if page >= int(last_page):
+            if page >= resolve_last_page(payload, page):
                 break
             page += 1
         return tasks

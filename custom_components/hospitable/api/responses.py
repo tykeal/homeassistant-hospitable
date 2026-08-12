@@ -81,3 +81,32 @@ def parse_error_envelope(payload: Any) -> ErrorEnvelope:
         reason_phrase=str(raw_reason) if raw_reason is not None else None,
         errors=errors,
     )
+
+
+def resolve_last_page(payload: Any, current_page: int) -> int:
+    """Return a response's last page number, tolerating a bad value.
+
+    ``int(meta["last_page"])`` raises on a null or non-numeric value,
+    which would abort a whole poll over a cosmetic metadata defect. A
+    value that cannot be read is treated as "this is the last page", so
+    the pages already fetched are still returned.
+
+    Args:
+        payload: The decoded response envelope.
+        current_page: The page number just fetched.
+
+    Returns:
+        The last page number, never below ``current_page``.
+    """
+    meta = payload.get("meta") if isinstance(payload, dict) else None
+    if not isinstance(meta, dict):
+        return current_page
+    raw = meta.get("last_page")
+    if isinstance(raw, bool) or not isinstance(raw, (int, str)):
+        return current_page
+    try:
+        return max(current_page, int(raw))
+    except ValueError:
+        # ``raw`` is narrowed to int or str above, so a non-numeric
+        # string is the only remaining way this can fail.
+        return current_page

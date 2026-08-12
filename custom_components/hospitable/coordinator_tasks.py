@@ -9,6 +9,7 @@ are imported from it unchanged.
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -25,6 +26,8 @@ from custom_components.hospitable.const import (
     MIN_TASK_INTERVAL,
 )
 from custom_components.hospitable.coordinator import HospitableDataUpdateCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class HospitableTasksCoordinator(
@@ -115,8 +118,18 @@ class HospitableTasksCoordinator(
             try:
                 tasks = await self._client.get_tasks(property_id, today, end)
             except HospitableError as exc:
-                self._property_failures[property_id] = (
-                    self._property_failures.get(property_id, 0) + 1
+                strikes = self._property_failures.get(property_id, 0) + 1
+                self._property_failures[property_id] = strikes
+                # Retaining last-good data must not make the failure
+                # invisible: without this, a property whose sensors went
+                # stale while its neighbours kept updating would leave no
+                # trace to diagnose from.
+                _LOGGER.debug(
+                    "Hospitable task fetch failed for property %s "
+                    "(%s consecutive); retaining last-known tasks: %s",
+                    property_id,
+                    strikes,
+                    exc,
                 )
                 last_error = exc
                 continue

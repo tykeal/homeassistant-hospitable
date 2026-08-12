@@ -141,6 +141,7 @@ class HospitableOptionsFlow(OptionsFlow):
                 options[CONF_RESERVATION_INTERVAL], DEFAULT_RESERVATION_INTERVAL
             ),
             self._last_reservation_count(),
+            _safe_interval(options[CONF_TASK_INTERVAL], DEFAULT_TASK_INTERVAL),
         )
         return self.async_show_form(
             step_id="init",

@@ -321,3 +321,30 @@ async def test_task_types_and_service_types_are_never_interchanged(
     )
     # The service label comes from service_id 8, not from task_type 5.
     assert maintenance.service_type_label == "Maintenance"
+
+
+async def test_a_malformed_last_page_does_not_abort_the_poll(
+    api_client_factory: Any,
+    mock_httpx_client: Any,
+    respx_router: Any,
+    synthetic_token: str,
+) -> None:
+    """A null ``meta.last_page`` still yields the page already fetched.
+
+    ``int(None)`` raises, which would turn a cosmetic metadata defect
+    into a total polling outage. An unreadable page count is treated as
+    "this is the last page" instead, so the tasks already retrieved are
+    still returned.
+    """
+    from custom_components.hospitable.api.const import BASE_URL
+
+    payload = tasks_page("tasks_page1.json", PROPERTY_A)
+    payload["meta"]["last_page"] = None
+    client = api_client_factory(mock_httpx_client, synthetic_token)
+    respx_router.get(f"{BASE_URL}/tasks").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+
+    tasks = await client.get_tasks(PROPERTY_A, date(2026, 8, 12), date(2026, 8, 26))
+
+    assert len(tasks) == 2, "the fetched page was discarded over bad metadata"
