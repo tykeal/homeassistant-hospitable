@@ -40,8 +40,9 @@ directly, and the exact bound of what was observed is stated with it.
 | D-11 | Guest attributes as unrecorded | FR-039e, FR-042 |
 | D-12 | PII redaction for guest and message fields | FR-041, FR-042, FR-024 |
 | D-13 | Task type vs service_id explicit mapping | FR-033, FR-035 |
-| D-14 | `SupportsResponse.ONLY` on all services including send | FR-021, FR-025 to FR-027 |
+| D-14 | `SupportsResponse.ONLY` on all services including send | FR-011a, FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
+| D-16 | Single response-builder chokepoint for guest and sender PII | FR-046, FR-047, FR-047a, FR-048 |
 
 ## D-01: Write isolation via module path {#d-01}
 
@@ -213,17 +214,28 @@ behavior).
 
 **Rationale**: Tasks change less frequently than reservations (which
 default to 5 minutes) but more frequently than properties (60
-minutes). A 15-minute default is conservative for API economy: with
-13 properties and 2 pages per poll, that is 26 requests per 15
-minutes = 104 requests/hour = 2,496 requests/day at the reference
-account scale. The 5-minute floor allows users who need faster task
-updates (e.g., for cleaning crew coordination) to tighten it at the
-cost of ~7,488 requests/day for tasks alone — acceptable but worth
-documenting.
+minutes).
+
+The poll fans out to one request per property (FR-030), so a 15-minute
+default costs 13 requests per poll at reference scale — 52 per hour,
+1,248 per day — plus one extra request for any property deep enough to
+paginate. The 5-minute floor triples that to ~3,744 requests/day for
+tasks alone, which is acceptable but worth documenting.
+
+`/tasks` publishes no rate limit and returns no `x-ratelimit-*` or
+`retry-after` headers (CONFIRMED-BY-TEST), which is what makes fan-out
+affordable. The per-property failure isolation it buys is worth far
+more than the saved requests: a batched call has one outcome for all 13
+properties, so a single failure blanks every task sensor at once.
+
+An earlier revision of this decision quoted 2,496 requests/day from
+"13 properties and 2 pages per poll". That arithmetic was wrong for the
+batched design it described — a batched poll of 2 pages is 2 requests,
+not 26 — and the corrected fan-out figures above supersede it.
 
 For comparison, spec 001's reservation coordinator at default 5
 minutes with 13 properties costs ~1,704 requests/day. Adding tasks at
-15 minutes adds ~2,496, keeping the combined total under 5,000/day at
+15 minutes adds ~1,248, keeping the combined total near 3,000/day at
 reference scale.
 
 **Alternatives considered**:
@@ -231,7 +243,12 @@ reference scale.
 - *30 minutes*: Too slow for cleaning coordination use cases where a
   manager wants near-real-time task progress.
 - *5 minutes (same as reservations)*: Wasteful. Tasks rarely change
-  within 5 minutes and the endpoint is 2 pages deep.
+  within 5 minutes.
+- *One batched request naming every property*: Rejected. It is cheaper
+  (2 requests per poll rather than 13) but it destroys per-property
+  failure isolation, which FR-034 requires and which spec 001 D-15
+  establishes as the house pattern. The saving is not worth the
+  coupling on an endpoint with no published rate limit.
 - *10 minutes*: Reasonable but 15 gives better economy with
   acceptable latency for the typical use case.
 - *Sharing the reservation interval*: Rejected. Tasks and
@@ -260,8 +277,9 @@ parameter via comma-separation costs zero additional requests and
 enriches the payload with guest data for FR-039/FR-039a attributes.
 Population is good (29/29 non-null guest objects, first_name 29/29).
 
-**Post-condition (FR-075)**: Because unrecognised include names are
-silently ignored (silent-ignore behaviour #4), the implementation
+**Post-condition (spec 001 FR-075)**: Because unrecognised include
+names are silently ignored — one of the silent-ignore behaviours spec
+001 FR-075 enumerates — the implementation
 MUST assert the `guest` key is actually present on every response
 item. A missing key when `include=guest` was requested raises
 `HospitableIncludeMissingError`. This is the same pattern applied to
@@ -460,19 +478,27 @@ observation.
 `SupportsResponse.ONLY` — it returns the acceptance result as
 structured data.
 
-**Rationale**: FR-021 specifies ONLY for lookups. For `send_message`,
-ONLY is also appropriate because the caller needs the acceptance
-confirmation (and optional `sent_reference_id`) as structured data.
-There is no use case for firing an event on send — the caller already
-has the result.
+**Rationale**: each service's response mode rests on its own
+requirement, and the citations must not be widened past their scope.
+FR-021 specifies ONLY for `get_messages` alone. The three lookup
+services carry it individually in FR-025, FR-026, and FR-027. An
+earlier revision of this decision cited FR-021 for "lookups"
+generally, which FR-021 does not say.
+
+For `send_message`, FR-011a is the governing requirement. ONLY is
+appropriate there because the caller needs the acceptance confirmation
+(and any correlation identifier) as structured data. There is no use
+case for firing an event on send — the caller already has the
+result.
 
 **Revision from initial consideration**: Initially considered
 `SupportsResponse.OPTIONAL` for send_message (to allow fire-and-forget
 from automations that do not need the response). Rejected because
 FR-011 requires reporting "accepted for delivery" — if the automation
 does not consume the response, it has no way to know acceptance
-occurred. `ONLY` forces the caller to handle the response, which is
-the correct contract for a write operation.
+occurred. FR-011a records that conclusion as a requirement. `ONLY`
+forces the caller to handle the response, which is the correct
+contract for a write operation.
 
 ## D-15: No event firing, no OPTIONAL response mode {#d-15}
 
@@ -505,3 +531,55 @@ remain DOCUMENTED and UNVERIFIED so the tiers are not blurred.
 | A-05b | Reads and writes may or may not share one per-reservation bucket | UNVERIFIED and untestable without a real send (OQ-007) | Assert neither; 60s fetch floor leaves one slot free, and send treats 429 as retryable-with-backoff |
 | A-06 | `sender_id` is Airbnb-only | DOCUMENTED | Reject client-side for non-Airbnb reservations |
 | A-07 | Task vocabularies in `meta` are stable | CONFIRMED-BY-TEST (structure) | Fall back to hard-coded map if meta absent |
+
+## D-16: Single response-builder chokepoint for PII {#d-16}
+
+**Decision**: One shared serialiser — `actions/response.py` — is the
+only code that converts an upstream reservation, guest, or message
+payload into a service response. It strips `profile_picture`
+unconditionally, strips `email` and `phone_numbers` unless the
+guest-contact-details option is enabled on the config entry serving the
+call, strips the opaque message `sender` object unconditionally, and
+emits an explicit ALLOWLIST of keys so that an unrecognised upstream key
+is dropped rather than passed through. Every handler returns the output
+of this serialiser; no handler serialises a payload itself.
+
+**Why this decision exists**: the analyze gate found that
+`find_reservation` and `get_reservations` were specified to return the
+raw reservation payload "with guest". The guest object carries
+`profile_picture`, `email`, and `phone_numbers`. FR-039c and FR-039d
+appeared to cover this, but both were written in terms of ENTITY
+ATTRIBUTES, so neither reached the service-response surface. No
+requirement and no task constrained what a service returned. The defect
+was not a missing control; it was a control scoped to the wrong
+surface — which is why it looked covered and was not, and why no CI
+gate could have caught it. FR-046 states the general principle so the
+same shape is recognisable next time.
+
+**Why a chokepoint rather than per-handler filtering**: per-handler
+filtering is correct exactly as long as every author remembers it. The
+defect being fixed here is a forgetting defect, so the fix must not
+depend on remembering. A single serialiser means a sixth service added
+in a later specification inherits the filter by construction, and the
+red-phase test enumerates registered services rather than a hard-coded
+list, so a new service that bypasses the serialiser fails the audit.
+
+**Why an allowlist rather than a denylist**: a denylist protects only
+the keys known when it was written. Hospitable adds keys silently — the
+`guest` include itself was discovered late — so a denylist would leak
+the next PII field by default. The allowlist is `first_name`,
+`last_name`, `location`, `language`, plus `email` and `phone_numbers`
+when the option is on.
+
+**Alternatives considered**:
+
+- *Return the raw payload and document the risk*: Rejected. Service
+  responses appear in automation traces and template debug output; the
+  user cannot opt out of a payload they did not ask for.
+- *Gate the whole of `find_reservation` behind the contact-details
+  option*: Rejected. Names and dates are the useful part and carry no
+  contact exposure; gating everything would push users to enable the
+  contact option for unrelated reasons, which is the opposite of the
+  intent.
+- *Filter in the schema layer*: Rejected. Voluptuous schemas validate
+  service INPUT. The response path does not pass through them.

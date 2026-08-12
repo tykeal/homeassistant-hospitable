@@ -131,6 +131,21 @@ from `actions/` or `api.write_client`.
 uv run pytest tests/test_no_writes.py::test_write_module_not_imported_by_polling_code -v
 ```
 
+### VS-11: Service-response PII audit
+
+**Purpose**: Prove SC-003a — service responses honour the same guest
+privacy policy as entity attributes. A control scoped to the attribute
+surface does not reach this one (FR-046).
+
+```shell
+uv run pytest tests/actions/test_response_privacy.py -v
+```
+
+**Expected**: `profile_picture` absent from every service response
+under every option combination; the raw message `sender` object absent;
+`email` and `phone_numbers` absent with the guest-contact-details
+option OFF and present with it ON.
+
 ## Full suite
 
 ```shell

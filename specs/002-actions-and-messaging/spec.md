@@ -270,10 +270,15 @@ diagnostics never contain the guest name unredacted.
    output is audited, **Then** no guest field (`first_name`,
    `last_name`, `email`, `phone_numbers`, `location`, `language`,
    `profile_picture`) is present unredacted.
-5. **Given** the `guest` object is null on a reservation, **When** the
+5. **Given** any service call that returns a reservation or a message
+   thread, **When** its response is audited, **Then** `profile_picture`
+   is absent unconditionally, and `email` and `phone_numbers` are
+   absent unless the guest-contact-details option is enabled
+   (FR-046, FR-047).
+6. **Given** the `guest` object is null on a reservation, **When** the
    entity updates, **Then** guest attributes report no value rather
    than raising or becoming unavailable.
-6. **Given** any guest attribute, **When** Home Assistant writes state
+7. **Given** any guest attribute, **When** Home Assistant writes state
    to the recorder database, **Then** the attribute is NOT persisted
    (marked unrecorded).
 
@@ -288,9 +293,12 @@ diagnostics never contain the guest name unredacted.
   than expected.** Multi-entry disambiguation requires
   `config_entry_id` when ambiguous.
 - **The `/tasks` endpoint returns an error for one property in a
-  multi-property account.** Task sensor for that property becomes
-  unavailable; other properties are unaffected (D-15 failure
-  isolation).
+  multi-property account.** Because the poll fans out to one request
+  per property (FR-030), only that property's request fails. Its task
+  sensors retain their last-good values rather than being wiped, and
+  every other property updates normally. (Spec 001 D-15 failure
+  isolation, applied per property exactly as the calendar coordinator
+  applies it.)
 - **A message send returns HTTP 422.** The error is surfaced as a
   HomeAssistantError with the validation detail from the response.
 - **Rate limit hit mid-automation.** The service returns an error; it
@@ -301,7 +309,8 @@ diagnostics never contain the guest name unredacted.
   mislabel maintenance as something else. The mapping must be
   explicit.
 - **`GET /tasks` called without `properties[]`.** Returns HTTP 400.
-  The integration must ALWAYS include `properties[]` and MUST NOT
+  The integration must ALWAYS include `properties[]` — with exactly
+  one property per request under the FR-030 fan-out — and MUST NOT
   include date parameters (they are not required and their interaction
   with the response is not verified).
 - **Message thread arrives unpaginated.** The messages endpoint
@@ -328,8 +337,8 @@ diagnostics never contain the guest name unredacted.
   client-side with ServiceValidationError before any API call.
 - **`last_message_at` is null on a reservation.** The sensor reports
   no value.
-- **Guest data is absent.** The `include=` response key check (FR-075
-  from spec 001) applies. Guest attributes report no value.
+- **Guest data is absent.** The `include=` response key check (spec 001
+  FR-075) applies. Guest attributes report no value.
 
 ## Requirements *(mandatory)*
 
@@ -340,9 +349,22 @@ diagnostics never contain the guest name unredacted.
 - **FR-001**: No write request (POST, PUT, PATCH, DELETE) may
   originate from a coordinator refresh, a sensor update, integration
   setup, reload, or unload. Writes occur ONLY in direct response to a
-  user-invoked Home Assistant service call. This replaces the absolute
-  prohibition of spec 001 FR-059 with a narrowed boundary and is
-  NON-NEGOTIABLE.
+  user-invoked Home Assistant service call. This is NON-NEGOTIABLE.
+
+  What this narrows is spec 001's GLOBAL read-only rule, recorded in
+  its `contracts/upstream-requests.md` global-rules table as "No write
+  request of any kind is issued". That rule is replaced by the
+  lifecycle-scoped boundary above; spec 002's own
+  [contracts/upstream-requests.md](contracts/upstream-requests.md)
+  states the replacement text.
+
+  It does NOT narrow spec 001 FR-059, which is calendar-modification
+  only ("MUST NOT issue any calendar modification request ... under any
+  circumstance"). FR-059 survives this spec untouched and absolute; see
+  the Out of Scope entry for calendar writes. The two rules coexist:
+  the global rule becomes "no write from the polling lifecycle", while
+  the calendar-specific rule remains "no calendar write, ever, from
+  anywhere".
 - **FR-002**: The existing `test_no_writes.py` MUST be preserved in
   narrowed form. It MUST continue to assert that every request
   captured during the polling lifecycle (setup → coordinator refresh →
@@ -388,6 +410,15 @@ diagnostics never contain the guest name unredacted.
   delivery" and MUST NOT claim "message sent" or "delivered". HTTP 202
   means the API queued the message; delivery is asynchronous and
   unconfirmed. (DOCUMENTED)
+- **FR-011a**: The `send_message` service MUST use
+  `SupportsResponse.ONLY`. It returns the acceptance result as
+  structured data and fires no event. `ONLY` rather than `OPTIONAL` is
+  deliberate: FR-011 requires the caller to be told the message was
+  accepted for delivery, and a caller that never reads the response
+  has no other way to learn that. This requirement exists so
+  `send_message`'s response mode rests on a requirement of its own
+  rather than borrowing FR-021, which is scoped to `get_messages`.
+  (research.md D-14)
 - **FR-012**: If the 202 response body contains a `sent_reference_id`
   or equivalent correlation identifier, the service MUST return it to
   the caller. The exact shape of the 202 response body is UNVERIFIED.
@@ -395,6 +426,28 @@ diagnostics never contain the guest name unredacted.
   reservations with a ServiceValidationError before issuing any API
   call. `sender_id` is only supported for Airbnb reservations.
   (DOCUMENTED)
+
+  Platform resolution is defined as follows, and MUST NOT be left to
+  implementer discretion:
+
+  - If `sender_id` is NOT supplied, the reservation's platform is not
+    needed and MUST NOT be resolved. No extra request is made.
+  - If `sender_id` IS supplied and the reservation is present in the
+    reservation coordinator's cache, the platform is read from the
+    cached reservation's existing `channel` field, which already holds
+    the upstream `platform` value. No extra request is made.
+  - If `sender_id` IS supplied and the reservation is NOT cached, the
+    service MUST issue exactly ONE direct `GET /reservations/{uuid}`
+    to resolve the platform. This is a read from a service-call
+    handler, which FR-001 permits.
+  - If the platform cannot be resolved for any reason — the lookup
+    fails, the reservation is not found, or the value is null — the
+    service MUST raise `ServiceValidationError` and MUST NOT issue the
+    POST.
+  - The check MUST NEVER be silently skipped. Skipping it on an
+    unresolved platform would let a `sender_id` reach the API on a
+    non-Airbnb reservation, which is exactly what this requirement
+    forbids. Unresolved means reject, not proceed.
 - **FR-014**: The service MUST validate image count (max 3) locally
   before issuing the API call. (DOCUMENTED)
 - **FR-015**: The service MUST handle documented error responses:
@@ -513,13 +566,30 @@ diagnostics never contain the guest name unredacted.
 #### Task sensors
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
-  `properties[]` parameter set to the selected properties and MUST NOT
-  include date parameters (the endpoint does not require them and their
-  interaction is not verified). (CONFIRMED-BY-TEST: `properties[]`
-  required; bare call or dates-only → 400)
+  `properties[]` parameter and MUST NOT include date parameters (the
+  endpoint does not require them and their interaction is not
+  verified). (CONFIRMED-BY-TEST: `properties[]` required; bare call or
+  dates-only → 400)
+  The poll MUST FAN OUT: exactly ONE request per selected property,
+  each carrying that single property in `properties[]`, rather than one
+  batched request naming every selected property. Fan-out is what makes
+  the FR-034 per-property failure isolation achievable at all — a
+  batched request has one outcome for every property, so a single
+  failure would take down every task sensor at once. It matches the
+  per-property calendar precedent and its last-good retention from spec
+  001. The cost is trivial: 13 requests per poll at reference scale on
+  an endpoint that publishes no rate limit and exposes no
+  `x-ratelimit-*` headers.
 - **FR-031**: The integration MUST paginate `/tasks` from day one.
   A naive single-page fetch silently loses tasks. (CONFIRMED-BY-TEST:
   164 tasks across 13 properties, `meta.last_page: 2`)
+  Pagination MUST be followed PER PROPERTY. Each property's response
+  carries its own `meta.last_page`, and the integration MUST follow
+  each independently rather than assuming a shared page count. The
+  observed `meta.last_page: 2` was measured on a BATCHED request
+  covering all 13 properties, so it says nothing about how many pages
+  any individual property returns; most are expected to fit one page
+  and none may be assumed to.
 - **FR-032**: The integration MUST expose per-property task sensors:
   at minimum a next-task sensor (type, status, progress, scheduled
   date) and a task-count sensor.
@@ -530,8 +600,15 @@ diagnostics never contain the guest name unredacted.
   vocabularies show the divergence)
 - **FR-034**: The task coordinator MUST use a separate polling cadence
   (configurable, default and floor TBD in planning) and MUST implement
-  failure isolation per D-15: a failure for one property MUST NOT
-  prevent other properties from updating.
+  failure isolation per spec 001 D-15: a failure for one property MUST
+  NOT prevent other properties from updating. The FR-030 fan-out is
+  what makes this implementable — one request per property means one
+  failure per property. A failed property MUST retain its last-good
+  task data rather than have it cleared.
+
+  The citation is deliberately qualified as *spec 001* D-15. Spec 002
+  has its own D-15, an unrelated decision about service response
+  modes, so an unqualified reference resolves to the wrong artifact.
 - **FR-035**: Task sensor data MUST include the assignment status and
   progress status vocabularies from the `/tasks` meta response.
   (CONFIRMED-BY-TEST: assignment_statuses and progress_statuses
@@ -601,9 +678,10 @@ diagnostics never contain the guest name unredacted.
   `include=guest` (singular) to obtain guest identity data. The
   `guest` object is NOT present on the base reservation payload; it
   appears only when this include is specified. Spec 001 recorded
-  `include=guests` (plural) as a no-op — that is an instance of
-  silent-ignore behaviour #4 (an unrecognised parameter name returns
-  HTTP 200 with no added keys). The correct parameter is singular.
+  `include=guests` (plural) as a no-op — that is an instance of the
+  silent-ignore behaviour class spec 001 FR-075 enumerates (an
+  unrecognised parameter name returns HTTP 200 with no added keys).
+  The correct parameter is singular.
   This include adds no additional API calls; it is a query parameter
   on a request the integration already makes. (CONFIRMED-BY-TEST:
   `include=guest` adds exactly one new top-level key `guest`, taking
@@ -622,12 +700,16 @@ diagnostics never contain the guest name unredacted.
   handle this gracefully, showing only first_name when last_name is
   null. (CONFIRMED-BY-TEST: 28/29)
 - **FR-039c**: `guest_email` and `guest_phone_numbers` MUST be
-  exposed ONLY when the guest-contact-details option (FR-038b) is
-  enabled. `email` is usually absent (4/29 populated) and MUST NOT be
+  exposed AS ENTITY ATTRIBUTES ONLY when the guest-contact-details
+  option (FR-038b) is enabled. The equivalent control for the service
+  response surface is FR-047; this requirement does not reach that
+  surface (FR-046). `email` is usually absent (4/29 populated) and MUST NOT be
   assumed present. `phone_numbers` is an array (22/29 populated).
   (CONFIRMED-BY-TEST)
 - **FR-039d**: `profile_picture` MUST NOT be exposed as an entity
-  attribute.
+  attribute. It is additionally barred from service responses by
+  FR-047 and from logs and diagnostics by FR-041 and FR-042; it has no
+  permitted exposure surface anywhere (FR-046).
 - **FR-039e**: ALL guest attributes (both default and opt-in) MUST be
   marked as unrecorded attributes so they live in entity state memory
   only and are NEVER written to the recorder database or captured in
@@ -665,6 +747,48 @@ diagnostics never contain the guest name unredacted.
   `HomeAssistantError` MUST be used for API failures (network, server
   error, permanent capability limitation).
 
+#### Service response privacy (exposure surface parity)
+
+- **FR-046**: **A privacy control scoped to one surface does not
+  protect another surface.** Every requirement in this specification
+  that restricts personal data MUST name the surface it governs, and
+  each surface MUST be given its own explicit control. The exposure
+  surfaces recognised by this specification are: entity attributes,
+  the recorder database, logs, diagnostics output, exception text, and
+  **service call responses**. Service responses are user-visible
+  through automation traces, template rendering, script variables, and
+  debug logging, and are therefore an exposure surface of equal
+  standing to entity attributes — not a private internal channel.
+  A future surface added without its own control MUST be treated as
+  unprotected until one is written.
+- **FR-047**: Guest data returned in a SERVICE CALL RESPONSE MUST
+  follow the same policy as guest data exposed as an entity attribute:
+  - `profile_picture` MUST NEVER appear in any service response, under
+    any option, ever. It has no permitted exposure surface at all.
+  - `email` and `phone_numbers` MUST be omitted from service responses
+    UNLESS the guest-contact-details option (FR-038b) is enabled for
+    the config entry serving the call.
+  - `first_name`, `last_name`, `location`, and `language` MAY be
+    returned.
+  - Any guest key not enumerated here MUST be omitted rather than
+    passed through, so that a new upstream key cannot leak by default.
+  This governs `find_reservation` and `get_reservations`, which return
+  reservation payloads fetched with `include=guest`, and any future
+  service that returns a reservation payload.
+- **FR-047a**: The `sender` object on a message MUST NOT be returned
+  raw by `get_messages`. It is an opaque upstream structure that may
+  carry guest identity and contact fields, so it is subject to FR-047
+  on the same terms. Only `sender_type` and `sender_role` — which are
+  role discriminators, not identity — may be returned. Message `body`
+  and `attachments` remain returnable, since retrieving them is the
+  service's purpose (FR-024), but MUST NOT be logged.
+- **FR-048**: The FR-047 and FR-047a filtering MUST be applied inside
+  ONE shared response-builder chokepoint that every service response
+  passes through. It MUST NOT be implemented per handler, and it MUST
+  NOT rely on the caller to filter. A service added later that
+  serialises a guest or sender object MUST inherit the filter by
+  construction rather than by remembering to call it.
+
 ### Key Entities
 
 - **Task**: A scheduled operational activity for a property (cleaning,
@@ -684,36 +808,66 @@ diagnostics never contain the guest name unredacted.
 
 ### Measurable Outcomes
 
+Each criterion names the task IDs that evidence it. Where a criterion
+cannot be evidenced by the automated suite, it says so explicitly
+rather than implying a test exists.
+
 - **SC-001**: A user can send a guest message via service call and
-  receive an "accepted for delivery" response within 5 seconds under
-  normal network conditions.
+  receive an "accepted for delivery" response. (T149, T157)
+
+  **Latency is NOT automatically verified.** The automated suite runs
+  against `respx`, which serves responses from memory, so any wall
+  clock bound it appears to measure is a property of the mock rather
+  than of the integration. A "within 5 seconds" figure asserted there
+  would be theatre. Real-world latency is a MANUAL quickstart check
+  against a live account and is not claimed as tested.
 - **SC-002**: The polling lifecycle test (`test_no_writes.py`)
   continues to pass with zero non-GET requests across setup, refresh,
   options change, reload, and unload — proving that writes remain
-  confined to explicit service calls.
+  confined to explicit service calls. (T148, T156, T161)
 - **SC-003**: An audit of all logs at every level and a full
   diagnostics download finds zero occurrences of guest first names,
   last names, email addresses, phone numbers, locations, languages,
-  profile pictures, or message bodies unredacted.
+  profile pictures, or message bodies unredacted. (T153, T157)
+- **SC-003a**: An audit of the response payload of every registered
+  service finds zero occurrences of `profile_picture` and zero
+  occurrences of a raw message `sender` object, under every option
+  combination; and finds `email` and `phone_numbers` absent when the
+  guest-contact-details option is OFF and present when it is ON.
+  (T072a to T072e, T153a)
 - **SC-004**: All `/tasks` pages are fetched without data loss — the
   task count reported by sensors matches the total across all pages
-  returned by the API.
+  returned by the API, for every property independently, and one
+  property's failed request leaves the other properties' counts intact.
+  (T112, T112a, T117a, T119, T151)
 - **SC-005**: Rate-limit enforcement prevents message sends from
   exceeding the documented limits (2/min/reservation, 50/5min/token)
-  in 100% of test scenarios.
+  in 100% of test scenarios. (T155, T155a, T158)
+
+  Note the tiers differ and MUST NOT be merged: 2/min/reservation on
+  reads is CONFIRMED-BY-TEST, while 50/5min/token is DOCUMENTED-ONLY
+  and has never been observed. The enforcement is tested; the upstream
+  existence of the second limit is not.
 - **SC-006**: Multi-entry disambiguation correctly auto-selects when
   one entry exists and correctly rejects with an explanatory error when
-  multiple entries exist and no `config_entry_id` is provided.
-- **SC-007**: Lookup services return structured data within 10 seconds
-  and never fire events or produce side effects.
+  multiple entries exist and no `config_entry_id` is provided. (T154)
+- **SC-007**: Lookup services return structured data and never fire an
+  event or produce a side effect — no coordinator refresh, no state
+  write, no bus event. (T150, T150a)
+
+  **Latency is NOT automatically verified**, for the same reason as
+  SC-001: under `respx` the response is already in memory. The 10
+  second figure previously stated here is removed rather than left
+  sitting next to tested claims where it would read as one. Live
+  latency is a manual check.
 - **SC-008**: Task sensors correctly label Maintenance tasks as
   Maintenance (not as task_type-5's misleading service_id) in 100% of
-  cases.
+  cases. (T114, T124, T151)
 - **SC-009**: `guest_first_name` and `guest_last_name` are visible as
   reservation entity attributes when the API returns a non-null
   `guest` object, and absent (not errored) when the guest object is
   null or `last_name` is missing. All guest attributes are unrecorded
-  and never appear in the recorder database.
+  and never appear in the recorder database. (T152, T153)
 
 ## Assumptions
 
@@ -747,8 +901,14 @@ diagnostics never contain the guest name unredacted.
   obtained)
 - `GET /tasks` requires `properties[]` and does NOT require dates.
   (CONFIRMED-BY-TEST)
+- `/tasks` publishes no rate limit and exposes no `x-ratelimit-*` or
+  `retry-after` headers, so fanning the poll out to one request per
+  property is affordable. (CONFIRMED-BY-TEST)
 - Task pagination is real and mandatory: 164 tasks across 2 pages
-  observed. (CONFIRMED-BY-TEST)
+  observed for a BATCHED request naming all 13 properties.
+  (CONFIRMED-BY-TEST) Under the FR-030 per-property fan-out this is not
+  a per-property page count, so each property's own `meta.last_page`
+  must be followed. (INFERRED)
 - The task_type/service_id enum divergence (Maintenance = task_type
   5 but service_id 8) is stable API behaviour, not a bug.
   (CONFIRMED-BY-TEST)
@@ -823,8 +983,9 @@ diagnostics never contain the guest name unredacted.
   messaging will fail at runtime with a 403.
 - **OQ-006 — Guest include on reservations (RESOLVED).** Spec 001
   recorded `include=guests` (plural) as a no-op. That was correct but
-  misleading — it is silent-ignore behaviour #4 (an unrecognised
-  parameter name returns 200 and is ignored). **Answer:** the correct
+  misleading: it is one of the silent-ignore behaviours spec 001 FR-075
+  enumerates (an unrecognised parameter name returns 200 and is
+  ignored), not a statement that no guest data exists. **Answer:** the correct
   parameter is `include=guest` (singular). Verified live:
   `include=guest` adds exactly one new top-level key `guest`, taking
   the payload from 21 keys to 22, on both the collection and single-
@@ -866,8 +1027,11 @@ diagnostics never contain the guest name unredacted.
   service call; automation authors wire it into their own triggers.
 - **Message templates.** `/messages/templates` returned 404.
   (CONFIRMED-BY-TEST: endpoint does not exist)
-- **Calendar writes.** Remain absolutely prohibited (spec 001 FR-059
-  continues to apply to calendar operations).
+- **Calendar writes.** Remain absolutely prohibited. Spec 001 FR-059
+  is calendar-modification-specific and is NOT narrowed by FR-001,
+  which narrows only spec 001's separate global read-only rule. No
+  service introduced here may issue a calendar write, and no future
+  service may either without amending FR-059 itself.
 - **Door codes and enrichment.** Remain out of scope (vendor-gated).
 - **OAuth.** Deferred as in spec 001.
 - **Review reading/responding.** Out of scope.

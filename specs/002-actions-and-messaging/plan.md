@@ -29,10 +29,15 @@ The technical approach is shaped by three forces:
 2. **Rate limits key on the token, not the entry.** Two config entries
    sharing a PAT share one budget. The tracker uses a SHA-256 hash of
    the token as its key, stored in a module-level singleton.
-3. **Guest PII is transient.** Every guest attribute is unrecorded
-   (never persisted to the recorder database) and redacted from
-   diagnostics. The model never surfaces `profile_picture`. Message
-   bodies are never logged.
+3. **Guest PII is transient, and every exposure surface needs its own
+   control.** Every guest attribute is unrecorded (never persisted to
+   the recorder database) and redacted from diagnostics. Service
+   responses are a first-class exposure surface alongside entity
+   attributes, so they pass through one allowlist serialiser that
+   drops `profile_picture` unconditionally and gates contact details
+   behind the same opt-in the attributes use. The model never surfaces
+   `profile_picture` anywhere. Message bodies are never logged, and the
+   opaque message `sender` object is never returned.
 
 ## Technical Context
 
@@ -58,17 +63,26 @@ coordinator, ~15 new production modules.
 
 **Unknowns resolved in planning**:
 
-- OQ-004 (task polling cadence): 15-minute default, 5-minute floor.
+- OQ-004 (task polling cadence): 15-minute default, 5-minute floor,
+  with the poll fanned out one request per property.
   See [research.md D-04](./research.md#d-04).
+- OQ-002 (message pagination): CLOSED by live probe. The endpoint is
+  NOT paginated and silently ignores `page`/`per_page`; the thread is
+  consumed in a single request. Bounded to a 10-message observation,
+  so a `meta`/`links` block appearing later is tolerated but not
+  expected. See [research.md D-07](./research.md#d-07).
 
 **Unknowns planned around** (not resolved):
 
 - OQ-001 (202 response body shape): Defensive parsing handles both
   presence and absence of `sent_reference_id`.
-- OQ-002 (message pagination): Defensive handling for both paginated
-  and non-paginated responses.
 - OQ-005 (messaging scope requirement): 403 handled as capability
   limitation per existing classifier.
+- OQ-007 (do message reads and writes share one per-reservation rate
+  bucket?): not testable without a real send. Both sides are designed
+  defensively — the awaiting-host-reply fetch floor is 60 seconds so a
+  poll consumes at most one of the two slots, and send treats a 429 as
+  retryable-with-backoff. Neither answer is asserted.
 
 ## Constitution Check
 
@@ -85,7 +99,7 @@ coordinator, ~15 new production modules.
 | VII. User Experience Consistency | PASS | Service names follow `hospitable.<verb>_<noun>`. Error messages name the remedy. Awaiting-host-reply description explicitly states the read-receipt limitation. Options describe API cost implications |
 | VIII. Performance | PASS | All I/O async. Rate-limit check is O(1) deque lookup. Task coordinator on separate interval. Awaiting-host-reply adds at most one GET per property per cycle (opt-in, default OFF) |
 | IX. Phased Development | PASS | Six phases, independently shippable. Service infrastructure in US1 before any service depends on it. Each phase has defined exit criteria |
-| X. Security & Credentials | PASS | Token never in a second location (hashed for tracker key). Guest PII unrecorded and redacted from diagnostics. Message bodies never logged. No credential in fixtures |
+| X. Security & Credentials | PASS | Token never in a second location (hashed for tracker key). Guest PII unrecorded and redacted from diagnostics. Message bodies never logged. Service responses pass through one allowlist serialiser so `profile_picture` never leaves the integration and contact details honour the opt-in on every surface (FR-046 to FR-048, D-16). No credential in fixtures |
 | XI. Webhooks & Real-Time Events | NOT APPLICABLE | No webhooks introduced. Message delivery confirmation deferred to webhooks spec |
 | XII. Red-Phase Commit Protocol | PASS | Every phase opens with `@pytest.mark.xfail(raises=..., strict=True)` tests. Imports deferred into test bodies. `--runxfail` scoped to new nodes before red commit |
 
@@ -120,6 +134,7 @@ custom_components/hospitable/
 │   ├── __init__.py            # Table-driven registration/removal
 │   ├── schemas.py             # Voluptuous schemas per service
 │   ├── helpers.py             # Multi-entry resolution, reservation target resolution
+│   ├── response.py            # (NEW) single PII-filtering response serialiser (D-16)
 │   ├── send_message.py        # send_message handler
 │   ├── get_messages.py        # get_messages handler
 │   ├── find_reservation.py    # find_reservation handler
@@ -144,6 +159,7 @@ tests/
 │   ├── test_get_messages.py
 │   ├── test_lookups.py
 │   ├── test_rate_limit.py
+│   ├── test_response_privacy.py
 │   └── test_disambiguation.py
 ├── sensor/
 │   └── test_tasks.py          # (NEW) task sensor tests
@@ -227,6 +243,17 @@ FR-018.
 | `HospitableCalendarCoordinator` | property | 60 min | 15 min | Spec 001 |
 | `HospitableTasksCoordinator` | task | 15 min | 5 min | US4 (new) |
 
+`HospitableTasksCoordinator` fans its poll out to ONE `GET /tasks`
+request per selected property rather than one batched request naming
+every property (FR-030). This is what makes the FR-034 per-property
+failure isolation implementable: one failure affects one property,
+which retains its last-good data while the rest update. It mirrors the
+spec 001 calendar coordinator, which is already per-property. Cost at
+reference scale is 13 requests per 15-minute poll on an endpoint that
+publishes no rate limit and returns no `x-ratelimit-*` headers.
+Pagination is followed per property, each using its own
+`meta.last_page`.
+
 The reservation coordinator is modified in US6 to:
 
 - Add `include=guest` to the request (zero extra cost)
@@ -273,7 +300,7 @@ passing; `strings.json` has service text.
 `get_reservations.py`, `get_property_info.py`; defensive message
 pagination in `api/messages.py`.
 
-**Requirements**: FR-020 to FR-029.
+**Requirements**: FR-020 to FR-029, FR-046 to FR-048.
 
 **Why independently shippable**: All lookup services are operational.
 Users can query reservations, properties, and message threads on
@@ -323,7 +350,9 @@ gated behind option. All guest attributes unrecorded.
 **Requirements**: FR-030 to FR-035, FR-034.
 
 **Why independently shippable**: Task sensors per property are
-operational. Pagination proven. Type/service_id mapping validated.
+operational. Per-property fan-out, per-property pagination, and
+per-property failure isolation proven. Type/service_id mapping
+validated.
 
 **Red-phase sequence**:
 
