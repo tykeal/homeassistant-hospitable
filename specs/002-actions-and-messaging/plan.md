@@ -234,6 +234,17 @@ FR-018.
 | `HospitableCalendarCoordinator` | property | 60 min | 15 min | Spec 001 |
 | `HospitableTasksCoordinator` | task | 15 min | 5 min | US4 (new) |
 
+`HospitableTasksCoordinator` fans its poll out to ONE `GET /tasks`
+request per selected property rather than one batched request naming
+every property (FR-030). This is what makes the FR-034 per-property
+failure isolation implementable: one failure affects one property,
+which retains its last-good data while the rest update. It mirrors the
+spec 001 calendar coordinator, which is already per-property. Cost at
+reference scale is 13 requests per 15-minute poll on an endpoint that
+publishes no rate limit and returns no `x-ratelimit-*` headers.
+Pagination is followed per property, each using its own
+`meta.last_page`.
+
 The reservation coordinator is modified in US6 to:
 
 - Add `include=guest` to the request (zero extra cost)
@@ -330,7 +341,9 @@ gated behind option. All guest attributes unrecorded.
 **Requirements**: FR-030 to FR-035, FR-034.
 
 **Why independently shippable**: Task sensors per property are
-operational. Pagination proven. Type/service_id mapping validated.
+operational. Per-property fan-out, per-property pagination, and
+per-property failure isolation proven. Type/service_id mapping
+validated.
 
 **Red-phase sequence**:
 

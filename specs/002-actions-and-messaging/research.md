@@ -214,17 +214,28 @@ behavior).
 
 **Rationale**: Tasks change less frequently than reservations (which
 default to 5 minutes) but more frequently than properties (60
-minutes). A 15-minute default is conservative for API economy: with
-13 properties and 2 pages per poll, that is 26 requests per 15
-minutes = 104 requests/hour = 2,496 requests/day at the reference
-account scale. The 5-minute floor allows users who need faster task
-updates (e.g., for cleaning crew coordination) to tighten it at the
-cost of ~7,488 requests/day for tasks alone — acceptable but worth
-documenting.
+minutes).
+
+The poll fans out to one request per property (FR-030), so a 15-minute
+default costs 13 requests per poll at reference scale — 52 per hour,
+1,248 per day — plus one extra request for any property deep enough to
+paginate. The 5-minute floor triples that to ~3,744 requests/day for
+tasks alone, which is acceptable but worth documenting.
+
+`/tasks` publishes no rate limit and returns no `x-ratelimit-*` or
+`retry-after` headers (CONFIRMED-BY-TEST), which is what makes fan-out
+affordable. The per-property failure isolation it buys is worth far
+more than the saved requests: a batched call has one outcome for all 13
+properties, so a single failure blanks every task sensor at once.
+
+An earlier revision of this decision quoted 2,496 requests/day from
+"13 properties and 2 pages per poll". That arithmetic was wrong for the
+batched design it described — a batched poll of 2 pages is 2 requests,
+not 26 — and the corrected fan-out figures above supersede it.
 
 For comparison, spec 001's reservation coordinator at default 5
 minutes with 13 properties costs ~1,704 requests/day. Adding tasks at
-15 minutes adds ~2,496, keeping the combined total under 5,000/day at
+15 minutes adds ~1,248, keeping the combined total near 3,000/day at
 reference scale.
 
 **Alternatives considered**:
@@ -232,7 +243,12 @@ reference scale.
 - *30 minutes*: Too slow for cleaning coordination use cases where a
   manager wants near-real-time task progress.
 - *5 minutes (same as reservations)*: Wasteful. Tasks rarely change
-  within 5 minutes and the endpoint is 2 pages deep.
+  within 5 minutes.
+- *One batched request naming every property*: Rejected. It is cheaper
+  (2 requests per poll rather than 13) but it destroys per-property
+  failure isolation, which FR-034 requires and which spec 001 D-15
+  establishes as the house pattern. The saving is not worth the
+  coupling on an endpoint with no published rate limit.
 - *10 minutes*: Reasonable but 15 gives better economy with
   acceptable latency for the typical use case.
 - *Sharing the reservation interval*: Rejected. Tasks and

@@ -293,9 +293,12 @@ diagnostics never contain the guest name unredacted.
   than expected.** Multi-entry disambiguation requires
   `config_entry_id` when ambiguous.
 - **The `/tasks` endpoint returns an error for one property in a
-  multi-property account.** Task sensor for that property becomes
-  unavailable; other properties are unaffected (D-15 failure
-  isolation).
+  multi-property account.** Because the poll fans out to one request
+  per property (FR-030), only that property's request fails. Its task
+  sensors retain their last-good values rather than being wiped, and
+  every other property updates normally. (Spec 001 D-15 failure
+  isolation, applied per property exactly as the calendar coordinator
+  applies it.)
 - **A message send returns HTTP 422.** The error is surfaced as a
   HomeAssistantError with the validation detail from the response.
 - **Rate limit hit mid-automation.** The service returns an error; it
@@ -306,7 +309,8 @@ diagnostics never contain the guest name unredacted.
   mislabel maintenance as something else. The mapping must be
   explicit.
 - **`GET /tasks` called without `properties[]`.** Returns HTTP 400.
-  The integration must ALWAYS include `properties[]` and MUST NOT
+  The integration must ALWAYS include `properties[]` — with exactly
+  one property per request under the FR-030 fan-out — and MUST NOT
   include date parameters (they are not required and their interaction
   with the response is not verified).
 - **Message thread arrives unpaginated.** The messages endpoint
@@ -518,13 +522,30 @@ diagnostics never contain the guest name unredacted.
 #### Task sensors
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
-  `properties[]` parameter set to the selected properties and MUST NOT
-  include date parameters (the endpoint does not require them and their
-  interaction is not verified). (CONFIRMED-BY-TEST: `properties[]`
-  required; bare call or dates-only → 400)
+  `properties[]` parameter and MUST NOT include date parameters (the
+  endpoint does not require them and their interaction is not
+  verified). (CONFIRMED-BY-TEST: `properties[]` required; bare call or
+  dates-only → 400)
+  The poll MUST FAN OUT: exactly ONE request per selected property,
+  each carrying that single property in `properties[]`, rather than one
+  batched request naming every selected property. Fan-out is what makes
+  the FR-034 per-property failure isolation achievable at all — a
+  batched request has one outcome for every property, so a single
+  failure would take down every task sensor at once. It matches the
+  per-property calendar precedent and its last-good retention from spec
+  001. The cost is trivial: 13 requests per poll at reference scale on
+  an endpoint that publishes no rate limit and exposes no
+  `x-ratelimit-*` headers.
 - **FR-031**: The integration MUST paginate `/tasks` from day one.
   A naive single-page fetch silently loses tasks. (CONFIRMED-BY-TEST:
   164 tasks across 13 properties, `meta.last_page: 2`)
+  Pagination MUST be followed PER PROPERTY. Each property's response
+  carries its own `meta.last_page`, and the integration MUST follow
+  each independently rather than assuming a shared page count. The
+  observed `meta.last_page: 2` was measured on a BATCHED request
+  covering all 13 properties, so it says nothing about how many pages
+  any individual property returns; most are expected to fit one page
+  and none may be assumed to.
 - **FR-032**: The integration MUST expose per-property task sensors:
   at minimum a next-task sensor (type, status, progress, scheduled
   date) and a task-count sensor.
@@ -536,7 +557,10 @@ diagnostics never contain the guest name unredacted.
 - **FR-034**: The task coordinator MUST use a separate polling cadence
   (configurable, default and floor TBD in planning) and MUST implement
   failure isolation per D-15: a failure for one property MUST NOT
-  prevent other properties from updating.
+  prevent other properties from updating. The FR-030 fan-out is what
+  makes this implementable — one request per property means one
+  failure per property. A failed property MUST retain its last-good
+  task data rather than have it cleared.
 - **FR-035**: Task sensor data MUST include the assignment status and
   progress status vocabularies from the `/tasks` meta response.
   (CONFIRMED-BY-TEST: assignment_statuses and progress_statuses
@@ -753,7 +777,8 @@ diagnostics never contain the guest name unredacted.
   guest-contact-details option is OFF and present when it is ON.
 - **SC-004**: All `/tasks` pages are fetched without data loss — the
   task count reported by sensors matches the total across all pages
-  returned by the API.
+  returned by the API, for every property independently, and one
+  property's failed request leaves the other properties' counts intact.
 - **SC-005**: Rate-limit enforcement prevents message sends from
   exceeding the documented limits (2/min/reservation, 50/5min/token)
   in 100% of test scenarios.
@@ -803,8 +828,14 @@ diagnostics never contain the guest name unredacted.
   obtained)
 - `GET /tasks` requires `properties[]` and does NOT require dates.
   (CONFIRMED-BY-TEST)
+- `/tasks` publishes no rate limit and exposes no `x-ratelimit-*` or
+  `retry-after` headers, so fanning the poll out to one request per
+  property is affordable. (CONFIRMED-BY-TEST)
 - Task pagination is real and mandatory: 164 tasks across 2 pages
-  observed. (CONFIRMED-BY-TEST)
+  observed for a BATCHED request naming all 13 properties.
+  (CONFIRMED-BY-TEST) Under the FR-030 per-property fan-out this is not
+  a per-property page count, so each property's own `meta.last_page`
+  must be followed. (INFERRED)
 - The task_type/service_id enum divergence (Maintenance = task_type
   5 but service_id 8) is stable API behaviour, not a bug.
   (CONFIRMED-BY-TEST)

@@ -199,11 +199,18 @@ needed — the options flow handles absent keys by applying defaults.
 | Interval option | `task_interval_minutes` |
 | Default | 15 min |
 | Floor | 5 min |
-| Upstream cost | `ceil(pages)` per refresh (2 pages at reference scale) |
-| Required params | `properties[]` — always sent |
+| Request shape | Fan-out: ONE request per selected property (FR-030) |
+| Upstream cost | One request per property per refresh, plus one per additional page; 13 at reference scale |
+| Required params | `properties[]` — always sent, carrying exactly one property |
 | Prohibited params | Date parameters — never sent (FR-030) |
-| Pagination | Mandatory from day one (FR-031); uses `meta.last_page` |
-| Failure isolation | Per-property: if the endpoint fails entirely, all task sensors degrade; individual property failures are not possible since the endpoint returns all properties in one response |
+| Pagination | Mandatory from day one (FR-031); each property's own `meta.last_page` is followed independently |
+| Failure isolation | Genuinely per-property, because each property has its own request. A failing property retains its last-good task data and every other property still updates. Spec 001 D-15, applied exactly as the calendar coordinator applies it. |
+
+**Why fan-out**: a single batched request naming every property has one
+outcome for all of them, so any failure would blank every task sensor at
+once. The observed `meta.last_page: 2` came from such a batched request
+covering 164 tasks across 13 properties and is NOT a per-property page
+count.
 
 **Wired into setup**: from the phase that introduces task sensors
 (US4). Not instantiated until that phase ships.

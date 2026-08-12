@@ -935,8 +935,10 @@ unrecorded; nothing in logs or diagnostics.
 
 ## Phase 6: User Story 4 — Task sensors (P4)
 
-**Goal**: Per-property task sensors are operational, all pages are
-fetched, and the task-type / service-type enums are kept distinct.
+**Goal**: Per-property task sensors are operational, the poll fans out
+to one request per property so failures stay isolated, all pages are
+fetched per property, and the task-type / service-type enums are kept
+distinct.
 
 **Independent test**: Load the integration against `tasks_page1.json`
 and `tasks_page2.json` and assert the task count equals the combined
@@ -951,6 +953,13 @@ task-type table rather than the service-type table.
       (`raises=ModuleNotFoundError`) that the tasks request ALWAYS sends
       a non-empty `properties[]` parameter — a bare request is a 400
       upstream. (FR-030)
+- [ ] T109a [US4] In `tests/api/test_tasks.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that a refresh across N selected
+      properties issues N SEPARATE `/tasks` requests, each carrying
+      exactly ONE property in `properties[]` — assert the request count
+      and that no single request names two properties. This is the
+      fan-out that makes per-property failure isolation possible.
+      (FR-030, FR-034)
 - [ ] T110 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that date parameters are OPTIONAL
       and are omitted by default, and that a dates-only request is never
@@ -964,6 +973,13 @@ task-type table rather than the service-type table.
       (`raises=ModuleNotFoundError`) that pagination is exercised from
       day one: both fixture pages are fetched and the combined result
       contains every task from both. (FR-031)
+- [ ] T112a [US4] In `tests/api/test_tasks.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that pagination is followed PER
+      PROPERTY: mock one property returning `meta.last_page: 2` and
+      another returning `meta.last_page: 1`, and assert the first is
+      fetched twice and the second exactly once. A shared page count
+      taken from whichever property answered first would either lose
+      tasks or issue a pointless request. (FR-031)
 - [ ] T113 [P] [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the authoritative enum tables
       are read from the response `meta` block rather than hardcoded.
@@ -986,6 +1002,14 @@ task-type table rather than the service-type table.
 - [ ] T117 [P] [US4] In `tests/test_coordinator.py`, add an xfail test
       (`raises=AttributeError`) that the task interval defaults to 15
       minutes and is clamped to a 5-minute floor. (FR-034)
+- [ ] T117a [US4] In `tests/test_coordinator.py`, add an xfail test
+      (`raises=AttributeError`) for per-property failure isolation:
+      with three properties selected and the SECOND returning a 500,
+      assert the refresh still succeeds, that the failing property
+      retains its previous (last-good) task data rather than being
+      cleared or dropped, and that the other two properties reflect
+      their new data. Mirrors the spec 001 D-15 calendar behaviour.
+      (FR-034)
 - [ ] T118 [P] [US4] In `tests/sensor/test_tasks.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for a per-property next-task sensor
       per `data-model.md`. (FR-032)
@@ -1006,8 +1030,10 @@ task-type table rather than the service-type table.
 ### GREEN PHASE COMMIT — US4
 
 - [ ] T122 [US4] Create `custom_components/hospitable/api/tasks.py` with
-      the request builder — mandatory `properties[]`, optional dates
-      omitted by default — and the paginating fetch. (FR-030, FR-031)
+      the request builder — mandatory `properties[]` carrying exactly
+      one property, optional dates omitted by default — and a
+      paginating fetch for that single property that follows its own
+      `meta.last_page`. (FR-030, FR-031)
 - [ ] T123 [US4] Add `HospitableTask` to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-035)
@@ -1019,6 +1045,14 @@ task-type table rather than the service-type table.
       `custom_components/hospitable/coordinator.py`, annotated with the
       BASE client type, with a 15-minute default and 5-minute floor.
       (FR-034, FR-001)
+- [ ] T125a [US4] Make the tasks coordinator refresh fan out over the
+      selected properties, awaiting one per-property fetch each and
+      gathering results so a single property's exception cannot abort
+      the others. On a per-property failure, log at debug and carry that
+      property's previous data forward unchanged; raise only if EVERY
+      property fails. Follow the spec 001 calendar coordinator's
+      last-good retention rather than inventing a second pattern.
+      (FR-030, FR-034)
 - [ ] T126 [US4] Create `custom_components/hospitable/sensor/tasks.py`
       with the next-task and task-count sensors. (FR-032)
 - [ ] T127 [US4] Register the new sensors in
@@ -1035,9 +1069,12 @@ task-type table rather than the service-type table.
       comment, then run the full suite, `uv run mypy`, and
       `uv run ruff check`.
 
-**Exit criteria**: all pages fetched; task count matches the combined
-total; Maintenance labelled from the task-type table; 15-minute default
-with a 5-minute floor honoured.
+**Exit criteria**: one request per property, never a batched request;
+all pages fetched for every property using that property's own
+`meta.last_page`; task count matches the combined total; a single
+property's failure leaves the others updating and preserves that
+property's last-good data; Maintenance labelled from the task-type
+table; 15-minute default with a 5-minute floor honoured.
 
 ---
 

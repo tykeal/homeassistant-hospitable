@@ -99,16 +99,33 @@ from spec 001).
 
 ### `GET /tasks`
 
-**When**: Task coordinator polls at the configured task interval.
+**When**: Task coordinator polls at the configured task interval. ONE
+request is issued PER SELECTED PROPERTY (fan-out), not one batched
+request naming every property.
 
 | Property | Value |
 | --- | --- |
 | Tier | CONFIRMED-BY-TEST |
 | Auth | Bearer PAT |
 | Required params | `properties[]` — MUST always be sent |
+| Fan-out | One request per property; `properties[]` carries exactly one |
 | Prohibited params | Date parameters — MUST NOT be sent |
 | Response | 200 with `{data, links, meta}` envelope |
-| Pagination | Mandatory; `meta.last_page` = 2 observed for 164 tasks |
+| Pagination | Mandatory; followed independently per property |
+| Rate limit | None published; no `x-ratelimit-*`, no `retry-after` |
+
+**Fan-out rationale**: a batched request has a single outcome for every
+property, so one failure would blank every task sensor at once. One
+request per property gives the per-property failure isolation FR-034
+requires, matching spec 001's calendar coordinator and its last-good
+retention. At reference scale this is 13 requests per poll on an
+endpoint that publishes no rate limit.
+
+**Pagination scope caveat**: `meta.last_page: 2` was observed for a
+BATCHED request returning 164 tasks across 13 properties. It is NOT a
+per-property page count. Under fan-out each property returns its own
+`meta.last_page`, which MUST be followed independently; most properties
+are expected to fit a single page and none may be assumed to.
 
 **Failure mode**: Bare call or dates-only returns HTTP 400
 `{"status_code":400,"reason_phrase":"The properties field is required.","errors":{...}}`.
