@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Red-phase reservation include tests (T087, T088).
-
-Both modules under test already exist, so these tests MUST fail with a
-genuine ``AssertionError`` about behaviour, never with an import error.
+"""Reservation include tests (T087, T088).
 
 ``include=guest`` is SINGULAR. Plural ``guests`` returns HTTP 200 and is
 silently ignored upstream, which is why spec 001 wrongly recorded the
@@ -17,19 +14,14 @@ from datetime import date
 from typing import Any
 
 import httpx
-import pytest
 
 from tests.helpers import load_fixture
 
-_RED_PARAMS = "TDD red phase: T087 include=guest is not sent yet"
-_RED_ASSERT = "TDD red phase: T088 the guest include is not verified yet"
 # The null-guest test reaches ``reservation.guest``, which does not exist
 # yet, so its red-phase failure is an AttributeError on the model rather
 # than an assertion about the include.
-_RED_NULL = "TDD red phase: T088 the reservation has no guest field yet"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_PARAMS)
 def test_reservation_params_stack_guest_and_properties_in_one_include() -> None:
     """The poll sends ``include=guest,properties`` as ONE parameter (FR-039).
 
@@ -50,7 +42,6 @@ def test_reservation_params_stack_guest_and_properties_in_one_include() -> None:
     )
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_PARAMS)
 async def test_the_polled_request_carries_the_guest_include_on_the_wire(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -77,7 +68,6 @@ async def test_the_polled_request_carries_the_guest_include_on_the_wire(
     assert query["include"] == ["guest,properties"]
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_ASSERT)
 async def test_a_silently_ignored_guest_include_is_detected_not_assumed(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -117,7 +107,6 @@ async def test_a_silently_ignored_guest_include_is_detected_not_assumed(
     )
 
 
-@pytest.mark.xfail(raises=AttributeError, strict=True, reason=_RED_NULL)
 async def test_a_null_guest_is_honoured_and_never_treated_as_missing(
     api_client_factory: Any,
     mock_httpx_client: Any,

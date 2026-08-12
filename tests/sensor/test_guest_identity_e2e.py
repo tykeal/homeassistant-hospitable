@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 
 from tests.helpers.guest_entry import (
@@ -24,10 +23,7 @@ from tests.helpers.guest_entry import (
     setup_guest_entry,
 )
 
-_RED_E2E = "TDD red phase: US3 guest attributes do not reach the entity"
 
-
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_guest_attributes_land_on_a_real_entity(
     hass: Any, respx_router: Any
 ) -> None:
@@ -46,7 +42,6 @@ async def test_guest_attributes_land_on_a_real_entity(
     assert state.attributes["guest_language"] == "en"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_a_null_guest_entity_reports_no_identity(
     hass: Any, respx_router: Any
 ) -> None:
@@ -61,7 +56,6 @@ async def test_a_null_guest_entity_reports_no_identity(
     assert state.attributes["guest_last_name"] is None
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_contact_details_are_absent_by_default_on_a_real_entity(
     hass: Any, respx_router: Any
 ) -> None:
@@ -81,7 +75,6 @@ async def test_contact_details_are_absent_by_default_on_a_real_entity(
     assert "guest_phone_numbers" not in state.attributes
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_opting_in_exposes_contact_details_on_a_real_entity(
     hass: Any, respx_router: Any
 ) -> None:
@@ -95,7 +88,6 @@ async def test_opting_in_exposes_contact_details_on_a_real_entity(
     assert state.attributes.get("guest_phone_numbers") == ["+15550101001"]
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_profile_picture_never_reaches_a_real_entity_state(
     hass: Any, respx_router: Any
 ) -> None:
@@ -124,7 +116,6 @@ async def test_profile_picture_never_reaches_a_real_entity_state(
     assert entry.state is ConfigEntryState.LOADED
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_E2E)
 async def test_guest_attributes_are_unrecorded_on_the_real_state_object(
     hass: Any, respx_router: Any
 ) -> None:

@@ -148,11 +148,6 @@ async def test_reauth_replaces_token_for_same_account_only(
 
 
 # --- US3 guest-contact-details options toggle (T096, FR-038b) -----------
-#
-# ``config_flow.py``, ``strings.json`` and ``translations/en.json`` all
-# already exist, so these fail on real behaviour rather than on imports.
-
-_RED_TOGGLE = "TDD red phase: T096 the guest-contact toggle does not exist"
 
 
 def _guest_entry() -> MockConfigEntry:
@@ -186,7 +181,6 @@ def _guest_base_input() -> dict[str, Any]:
     }
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
 async def test_options_flow_offers_the_guest_contact_toggle(hass: Any) -> None:
     """The options form exposes the guest-contact-details field."""
     from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
@@ -200,7 +194,6 @@ async def test_options_flow_offers_the_guest_contact_toggle(hass: Any) -> None:
     assert CONF_GUEST_CONTACT_DETAILS in keys
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
 async def test_the_guest_contact_toggle_defaults_to_disabled(hass: Any) -> None:
     """Submitting the form untouched leaves the opt-in OFF (FR-038b).
 
@@ -223,7 +216,6 @@ async def test_the_guest_contact_toggle_defaults_to_disabled(hass: Any) -> None:
     assert result["data"][CONF_GUEST_CONTACT_DETAILS] is False
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
 async def test_enabling_the_guest_contact_toggle_persists(hass: Any) -> None:
     """An explicit opt-in is stored on the entry options."""
     from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
@@ -235,9 +227,8 @@ async def test_enabling_the_guest_contact_toggle_persists(hass: Any) -> None:
     user_input = _guest_base_input()
     user_input[CONF_GUEST_CONTACT_DETAILS] = True
     # A schema that does not know the field rejects the submission
-    # outright; that is converted here so the red phase fails with a
-    # plain assertion about the missing option rather than a voluptuous
-    # error type.
+    # outright. Converting that to an assertion keeps the failure
+    # message about the missing option rather than about voluptuous.
     submitted: dict[str, Any] | None = None
     try:
         submitted = await hass.config_entries.options.async_configure(
@@ -260,7 +251,6 @@ async def test_enabling_the_guest_contact_toggle_persists(hass: Any) -> None:
         "custom_components/hospitable/translations/en.json",
     ],
 )
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
 def test_the_toggle_states_its_privacy_implication(relative_path: str) -> None:
     """Both string files label the toggle and explain what it exposes.
 

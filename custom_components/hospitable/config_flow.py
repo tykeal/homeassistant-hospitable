@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypeGuard
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -37,6 +37,7 @@ from custom_components.hospitable.api.exceptions import (
 from custom_components.hospitable.api.models import HospitableProperty
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
+    CONF_GUEST_CONTACT_DETAILS,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
     CONF_NAMESPACE_SOURCE,
@@ -45,12 +46,12 @@ from custom_components.hospitable.const import (
     CONF_SELECTED_PROPERTIES,
     CONF_TIMEZONE_OVERRIDES,
     CONF_TOKEN,
+    DEFAULT_GUEST_CONTACT_DETAILS,
     DEFAULT_PROPERTY_INTERVAL,
     DEFAULT_RESERVATION_INTERVAL,
     DOMAIN,
-    MIN_PROPERTY_INTERVAL,
-    MIN_RESERVATION_INTERVAL,
 )
+from custom_components.hospitable.options_bounds import _validate_bounds
 from custom_components.hospitable.services.estimator import (
     estimate_requests_per_day,
 )
@@ -63,13 +64,11 @@ from custom_components.hospitable.services.window import (
 _LOGGER = logging.getLogger(__name__)
 
 TZ_FIELD_PREFIX = "timezone_override_"
-LOOKBACK_MIN = 7
-LOOKBACK_MAX = 365
-LOOKAHEAD_MIN = 1
-LOOKAHEAD_MAX = 730
 
 DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_SELECTED_PROPERTIES: [],
+    # OFF by requirement (FR-038b), not by preference.
+    CONF_GUEST_CONTACT_DETAILS: DEFAULT_GUEST_CONTACT_DETAILS,
     CONF_RESERVATION_INTERVAL: DEFAULT_RESERVATION_INTERVAL,
     CONF_PROPERTY_INTERVAL: DEFAULT_PROPERTY_INTERVAL,
     CONF_LOOKBACK_DAYS: LOOKBACK_DEFAULT,
@@ -300,6 +299,12 @@ class HospitableOptionsFlow(OptionsFlow):
                         CONF_LOOKBACK_DAYS: user_input[CONF_LOOKBACK_DAYS],
                         CONF_LOOKAHEAD_DAYS: user_input[CONF_LOOKAHEAD_DAYS],
                         CONF_TIMEZONE_OVERRIDES: resolved_overrides,
+                        CONF_GUEST_CONTACT_DETAILS: bool(
+                            user_input.get(
+                                CONF_GUEST_CONTACT_DETAILS,
+                                DEFAULT_GUEST_CONTACT_DETAILS,
+                            )
+                        ),
                     },
                 )
 
@@ -406,6 +411,14 @@ class HospitableOptionsFlow(OptionsFlow):
             vol.Optional(
                 CONF_LOOKAHEAD_DAYS, default=options[CONF_LOOKAHEAD_DAYS]
             ): vol.Coerce(int),
+            vol.Optional(
+                CONF_GUEST_CONTACT_DETAILS,
+                default=bool(
+                    options.get(
+                        CONF_GUEST_CONTACT_DETAILS, DEFAULT_GUEST_CONTACT_DETAILS
+                    )
+                ),
+            ): bool,
         }
         for property_id in selection:
             fields[
@@ -415,26 +428,3 @@ class HospitableOptionsFlow(OptionsFlow):
                 )
             ] = str
         return vol.Schema(fields)
-
-
-def _validate_bounds(user_input: dict[str, Any]) -> dict[str, str]:
-    """Return per-field errors naming the bound each value violated."""
-    errors: dict[str, str] = {}
-    reservation = user_input.get(CONF_RESERVATION_INTERVAL)
-    if not _is_int(reservation) or reservation < MIN_RESERVATION_INTERVAL:
-        errors[CONF_RESERVATION_INTERVAL] = "reservation_interval_min"
-    property_interval = user_input.get(CONF_PROPERTY_INTERVAL)
-    if not _is_int(property_interval) or property_interval < MIN_PROPERTY_INTERVAL:
-        errors[CONF_PROPERTY_INTERVAL] = "property_interval_min"
-    lookback = user_input.get(CONF_LOOKBACK_DAYS)
-    if not _is_int(lookback) or not LOOKBACK_MIN <= lookback <= LOOKBACK_MAX:
-        errors[CONF_LOOKBACK_DAYS] = "lookback_range"
-    lookahead = user_input.get(CONF_LOOKAHEAD_DAYS)
-    if not _is_int(lookahead) or not LOOKAHEAD_MIN <= lookahead <= LOOKAHEAD_MAX:
-        errors[CONF_LOOKAHEAD_DAYS] = "lookahead_range"
-    return errors
-
-
-def _is_int(value: Any) -> TypeGuard[int]:
-    """Return whether a value is a real integer, excluding booleans."""
-    return isinstance(value, int) and not isinstance(value, bool)

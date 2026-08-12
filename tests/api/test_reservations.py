@@ -26,7 +26,9 @@ def test_reservation_query_contract() -> None:
     assert params["start_date"] == "2025-01-01"
     assert params["end_date"] == "2025-01-02"
     assert params["date_query"] == "checkin"
-    assert params["include"] == "properties"
+    # US3 stacks the SINGULAR guest include into the same parameter
+    # (FR-039); plural ``guests`` is a silently-ignored upstream no-op.
+    assert params["include"] == "guest,properties"
     assert set(params) == {
         "properties[]",
         "start_date",
@@ -64,7 +66,7 @@ async def test_client_reservations_send_filters_and_refilter(
     assert_query_value(request, "start_date", "2025-06-14")
     assert_query_value(request, "end_date", "2025-06-16")
     assert_query_value(request, "date_query", "checkin")
-    assert_query_value(request, "include", "properties")
+    assert_query_value(request, "include", "guest,properties")
     query = request.url.query.decode()
     assert "include=guests" not in query
     assert "date_type=" not in query

@@ -29,8 +29,18 @@ EXPECTED_ATTRIBUTES = {
     "stay_type",
     "status_sub_category",
     "upcoming_reservations",
+    # US3 (FR-039a): guest identity exposed by default. The OPT-IN keys
+    # guest_email and guest_phone_numbers are deliberately NOT here —
+    # with the option off they are not created at all (FR-038b), which
+    # this default-configuration sensor proves.
+    "guest_first_name",
+    "guest_last_name",
+    "guest_location",
+    "guest_language",
 }
 
+# The joined display name, the email, and the phone: none may appear in
+# a DEFAULT-configured entity's attributes.
 PII_VALUES = {"Example Guest", "guest@example.com", "+15550101000"}
 
 
@@ -87,12 +97,26 @@ def test_scheduled_times_are_offset_aware() -> None:
     assert attributes["reservation_id"] == "res-example-accepted"
 
 
-def test_no_personal_data_in_any_attribute() -> None:
-    """No guest name, email, or phone leaks into any attribute value."""
+def test_no_contact_or_picture_data_in_any_attribute_by_default() -> None:
+    """No guest email, phone, or picture leaks by default (FR-039c, FR-039d).
+
+    US3 narrows the spec 001 claim rather than dropping it. Guest NAMES
+    are now exposed by default and deliberately so (FR-039a), but the
+    contact details stay behind the opt-in and the profile picture has
+    no exposure surface at all. The first assertion proves the fixture
+    really carries the guest data being checked for, so the absences
+    below mean something.
+    """
     sensor = _sensor([_reservation("reservation_accepted.json")])
-    rendered = repr(sensor.extra_state_attributes)
+    attributes = sensor.extra_state_attributes
+    assert attributes["guest_first_name"] == "Example"
+    rendered = repr(attributes)
     for personal in PII_VALUES:
         assert personal not in rendered
+    assert "guest_email" not in attributes
+    assert "guest_phone_numbers" not in attributes
+    assert "profile_picture" not in rendered
+    assert "avatar" not in rendered
 
 
 def test_upcoming_reservations_carry_no_identity() -> None:

@@ -8,8 +8,6 @@ from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 from custom_components.hospitable.api.models import HospitableReservation
 from tests.helpers import load_fixture
 
@@ -92,18 +90,10 @@ def test_state_is_always_one_of_nine_options() -> None:
 
 # --- US3 guest identity on the reservation entity (T089 to T093) ---------
 #
-# The sensor module already exists, so every marker below pins
-# ``AssertionError``: these MUST fail on real attribute behaviour, never
-# on an import.
-#
 # Each "must be absent" test ALSO asserts that other guest data IS
-# present. Without that, the test would pass trivially today — it would
-# assert nothing, because no guest data flows at all yet.
+# present. Without that, an absence test would pass even if guest data
+# never reached the entity, asserting nothing.
 
-_RED_GUEST = "TDD red phase: T089 guest attributes are not exposed yet"
-_RED_CONTACT = "TDD red phase: T090 the guest-contact opt-in does not exist"
-_RED_PICTURE = "TDD red phase: T091 guest attributes are not exposed yet"
-_RED_UNRECORDED = "TDD red phase: T092 guest attributes are not unrecorded"
 
 GUEST_ATTRIBUTES = (
     "guest_first_name",
@@ -154,7 +144,6 @@ def _guest_sensor(
     )
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_GUEST)
 def test_guest_identity_attributes_are_exposed_by_default() -> None:
     """The four default guest attributes land on the entity (FR-039a)."""
     attributes = _guest_sensor([_guest_reservation(0)]).extra_state_attributes
@@ -167,7 +156,6 @@ def test_guest_identity_attributes_are_exposed_by_default() -> None:
     assert attributes["guest_language"] == "en"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_GUEST)
 def test_a_missing_surname_degrades_gracefully() -> None:
     """A guest with no surname keeps its first name (FR-039b)."""
     attributes = _guest_sensor([_guest_reservation(1)]).extra_state_attributes
@@ -179,7 +167,6 @@ def test_a_missing_surname_degrades_gracefully() -> None:
     assert attributes["guest_language"] == "fr"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_GUEST)
 def test_a_null_guest_reports_no_identity_at_all() -> None:
     """A null guest yields no identity values (FR-040).
 
@@ -197,7 +184,6 @@ def test_a_null_guest_reports_no_identity_at_all() -> None:
         assert attributes[name] is None, f"{name} must carry no identity"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_GUEST)
 def test_no_reservation_reports_no_guest_identity() -> None:
     """With no reservation selected the guest attributes are all None."""
     attributes = _guest_sensor([]).extra_state_attributes
@@ -207,7 +193,6 @@ def test_no_reservation_reports_no_guest_identity() -> None:
         assert attributes[name] is None
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_CONTACT)
 def test_guest_contact_details_are_absent_by_default() -> None:
     """Email and phone are NOT created unless opted in (FR-039c, FR-038b).
 
@@ -225,7 +210,6 @@ def test_guest_contact_details_are_absent_by_default() -> None:
     assert "+15550101001" not in rendered
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_CONTACT)
 def test_guest_contact_details_appear_only_when_opted_in() -> None:
     """The opt-in adds email and phone attributes (FR-039c)."""
     attributes = _guest_sensor(
@@ -236,7 +220,6 @@ def test_guest_contact_details_appear_only_when_opted_in() -> None:
     assert attributes.get("guest_phone_numbers") == ["+15550101001"]
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_PICTURE)
 def test_profile_picture_is_never_an_entity_attribute() -> None:
     """``profile_picture`` cannot appear under ANY option (FR-039d).
 
@@ -258,7 +241,6 @@ def test_profile_picture_is_never_an_entity_attribute() -> None:
             assert "avatar" not in rendered
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_UNRECORDED)
 def test_every_guest_attribute_is_unrecorded() -> None:
     """No guest attribute may reach the recorder database (FR-039e).
 

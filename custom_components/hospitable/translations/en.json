@@ -48,7 +48,11 @@
           "property_interval_minutes": "Property polling interval (minutes)",
           "lookback_days": "Lookback days",
           "lookahead_days": "Lookahead days",
-          "timezone_overrides": "Property timezone overrides"
+          "timezone_overrides": "Property timezone overrides",
+          "guest_contact_details": "Expose guest contact details as entity attributes"
+        },
+        "data_description": {
+          "guest_contact_details": "Off by default. When enabled, the reservation status entity gains guest_email and guest_phone_numbers attributes, placing the guest's email address and phone number into entity attributes that anyone with access to this Home Assistant instance can read on a dashboard or in a template. Guest names, location, and language are always exposed as attributes; no guest attribute is ever written to the recorder database."
         }
       }
     },

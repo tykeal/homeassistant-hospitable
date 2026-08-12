@@ -67,10 +67,7 @@ def test_spec_002_fixtures_are_covered_by_the_audit() -> None:
 
 # --- US3 guest fields never reach the logs (T094, FR-041) ---------------
 
-_RED_LOGS = "TDD red phase: T094 guest data does not flow through the poll yet"
 
-
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_LOGS)
 async def test_no_guest_field_appears_in_any_log_record(
     hass: Any, respx_router: Any, caplog: pytest.LogCaptureFixture
 ) -> None:

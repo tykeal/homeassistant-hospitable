@@ -9,8 +9,13 @@
       "departure_date": "2025-06-16T00:00:00-07:00",
       "guest": {
         "email": "guest@example.com",
-        "name": "Example Guest",
-        "phone": "+15550101000"
+        "first_name": "Example",
+        "id": "guest-example-0001",
+        "language": "en",
+        "last_name": "Guest",
+        "location": "Example City, Example Region",
+        "phone_numbers": ["+15550101000"],
+        "profile_picture": "https://example.com/guest-avatar.png"
       },
       "guests": {
         "adult_count": 2,

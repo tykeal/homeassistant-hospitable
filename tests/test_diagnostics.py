@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_diagnostics_are_allowlisted(synthetic_token: str) -> None:
     """Assert diagnostics omit credentials and personal data."""
@@ -25,15 +23,11 @@ def test_diagnostics_are_allowlisted(synthetic_token: str) -> None:
 
 # --- US3 guest fields are redacted, not omitted (T095, FR-042, FR-043) ---
 #
-# ``diagnostics.py`` already exists, so these fail on behaviour.
-# FR-042 is deliberately not satisfiable by the existing top-level
-# allowlist: it requires the field to be SHOWN as redacted so that
-# troubleshooting can tell "absent upstream" from "present but hidden".
+# FR-042 is deliberately not satisfiable by a top-level allowlist alone:
+# it requires the field to be SHOWN as redacted so that troubleshooting
+# can tell "absent upstream" from "present but hidden".
 
-_RED_DIAG = "TDD red phase: T095 guest fields are not redacted by name"
 
-# The marker literal is spelled out here rather than imported, so the
-# red phase fails on redaction BEHAVIOUR and not on a missing symbol.
 REDACTED = "**REDACTED**"
 
 _GUEST_VALUES = {
@@ -55,7 +49,6 @@ _LEAKABLE = (
 )
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_DIAG)
 def test_nested_guest_object_fields_are_shown_as_redacted() -> None:
     """Every guest field is present but redacted, never silently dropped."""
     from custom_components.hospitable.diagnostics import redact_diagnostics
@@ -70,7 +63,6 @@ def test_nested_guest_object_fields_are_shown_as_redacted() -> None:
         assert guest[field] == REDACTED, f"{field} was not redacted"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_DIAG)
 def test_opt_in_and_picture_fields_are_redacted_too() -> None:
     """The opt-in fields and ``profile_picture`` are redacted as well.
 
@@ -93,7 +85,6 @@ def test_opt_in_and_picture_fields_are_redacted_too() -> None:
     assert guest["profile_picture"] == REDACTED
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_DIAG)
 def test_guest_prefixed_attribute_keys_are_redacted() -> None:
     """Attribute-style ``guest_*`` keys are redacted by name too (FR-042)."""
     from custom_components.hospitable.diagnostics import redact_diagnostics
@@ -122,7 +113,6 @@ def test_guest_prefixed_attribute_keys_are_redacted() -> None:
     assert item["reservation_id"] == "res-example-guest-full"
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_DIAG)
 def test_no_guest_value_survives_anywhere_in_the_payload() -> None:
     """No raw guest value appears anywhere in the rendered payload."""
     from custom_components.hospitable.diagnostics import redact_diagnostics

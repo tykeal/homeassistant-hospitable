@@ -10,6 +10,7 @@ from datetime import date, datetime
 from typing import Any
 
 from custom_components.hospitable.api.exceptions import HospitableResponseError
+from custom_components.hospitable.api.guest import GuestBreakdown, HospitableGuest
 
 
 @dataclass(frozen=True)
@@ -132,30 +133,6 @@ class HospitableProperty:
 
 
 @dataclass(frozen=True)
-class GuestBreakdown:
-    """Reservation guest counts without identities."""
-
-    total: int
-    adults: int
-    children: int
-    infants: int
-    pets: int
-
-    @classmethod
-    def from_api(cls, payload: dict[str, Any]) -> GuestBreakdown:
-        """Build guest counts from API data."""
-        if not isinstance(payload, dict):
-            payload = {}
-        return cls(
-            int(payload.get("total", 0)),
-            int(payload.get("adult_count", 0)),
-            int(payload.get("child_count", 0)),
-            int(payload.get("infant_count", 0)),
-            int(payload.get("pet_count", 0)),
-        )
-
-
-@dataclass(frozen=True)
 class HospitableReservation:
     """Sanitized reservation model."""
 
@@ -169,6 +146,9 @@ class HospitableReservation:
     scheduled_checkin_raw: str | None
     scheduled_checkout_raw: str | None
     guests: GuestBreakdown
+    # NOT the same thing as ``guests`` above: that is the NUMERIC
+    # occupancy breakdown, this is singular guest IDENTITY (FR-039).
+    guest: HospitableGuest | None
     nights: int | None
     channel: str | None
     channel_confirmation: str | None
@@ -177,7 +157,7 @@ class HospitableReservation:
 
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> HospitableReservation:
-        """Build a reservation and drop guest identity fields."""
+        """Build a reservation, parsing guest identity when present."""
         try:
             properties = payload["properties"]
             property_id = str(properties[0]["id"])
@@ -214,6 +194,7 @@ class HospitableReservation:
             payload.get("check_in"),
             payload.get("check_out"),
             GuestBreakdown.from_api(payload.get("guests", {})),
+            HospitableGuest.from_api(payload.get("guest")),
             payload.get("nights"),
             payload.get("platform"),
             payload.get("platform_id"),
@@ -431,3 +412,9 @@ def _optional_str(value: Any) -> str | None:
         The value as a string, or None when it is None.
     """
     return None if value is None else str(value)
+
+
+__all__ = [
+    "GuestBreakdown",
+    "HospitableGuest",
+]
