@@ -139,8 +139,9 @@ ones skip; the last `async_unload_entry` removes.
 **Decision**: A module-level `RateLimitTracker` class keyed on the
 SHA-256 hash of the token string. Two independent sliding windows:
 
-1. Per-reservation: 2 messages per 60 seconds, keyed on
-   `(token_hash, reservation_uuid)`.
+1. Per-reservation: 2 requests per 60 seconds, keyed on
+   `(token_hash, reservation_uuid)`. Sends and message fetches share
+   this one window (see the header-feedback note below and OQ-007).
 2. Per-token: 50 messages per 300 seconds, keyed on `token_hash`.
 
 The tracker is a singleton (module-level dict) so that two config

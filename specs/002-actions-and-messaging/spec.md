@@ -304,10 +304,11 @@ diagnostics never contain the guest name unredacted.
   The integration must ALWAYS include `properties[]` and MUST NOT
   include date parameters (they are not required and their interaction
   with the response is not verified).
-- **Message thread arrives unpaginated.** `GET /reservations/{uuid}/
-  messages` returns a `{data}` envelope with no `meta` and no `links`,
-  and `page`/`per_page` are silently ignored, so a long conversation
-  arrives in full in one response. No code may assume a small list.
+- **Message thread arrives unpaginated.** The messages endpoint
+  `GET /reservations/{uuid}/messages` returns a `{data}` envelope
+  with no `meta` and no `links`, and `page`/`per_page` are silently
+  ignored, so a long conversation arrives in full in one response.
+  No code may assume a small list.
   The observation is bounded: the busiest conversation on the
   reference account holds only 10 messages, so behaviour above that
   volume was not observed. A `meta`/`links` block appearing later
