@@ -28,6 +28,8 @@ from dataclasses import dataclass
 
 from homeassistant.exceptions import ServiceValidationError
 
+from custom_components.hospitable.api.retry import parse_retry_after
+
 RESERVATION_LIMIT = 2
 RESERVATION_WINDOW_SECONDS = 60
 TOKEN_LIMIT = 50
@@ -180,12 +182,14 @@ class RateLimitTracker:
         )
 
     @staticmethod
-    def retry_after(headers: Mapping[str, str]) -> int | None:
+    def retry_after(headers: Mapping[str, str]) -> float | None:
         """Return the backoff a 429 asks for.
 
         A 429 is retryable-with-backoff, not a hard failure: OQ-007
         leaves open whether reads and writes share one bucket, so the
-        send path must survive being throttled by a poll.
+        send path must survive being throttled by a poll. Parsing is
+        delegated to the shared read-path parser so HTTP-date values and
+        the ``MAX_BACKOFF`` cap behave identically on both paths.
 
         Args:
             headers: Response headers, case-insensitive.
@@ -193,7 +197,7 @@ class RateLimitTracker:
         Returns:
             Seconds to wait, or None when the header is absent.
         """
-        return _as_int(_header(headers, "retry-after"))
+        return parse_retry_after(_header(headers, "retry-after"))
 
     def _trim(
         self, stamps: deque[float] | None, now: float, window: float

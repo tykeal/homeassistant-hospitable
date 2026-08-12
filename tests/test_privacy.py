@@ -4,7 +4,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from tests.helpers import FIXTURES
+
+# ``scan_paths`` enforces a ``tests/fixtures/`` prefix on the path string
+# it is handed, matching how pre-commit invokes it, so discovery uses the
+# CWD-independent ``FIXTURES`` path but scanning passes a repo-relative one.
+_REPO_ROOT = FIXTURES.parent.parent
 
 # Fixtures whose synthetic nature is asserted by name, so a new fixture
 # added by a later phase cannot be silently omitted from the audit
@@ -40,9 +45,9 @@ def test_every_fixture_passes_the_synthetic_data_audit() -> None:
     """Every JSON fixture in the tree passes the PII scanner."""
     import scripts.check_fixture_pii as pii
 
-    fixtures = sorted(Path("tests/fixtures").glob("*.json"))
+    fixtures = sorted(FIXTURES.glob("*.json"))
     assert fixtures, "no fixtures were discovered to audit"
-    hits = pii.scan_paths([str(path) for path in fixtures])
+    hits = pii.scan_paths([str(path.relative_to(_REPO_ROOT)) for path in fixtures])
     assert not hits, [pii.format_hit(hit) for hit in hits]
 
 
@@ -51,6 +56,6 @@ def test_spec_002_fixtures_are_covered_by_the_audit() -> None:
     import scripts.check_fixture_pii as pii
 
     for name in _SPEC_002_FIXTURES:
-        path = Path("tests/fixtures") / name
+        path = FIXTURES / name
         assert path.exists(), f"missing spec 002 fixture: {name}"
-        assert not pii.scan_paths([str(path)])
+        assert not pii.scan_paths([str(path.relative_to(_REPO_ROOT))])

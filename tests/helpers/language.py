@@ -23,7 +23,7 @@ _DELIVERY_CLAIM_PATTERNS = (
     re.compile(r"\bdelivered\b", re.IGNORECASE),
     re.compile(r"\bdelivery\s+confirmed\b", re.IGNORECASE),
     re.compile(r"\bconfirmed\s+delivery\b", re.IGNORECASE),
-    re.compile(r"\bsuccessfully\s+delivery\b", re.IGNORECASE),
+    re.compile(r"\bsuccessfully\s+deliver\w*", re.IGNORECASE),
 )
 
 

@@ -253,6 +253,11 @@ def test_a_429_is_retryable_with_backoff_not_a_hard_failure() -> None:
     per-reservation bucket, so the send path must survive being
     throttled by a poll rather than treating a 429 as terminal.
     """
+    from datetime import UTC, datetime, timedelta
+    from email.utils import format_datetime
+
+    from custom_components.hospitable.api.retry import MAX_BACKOFF
+
     clock = FakeClock()
     tracker = _tracker(clock)
 
@@ -260,6 +265,13 @@ def test_a_429_is_retryable_with_backoff_not_a_hard_failure() -> None:
 
     assert delay == 60
     assert tracker.retry_after({}) is None
+
+    # The shared read-path parser governs both paths: HTTP-date values
+    # resolve and absurd values are capped at MAX_BACKOFF.
+    assert tracker.retry_after({"retry-after": "999999"}) == MAX_BACKOFF
+    future = format_datetime(datetime.now(UTC) + timedelta(seconds=30))
+    parsed = tracker.retry_after({"retry-after": future})
+    assert parsed is not None and 0 < parsed <= 30
 
 
 def test_accounting_keys_on_a_hash_of_the_token() -> None:
