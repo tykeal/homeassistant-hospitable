@@ -39,8 +39,14 @@ Built from an item of `GET /reservations/{uuid}/messages` response
 
 **Deliberately absent**: `reactions`, `integration`,
 `sent_reference_id`, `author` — not needed for any FR in this spec.
-If `sent_reference_id` appears on read messages it is informational
-only and not surfaced.
+
+`sent_reference_id` IS present on read messages: it appears in the
+CONFIRMED-BY-TEST key list for `GET /reservations/{uuid}/messages` in
+[contracts/upstream-requests.md](contracts/upstream-requests.md). It is
+deliberately not modelled because no FR needs it, not because its
+presence is in doubt. What remains UNVERIFIED is whether the 202
+response body of a SEND carries it — a different question, tracked as
+OQ-001, which no read-only probe can answer.
 
 ### `HospitableGuest`
 
@@ -75,14 +81,33 @@ Built from an item of `GET /tasks` response `data` array.
 | Field | Type | Source key | Tier | Notes |
 | --- | --- | --- | --- | --- |
 | `task_id` | `int` | `id` | CONFIRMED-BY-TEST | |
-| `property_id` | `str` | `property_id` or `property.id` | CONFIRMED-BY-TEST | Association key |
+| `property_id` | `str` | UNRESOLVED — see below | Presence CONFIRMED-BY-TEST; exact key UNVERIFIED | Association key |
 | `task_type` | `int` | `task_type` | CONFIRMED-BY-TEST | 1-5; maps via meta vocabulary |
 | `service_id` | `int` | `service_id` | CONFIRMED-BY-TEST | 1-8; NOT interchangeable with task_type |
 | `assignment_status` | `str` | `assignment_status` | CONFIRMED-BY-TEST | From meta vocabulary |
 | `progress_status` | `str` | `progress_status` | CONFIRMED-BY-TEST | From meta vocabulary |
 | `scheduled_date` | `str` | `scheduled_date` | CONFIRMED-BY-TEST | ISO date |
-| `task_type_label` | `str` | derived from meta | CONFIRMED-BY-TEST | Human-readable |
-| `service_type_label` | `str` | derived from meta | CONFIRMED-BY-TEST | Human-readable |
+| `task_type_label` | `str` | derived from `meta.task_types` | DERIVED | Human-readable; not an upstream field |
+| `service_type_label` | `str` | derived from `meta.service_types` | DERIVED | Human-readable; not an upstream field |
+
+**On tiers**: DERIVED is not an evidence tier and does not claim
+upstream confirmation. These two labels are computed by the
+integration by looking a code up in the corresponding meta vocabulary.
+What is CONFIRMED-BY-TEST is that the vocabularies exist in `meta` and
+that the two are distinct (Maintenance is task_type 5 but service_id
+8). The lookup itself is our code, so it is verified by our tests, not
+by the API.
+
+**UNRESOLVED — the property association key**: an earlier revision
+recorded the source as "`property_id` or `property.id`" while tiering
+it CONFIRMED-BY-TEST. Those cannot both be true: an unresolved
+alternation is not a confirmed observation. The task payload is known
+to associate each task with a property, but which of the two shapes it
+uses has NOT been pinned down from a captured response. The
+implementation MUST read whichever key the recorded `/tasks` fixture
+actually contains and MUST NOT accept both silently, since a
+permissive reader would hide the answer permanently. Resolving this
+costs one look at the fixture during US4 and no additional API call.
 
 **Deliberately absent**: assignee details (PII), notes (may contain
 PII), custom fields. Only operational status fields are modelled.
@@ -97,10 +122,21 @@ The existing reservation model gains:
 | --- | --- | --- | --- | --- |
 | `guest` | `HospitableGuest \| None` | `guest` | CONFIRMED-BY-TEST | Present only with `include=guest`; null when no guest data |
 | `last_message_at` | `str \| None` | `last_message_at` | CONFIRMED-BY-TEST | Already present on base payload (21 keys) |
-| `platform` | `str` | `platform` | CONFIRMED-BY-TEST | Needed for sender_id validation (Airbnb check) |
 
 `last_message_at` was already present in the API response but not
 previously modelled because spec 001 had no use for it.
+
+**No `platform` field is added.** An earlier revision of this document
+listed one. It would have been a duplicate: `HospitableReservation`
+already declares `channel: str | None`
+(`custom_components/hospitable/api/models.py:173`) and `from_api`
+populates it from `payload.get("platform")` (same file, in the
+positional construction at roughly line 218), with
+`channel_confirmation` holding `platform_id`. Verified against source.
+The FR-013 Airbnb check MUST read the existing `channel` field.
+
+Because `channel` is `str | None`, the Airbnb check MUST treat `None`
+as "not resolved as Airbnb" and reject rather than pass — see FR-013.
 
 ## New entities
 

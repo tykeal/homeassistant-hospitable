@@ -88,8 +88,13 @@ Providing both or neither raises `ServiceValidationError`.
 1. Exactly one of `entity_id` / `reservation_uuid` provided
 2. `body` is non-empty
 3. `images` has at most 3 items (if provided)
-4. If `sender_id` is provided, the target reservation's `platform`
-   must be `airbnb`; otherwise `ServiceValidationError`
+4. If `sender_id` is provided, the target reservation's platform —
+   held in the existing `HospitableReservation.channel` field — must be
+   `airbnb`; otherwise `ServiceValidationError`. Resolve from the
+   coordinator cache when present, otherwise with one direct
+   `GET /reservations/{uuid}`. An unresolved or null platform is a
+   rejection, never a skipped check (FR-013). If `sender_id` is absent,
+   do not resolve the platform at all.
 5. Rate limit not exceeded (per-reservation: 2/min; per-token: 50/5min)
 
 **API call**: `POST /reservations/{uuid}/messages`
@@ -148,8 +153,23 @@ message; delivery is asynchronous and unconfirmed (FR-011).
 
 **API call**: `GET /reservations/{uuid}/messages`
 
-**Pagination**: Defensive (D-07). If `meta`/`links` present, pages
-through all results. If absent, treats `data` as complete.
+**Pagination**: NONE (D-07; OQ-002 CLOSED). The envelope carries
+`data` only — no `meta`, no `links` — and `page`/`per_page` are
+silently ignored upstream. The service consumes the thread in ONE
+request, sends neither parameter, and writes no pagination loop.
+
+**Scope caveat**: the busiest conversation observed held 10 messages,
+so behaviour above that volume was never seen. Pagination may appear
+above some threshold, so a `meta`/`links` block appearing later MUST
+be tolerated rather than crash — but MUST NOT be treated as expected.
+
+**Rate limit**: this endpoint is throttled at 2 requests per 60
+seconds PER RESERVATION (CONFIRMED-BY-TEST) and returns
+`x-ratelimit-limit`/`x-ratelimit-remaining`, plus `retry-after` and
+`x-ratelimit-reset` on a 429. Repeated `get_messages` calls against
+one reservation can therefore 429. See OQ-007: this read budget may
+or may not be shared with the send budget, so the service MUST NOT be
+used in a way that could starve `send_message`.
 
 **Response shape**:
 

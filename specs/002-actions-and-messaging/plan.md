@@ -63,17 +63,26 @@ coordinator, ~15 new production modules.
 
 **Unknowns resolved in planning**:
 
-- OQ-004 (task polling cadence): 15-minute default, 5-minute floor.
+- OQ-004 (task polling cadence): 15-minute default, 5-minute floor,
+  with the poll fanned out one request per property.
   See [research.md D-04](./research.md#d-04).
+- OQ-002 (message pagination): CLOSED by live probe. The endpoint is
+  NOT paginated and silently ignores `page`/`per_page`; the thread is
+  consumed in a single request. Bounded to a 10-message observation,
+  so a `meta`/`links` block appearing later is tolerated but not
+  expected. See [research.md D-07](./research.md#d-07).
 
 **Unknowns planned around** (not resolved):
 
 - OQ-001 (202 response body shape): Defensive parsing handles both
   presence and absence of `sent_reference_id`.
-- OQ-002 (message pagination): Defensive handling for both paginated
-  and non-paginated responses.
 - OQ-005 (messaging scope requirement): 403 handled as capability
   limitation per existing classifier.
+- OQ-007 (do message reads and writes share one per-reservation rate
+  bucket?): not testable without a real send. Both sides are designed
+  defensively — the awaiting-host-reply fetch floor is 60 seconds so a
+  poll consumes at most one of the two slots, and send treats a 429 as
+  retryable-with-backoff. Neither answer is asserted.
 
 ## Constitution Check
 

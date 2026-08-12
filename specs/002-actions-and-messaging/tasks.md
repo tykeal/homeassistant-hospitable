@@ -121,8 +121,12 @@ authoritative for the tasks that cite them.
    no `meta`, no `links`, unlike `/reservations` and `/tasks`, which
    carry all three. `per_page=1`, `per_page=2`, `page=1`, `page=2`, and
    `per_page=1&page=2` all returned the identical full set of 10 items.
-   Both parameters are **silently ignored** — the fourth instance of
-   silent-ignore behaviour in this API.
+   Both parameters are **silently ignored** — a further, newly
+   observed instance of the silent-ignore behaviour class. Spec 001
+   FR-075 records five distinct instances; this is not one of them and
+   is not assigned an ordinal here, because FR-075's prose order and
+   spec 001 `research.md`'s "the fifth" label do not agree and
+   inventing a sixth number would entrench that disagreement.
    **Scope caveat, stated honestly**: the busiest conversation on this
    account holds only 10 messages, so behaviour above that volume was
    NOT observed. Pagination may appear above some threshold. Tasks
@@ -414,10 +418,22 @@ fail with `AssertionError`, because those modules already exist —
 - [ ] T034 [US1] In `tests/actions/test_send_message.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that `sender_id` is REJECTED
       with `ServiceValidationError` for a non-Airbnb reservation and
-      accepted for an Airbnb one. **Observed gap**: the reservation
-      model already carries the upstream `platform` value under the
-      field name `channel`; the test must key off the field that
-      actually exists. See Notes and known gaps. (FR-013)
+      accepted for an Airbnb one. The reservation model already carries
+      the upstream `platform` value under the field name `channel`
+      (`api/models.py:173`, populated from `payload.get("platform")`),
+      so the test MUST key off `channel`; no new field is added.
+      (FR-013)
+- [ ] T034a [US1] In `tests/actions/test_send_message.py`, add xfail
+      tests (`raises=ModuleNotFoundError`) for platform resolution per
+      FR-013: with NO `sender_id`, assert zero extra requests and no
+      platform lookup at all; with `sender_id` and a cached
+      reservation, assert the cached `channel` is used and zero extra
+      requests are issued; with `sender_id` and an UNCACHED
+      reservation, assert exactly one `GET /reservations/{uuid}` is
+      issued; and when that lookup fails, 404s, or yields a null
+      `channel`, assert `ServiceValidationError` is raised and NO POST
+      is issued. The unresolved case must reject, never silently skip
+      the check. (FR-013)
 - [ ] T035 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the Laravel error
       envelope: a 422 from `error_envelope_422.json` maps to
@@ -547,7 +563,9 @@ tests only.
 - [ ] T048 [US1] Create
       `custom_components/hospitable/actions/send_message.py` with the
       handler: validate, check rate limit, resolve platform for the
-      `sender_id` rule, POST, record the budget on acceptance, and
+      `sender_id` rule per FR-013 (skip entirely without `sender_id`;
+      cache first; one direct `GET /reservations/{uuid}` otherwise;
+      reject on unresolved), POST, record the budget on acceptance, and
       return the acceptance result. Uses `SupportsResponse.ONLY` per
       plan Deviation 2. (FR-009, FR-011, FR-013, FR-019)
 - [ ] T049 [US1] Implement defensive handling of the 202 body in the
@@ -823,7 +841,7 @@ for the guest missing `last_name`, and no guest attributes at all for
 the null guest; assert email and phone are absent until the option is
 enabled.
 
-**Requirements**: FR-038b, FR-039 to FR-043, FR-075.
+**Requirements**: FR-038b, FR-039 to FR-043, and spec 001 FR-075.
 
 ### RED PHASE COMMIT — US3 (tests only)
 
@@ -847,7 +865,8 @@ enabled.
       `guest` key is actually present in each returned item rather than
       assuming the include was honoured, because unrecognised include
       names are silently ignored upstream. Reuse the existing
-      include-assertion helper in `api/responses.py`. (FR-040, FR-075)
+      include-assertion helper in `api/responses.py`. (FR-040, spec 001
+      FR-075)
 - [ ] T089 [P] [US3] In `tests/sensor/test_reservation.py`, add xfail
       tests (`raises=AssertionError`) that the reservation status entity
       exposes the four default guest attributes when available and omits
@@ -903,7 +922,7 @@ that most of these MUST fail with `AssertionError`, not an import error
       `include=guest,properties`. (FR-039)
 - [ ] T100 [US3] Assert the `guest` key is present on returned items
       using the existing include-assertion helper, and surface a clear
-      error when it is not. (FR-040, FR-075)
+      error when it is not. (FR-040, spec 001 FR-075)
 - [ ] T101 [US3] Extend
       `custom_components/hospitable/sensor/reservation.py` with the four
       default guest attributes and the reservation UUID attribute.
@@ -994,6 +1013,14 @@ task-type table rather than the service-type table.
       (`raises=ModuleNotFoundError`) that the `HospitableTask` model
       parses every field named in `data-model.md`, including assignment
       status and assignee. (FR-035)
+- [ ] T115a [US4] In `tests/api/test_tasks.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) pinning the property association
+      key. `data-model.md` records it as UNRESOLVED between
+      `property_id` and a nested `property.id`. Read the recorded
+      `/tasks` fixture, assert the ONE shape it actually contains, and
+      update `data-model.md` to that single answer in the green phase.
+      The parser MUST NOT accept both shapes — a permissive reader
+      would hide the answer permanently. (FR-032, FR-035)
 - [ ] T116 [US4] In `tests/test_coordinator.py`, add xfail tests
       (`raises=AttributeError`) for the tasks coordinator: it exists,
       polls on its own cadence, and holds a BASE client — the
@@ -1233,6 +1260,14 @@ phase.
       messages, mocked) from `quickstart.md`. (FR-009, FR-020)
 - [ ] T150 [P] [US6] Automate VS-4 (lookup services, mocked) from
       `quickstart.md`. (FR-025, FR-026, FR-027, FR-028)
+- [ ] T150a [US6] Add the SC-007 side-effect assertion: subscribe a
+      catch-all listener to the Home Assistant event bus, call every
+      lookup service, and assert it captured no integration-fired
+      event; assert no coordinator refresh was triggered and no entity
+      state was written. SC-007 promises this and nothing currently
+      asserts it. Latency is deliberately NOT asserted — under `respx`
+      the response is already in memory, so a timing bound would
+      measure the mock. (FR-025 to FR-028, SC-007)
 - [ ] T151 [P] [US6] Automate VS-5 (task sensors) from `quickstart.md`.
       (FR-030, FR-031, FR-032, FR-033)
 - [ ] T152 [P] [US6] Automate VS-6 (guest attributes on the reservation
@@ -1291,7 +1326,9 @@ phase.
 - [ ] T163 [US6] Verify each of SC-001 to SC-009 against a concrete
       test node id and record the mapping in the PR description. Any
       criterion that cannot be verified without a live account MUST be
-      declared unverified rather than claimed.
+      declared unverified rather than claimed. In particular, the
+      SC-001 and SC-007 latency statements are MANUAL quickstart checks
+      and MUST be reported as such, never as suite-verified.
 
 **Exit criteria**: full suite, mypy, and ruff green; every quickstart
 scenario automated; every success criterion either evidenced or
@@ -1461,10 +1498,11 @@ documentation-fix pull request against `plan.md`, `research.md`, or
   copy-paste bug.
 - **`HospitableReservation` already carries the upstream `platform`
   value, under the field name `channel`** (with `channel_confirmation`
-  for `platform_id`). `data-model.md` says the model "gains" a
-  `platform` field; it does not need to. FR-013's Airbnb check should
-  reuse the existing field or the model should be explicitly renamed —
-  either way, deciding is not this file's job.
+  for `platform_id`), verified at `api/models.py:173` and its
+  `from_api` construction. This is now RESOLVED: `data-model.md` no
+  longer adds a duplicate `platform` field and FR-013's Airbnb check
+  reads `channel`. Note `channel` is `str | None`, so a null value is
+  an unresolved platform and therefore a rejection.
 - **Name collision risk: `HospitableReservation.guests` already exists
   and holds NUMERIC occupancy counts.** The new guest-identity field is
   singular `guest`. These are entirely different things and are one
@@ -1479,11 +1517,11 @@ documentation-fix pull request against `plan.md`, `research.md`, or
   `plan.md`'s module layout does not list one**, yet FR-007 and
   `contracts/services.md` require it. T053 creates it; the plan's layout
   is incomplete.
-- **FR-013 needs the reservation's platform before the POST.** That
-  means either a coordinator-cache hit or an extra
-  `GET /reservations/{uuid}`. `plan.md` does not discuss this API cost.
-  T048 and T050 should prefer the cache; the fallback cost is real and
-  should be stated in the PR description.
+- **FR-013 needs the reservation's platform before the POST.** This is
+  now RESOLVED in FR-013 itself: no lookup at all without `sender_id`;
+  coordinator cache first; exactly one `GET /reservations/{uuid}` when
+  uncached; `ServiceValidationError` when unresolved. T034a pins all
+  four branches.
 - **The awaiting-host-reply indicator is a `sensor`, not a
   `binary_sensor`.** `contracts/entities.md` states explicitly that spec
   002 introduces no new platform. This looks like a mistake to a
@@ -1613,7 +1651,17 @@ it; it does not follow that the task fully discharges it.
 
 | Item | Tasks |
 | --- | --- |
-| SC-001 to SC-009 | T148, T149, T150, T151, T152, T153, T154, T155, T155a, T156, T157, T158, T163 |
+| SC-001 | T149, T157 (latency: manual, not automated) |
+| SC-002 | T148, T156, T161 |
+| SC-003 | T153, T157 |
+| SC-003a | T072a, T072b, T072c, T072d, T072e, T153a |
+| SC-004 | T112, T112a, T117a, T119, T151 |
+| SC-005 | T155, T155a, T158 |
+| SC-006 | T154 |
+| SC-007 | T150, T150a (latency: manual, not automated) |
+| SC-008 | T114, T124, T151 |
+| SC-009 | T152, T153 |
+| All SC, final audit | T163 |
 | OQ-001 (202 body shape) — OPEN | T007, T032, T049, T170 |
 | OQ-002 (message pagination) — CLOSED | T064, T064a, T064b, T064c, T074 |
 | OQ-005 (PAT send scope) — OPEN | T036, T170 |

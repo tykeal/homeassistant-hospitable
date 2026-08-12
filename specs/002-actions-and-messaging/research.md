@@ -40,7 +40,7 @@ directly, and the exact bound of what was observed is stated with it.
 | D-11 | Guest attributes as unrecorded | FR-039e, FR-042 |
 | D-12 | PII redaction for guest and message fields | FR-041, FR-042, FR-024 |
 | D-13 | Task type vs service_id explicit mapping | FR-033, FR-035 |
-| D-14 | `SupportsResponse.ONLY` on all services including send | FR-021, FR-025 to FR-027 |
+| D-14 | `SupportsResponse.ONLY` on all services including send | FR-011a, FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
 | D-16 | Single response-builder chokepoint for guest and sender PII | FR-046, FR-047, FR-047a, FR-048 |
 
@@ -277,8 +277,9 @@ parameter via comma-separation costs zero additional requests and
 enriches the payload with guest data for FR-039/FR-039a attributes.
 Population is good (29/29 non-null guest objects, first_name 29/29).
 
-**Post-condition (FR-075)**: Because unrecognised include names are
-silently ignored (silent-ignore behaviour #4), the implementation
+**Post-condition (spec 001 FR-075)**: Because unrecognised include
+names are silently ignored — one of the silent-ignore behaviours spec
+001 FR-075 enumerates — the implementation
 MUST assert the `guest` key is actually present on every response
 item. A missing key when `include=guest` was requested raises
 `HospitableIncludeMissingError`. This is the same pattern applied to
@@ -477,19 +478,27 @@ observation.
 `SupportsResponse.ONLY` — it returns the acceptance result as
 structured data.
 
-**Rationale**: FR-021 specifies ONLY for lookups. For `send_message`,
-ONLY is also appropriate because the caller needs the acceptance
-confirmation (and optional `sent_reference_id`) as structured data.
-There is no use case for firing an event on send — the caller already
-has the result.
+**Rationale**: each service's response mode rests on its own
+requirement, and the citations must not be widened past their scope.
+FR-021 specifies ONLY for `get_messages` alone. The three lookup
+services carry it individually in FR-025, FR-026, and FR-027. An
+earlier revision of this decision cited FR-021 for "lookups"
+generally, which FR-021 does not say.
+
+For `send_message`, FR-011a is the governing requirement. ONLY is
+appropriate there because the caller needs the acceptance confirmation
+(and any correlation identifier) as structured data. There is no use
+case for firing an event on send — the caller already has the
+result.
 
 **Revision from initial consideration**: Initially considered
 `SupportsResponse.OPTIONAL` for send_message (to allow fire-and-forget
 from automations that do not need the response). Rejected because
 FR-011 requires reporting "accepted for delivery" — if the automation
 does not consume the response, it has no way to know acceptance
-occurred. `ONLY` forces the caller to handle the response, which is
-the correct contract for a write operation.
+occurred. FR-011a records that conclusion as a requirement. `ONLY`
+forces the caller to handle the response, which is the correct
+contract for a write operation.
 
 ## D-15: No event firing, no OPTIONAL response mode {#d-15}
 
