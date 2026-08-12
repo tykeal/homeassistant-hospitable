@@ -85,6 +85,19 @@ def _install_api(respx_router: Any, base_url: str, state: dict[str, str]) -> Non
 
     respx_router.get(f"{base_url}/properties").mock(side_effect=_properties)
     respx_router.get(f"{base_url}/reservations").mock(side_effect=_reservations)
+
+    def _tasks(request: httpx.Request) -> httpx.Response:
+        """Return tasks, or the failure currently armed in state."""
+        mode = state["mode"]
+        if mode == "auth":
+            return httpx.Response(401, json=load_fixture("error_401.json"))
+        if mode == "rate":
+            return httpx.Response(429, json=load_fixture("error_429.json"))
+        if mode == "poll":
+            return httpx.Response(500, json=load_fixture("error_500.json"))
+        return httpx.Response(200, json=load_fixture("tasks_empty.json"))
+
+    respx_router.get(f"{base_url}/tasks").mock(side_effect=_tasks)
     respx_router.get(f"{base_url}/properties/{_PROPERTY_ID}/calendar").mock(
         side_effect=_calendar
     )
@@ -154,11 +167,16 @@ async def test_one_entry_failures_do_not_disturb_another(
     res_b = coords_b["reservations"]
     cal_a = coords_a["calendar"]
     cal_b = coords_b["calendar"]
+    # US4's tasks coordinator joins the same isolation contract: it must
+    # fail with the rest of entry A and stay untouched on entry B.
+    tasks_a = coords_a["tasks"]
+    tasks_b = coords_b["tasks"]
 
     # No coordinator or client is shared between the two entries.
     assert props_a is not props_b
     assert res_a is not res_b
     assert cal_a is not cal_b
+    assert tasks_a is not tasks_b
     assert entry_a.runtime_data["client"] is not entry_b.runtime_data["client"]
 
     b_entity_ids = _entity_ids(hass, entry_b)
@@ -182,17 +200,21 @@ async def test_one_entry_failures_do_not_disturb_another(
         await props_a.async_refresh()
         await res_a.async_refresh()
         await cal_a.async_refresh()
+        await tasks_a.async_refresh()
         await hass.async_block_till_done()
 
         assert props_a.last_update_success is False
         assert res_a.last_update_success is False
         assert cal_a.last_update_success is False
+        assert tasks_a.last_update_success is False
         assert props_b.consecutive_failures == 0
         assert res_b.consecutive_failures == 0
         assert cal_b.consecutive_failures == 0
+        assert tasks_b.consecutive_failures == 0
         assert props_b.last_update_success is True
         assert res_b.last_update_success is True
         assert cal_b.last_update_success is True
+        assert tasks_b.last_update_success is True
         assert props_b.data is b_data_before
         assert res_b.data is b_reservations_before
         assert _states(hass, b_entity_ids) == b_states_before
@@ -207,6 +229,7 @@ async def test_one_entry_failures_do_not_disturb_another(
     props_a.async_update_listeners()
     res_a.async_update_listeners()
     cal_a.async_update_listeners()
+    tasks_a.async_update_listeners()
     await hass.async_block_till_done()
     a_entity_ids = _entity_ids(hass, entry_a)
     a_states = _states(hass, a_entity_ids)

@@ -152,6 +152,11 @@ def mock_endpoints(respx_router: Any) -> Any:
     respx_router.get(f"{BASE_URL}/properties/prop-example-002/calendar").mock(
         return_value=httpx.Response(200, json=load_fixture("calendar_prop2.json"))
     )
+    # US4 adds a tasks coordinator to the lifecycle, so the shared route
+    # set has to cover /tasks or an unmocked call would abort setup.
+    respx_router.get(f"{BASE_URL}/tasks").mock(
+        return_value=httpx.Response(200, json=load_fixture("tasks_empty.json"))
+    )
     return reservations
 
 

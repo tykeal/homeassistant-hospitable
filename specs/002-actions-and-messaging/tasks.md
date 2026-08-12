@@ -968,74 +968,74 @@ task-type table rather than the service-type table.
 
 ### RED PHASE COMMIT — US4 (tests only)
 
-- [ ] T109 [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T109 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the tasks request ALWAYS sends
       a non-empty `properties[]` parameter — a bare request is a 400
       upstream. (FR-030)
-- [ ] T109a [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T109a [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a refresh across N selected
       properties issues N SEPARATE `/tasks` requests, each carrying
       exactly ONE property in `properties[]` — assert the request count
       and that no single request names two properties. This is the
       fan-out that makes per-property failure isolation possible.
       (FR-030, FR-034)
-- [ ] T110 [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T110 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the request ALWAYS carries
       explicit `start_date` and `end_date` derived from the
       `task_window_days` option: `start_date` is today and `end_date`
       is today plus `task_window_days` (default 14). Also assert a
       dates-only request (no `properties[]`) is never constructed,
       because it too is a 400. (FR-030)
-- [ ] T111 [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T111 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a 400 response parsed with the
       shared Laravel envelope parser from T043 surfaces as a clear
       error, proving one parser serves both the `/tasks` 400 and the
       send 422. (FR-030, FR-045)
-- [ ] T112 [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T112 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that pagination is exercised from
       day one: both fixture pages are fetched and the combined result
       contains every task from both. (FR-031)
-- [ ] T112a [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T112a [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that pagination is followed PER
       PROPERTY: mock one property returning `meta.last_page: 2` and
       another returning `meta.last_page: 1`, and assert the first is
       fetched twice and the second exactly once. A shared page count
       taken from whichever property answered first would either lose
       tasks or issue a pointless request. (FR-031)
-- [ ] T113 [P] [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T113 [P] [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the authoritative enum tables
       are read from the response `meta` block rather than hardcoded.
       (FR-033)
-- [ ] T114 [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T114 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the task-type and service-type
       maps are SEPARATE and NOT interchangeable, asserting the concrete
       meta-vocabulary trap: Maintenance is task_type 5 with service_id
       8, while service_type 5 is Owner. A synthetic task with task_type
       5 must never be labelled by looking up 5 in the service-type
       table. (FR-033)
-- [ ] T115 [P] [US4] In `tests/api/test_tasks.py`, add xfail tests
+- [X] T115 [P] [US4] In `tests/api/test_tasks.py`, add xfail tests
       (`raises=ModuleNotFoundError`) that the `HospitableTask` model
       parses every field named in `data-model.md`, including nested
       `task_assignment.status`, nullable `progress_status`, ISO
       `start_date` / `end_date`, `timezone`, `duration_hours`, nested
       `reservation`, and allowed teammate fields. Assert
       `teammate.name` is not parsed into the model. (FR-035)
-- [ ] T115a [US4] In `tests/api/test_tasks.py`, add an xfail test
+- [X] T115a [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) asserting the parser reads the
       property association from nested `property.id` and rejects a flat
       `property_id`. The recorded `/tasks` fixture must contain only the
       live-confirmed nested shape. The parser MUST NOT accept both
       shapes — a permissive reader would hide future drift permanently.
       (FR-032, FR-035)
-- [ ] T116 [US4] In `tests/test_coordinator.py`, add xfail tests
+- [X] T116 [US4] In `tests/test_coordinator.py`, add xfail tests
       (`raises=AttributeError`) for the tasks coordinator: it exists,
       polls on its own cadence, and holds a BASE client — the
       write-isolation gates from T022..T024 must cover it too.
       (FR-034, FR-001)
-- [ ] T117 [P] [US4] In `tests/test_coordinator.py`, add an xfail test
+- [X] T117 [P] [US4] In `tests/test_coordinator.py`, add an xfail test
       (`raises=AttributeError`) that the task interval defaults to 15
       minutes and is clamped to a 5-minute floor. (FR-034)
-- [ ] T117a [US4] In `tests/test_coordinator.py`, add an xfail test
+- [X] T117a [US4] In `tests/test_coordinator.py`, add an xfail test
       (`raises=AttributeError`) for per-property failure isolation:
       with three properties selected and the SECOND returning a 500,
       assert the refresh still succeeds, that the failing property
@@ -1043,24 +1043,24 @@ task-type table rather than the service-type table.
       cleared or dropped, and that the other two properties reflect
       their new data. Mirrors the spec 001 D-15 calendar behaviour.
       (FR-034)
-- [ ] T118 [P] [US4] In `tests/sensor/test_tasks.py`, add xfail tests
+- [X] T118 [P] [US4] In `tests/sensor/test_tasks.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for a per-property next-task sensor
       per `data-model.md`. (FR-032)
-- [ ] T119 [P] [US4] In `tests/sensor/test_tasks.py`, add xfail tests
+- [X] T119 [P] [US4] In `tests/sensor/test_tasks.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for a per-property task-count
       sensor whose value equals the number of tasks for that property
       across ALL pages. (FR-031, FR-032)
-- [ ] T120 [P] [US4] In `tests/sensor/test_tasks.py`, add an xfail test
+- [X] T120 [P] [US4] In `tests/sensor/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that assignment status is exposed
       as an attribute, teammate identifiers may be exposed, and
       teammate personal names are never parsed into the model or
       surfaced in diagnostics. Treat `note` and `reservation.code` as
       protected unless a later requirement explicitly exposes them.
       (FR-035, FR-042)
-- [ ] T121 [P] [US4] In `tests/test_config_flow.py`, add an xfail test
+- [X] T121 [P] [US4] In `tests/test_config_flow.py`, add an xfail test
       (`raises=AssertionError`) that the options flow exposes the task
       interval with the correct default and floor. (FR-034)
-- [ ] T121a [P] [US4] In `tests/test_options_bounds.py`, add an xfail
+- [X] T121a [P] [US4] In `tests/test_options_bounds.py`, add an xfail
       test (`raises=AssertionError`) that `task_window_days` defaults
       to 14 and is bounds-validated in `options_bounds.py` with a
       named error key, rejecting 0 and any value above the maximum so
@@ -1071,24 +1071,24 @@ task-type table rather than the service-type table.
 
 ### GREEN PHASE COMMIT — US4
 
-- [ ] T122 [US4] Create `custom_components/hospitable/api/tasks.py` with
+- [X] T122 [US4] Create `custom_components/hospitable/api/tasks.py` with
       the request builder — mandatory `properties[]` carrying exactly
       one property, plus explicit `start_date` (today) and `end_date`
       (today + `task_window_days`) — and a paginating fetch for that
       single property that follows its own `meta.last_page`.
       (FR-030, FR-031)
-- [ ] T123 [US4] Add `HospitableTask` to
+- [X] T123 [US4] Add `HospitableTask` to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-035)
-- [ ] T124 [US4] Build the two enum maps from the response `meta` block
+- [X] T124 [US4] Build the two enum maps from the response `meta` block
       as SEPARATE structures with distinct names, with a comment
       recording that Maintenance is task_type 5 and service_id 8.
       (FR-033)
-- [ ] T125 [US4] Add `HospitableTasksCoordinator` to
+- [X] T125 [US4] Add `HospitableTasksCoordinator` to
       `custom_components/hospitable/coordinator.py`, annotated with the
       BASE client type, with a 15-minute default and 5-minute floor.
       (FR-034, FR-001)
-- [ ] T125a [US4] Make the tasks coordinator refresh fan out over the
+- [X] T125a [US4] Make the tasks coordinator refresh fan out over the
       selected properties, awaiting one per-property fetch each and
       gathering results so a single property's exception cannot abort
       the others. On a per-property failure, log at debug and carry that
@@ -1096,21 +1096,21 @@ task-type table rather than the service-type table.
       property fails. Follow the spec 001 calendar coordinator's
       last-good retention rather than inventing a second pattern.
       (FR-030, FR-034)
-- [ ] T126 [US4] Create `custom_components/hospitable/sensor/tasks.py`
+- [X] T126 [US4] Create `custom_components/hospitable/sensor/tasks.py`
       with the next-task and task-count sensors. (FR-032)
-- [ ] T127 [US4] Register the new sensors in
+- [X] T127 [US4] Register the new sensors in
       `custom_components/hospitable/sensor/__init__.py`. (FR-032)
-- [ ] T128 [US4] Add the task interval option and the
+- [X] T128 [US4] Add the task interval option and the
       `task_window_days` option to the options flow, with bounds
       validation in `options_bounds.py`, and wire both into the
       coordinator. (FR-034, FR-030)
-- [ ] T129 [US4] Add task sensor names, task interval option text, and
+- [X] T129 [US4] Add task sensor names, task interval option text, and
       state translations to `strings.json` and `translations/en.json`.
       (FR-007, FR-034)
-- [ ] T130 [US4] Extend the write-isolation gates from T022..T024 to
+- [X] T130 [US4] Extend the write-isolation gates from T022..T024 to
       include the tasks coordinator and the new sensor module.
       (FR-001)
-- [ ] T131 [US4] Remove every US4 xfail marker and `# type: ignore`
+- [X] T131 [US4] Remove every US4 xfail marker and `# type: ignore`
       comment, then run the full suite, `uv run mypy`, and
       `uv run ruff check`.
 

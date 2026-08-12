@@ -92,7 +92,10 @@ async def test_gate_2_no_coordinator_holds_a_write_client(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     coordinators = entry.runtime_data["coordinators"]
-    assert set(coordinators) == {"properties", "reservations", "calendar"}
+    # Exact rather than a subset: a NEW coordinator cannot join the
+    # lifecycle without being named here and therefore proved to hold
+    # the GET-only client by the assertions below.
+    assert set(coordinators) == {"properties", "reservations", "calendar", "tasks"}
     for name, coordinator in coordinators.items():
         assert hasattr(coordinator, "client"), (
             f"coordinator {name} exposes no public client accessor"
@@ -149,3 +152,71 @@ def test_gate_3_scan_covers_every_polling_module() -> None:
     assert COORDINATOR_MODULE.as_posix() in covered
     assert CONFIG_FLOW_MODULE.as_posix() in covered
     assert len([name for name in covered if "/sensor/" in name]) >= 4
+
+
+# --- US4 extension of gates 1 to 3 (T130, FR-001) -----------------------
+#
+# These ADD to the gates above; nothing existing is relaxed. US4
+# introduces a new coordinator module and a new sensor module, and a
+# gate that silently stopped covering them would be worse than no gate:
+# it would still report green while the newest code went unchecked.
+
+TASKS_COORDINATOR_MODULE = INTEGRATION_ROOT / "coordinator_tasks.py"
+OPTIONS_FLOW_MODULE = INTEGRATION_ROOT / "options_flow.py"
+TASKS_SENSOR_MODULE = SENSOR_PACKAGE / "tasks.py"
+
+US4_POLLING_MODULES = [
+    COORDINATOR_MODULE,
+    TASKS_COORDINATOR_MODULE,
+    CONFIG_FLOW_MODULE,
+    OPTIONS_FLOW_MODULE,
+    SENSOR_PACKAGE,
+]
+
+
+def test_gate_1_covers_the_tasks_coordinator_module() -> None:
+    """The tasks coordinator annotates the GET-only base client too.
+
+    The tasks coordinator lives in its own module, so the gate 1 scan
+    over ``coordinator.py`` alone would not see it. Scanning it here
+    keeps "every coordinator types its client as the base client" true
+    of every coordinator rather than of most of them.
+    """
+    from tests.helpers.ast_isolation import annotated_assignment_types
+
+    assert TASKS_COORDINATOR_MODULE.is_file(), (
+        "the tasks coordinator module must exist to be isolated"
+    )
+    assert annotated_assignment_types(TASKS_COORDINATOR_MODULE, "_client") == {
+        BASE_CLIENT_NAME
+    }, "the tasks coordinator must annotate self._client as the base client"
+
+
+def test_gate_3_covers_the_us4_modules() -> None:
+    """No US4 polling module reaches for a write-capable symbol.
+
+    The existence assertions come first for the same reason as the gate
+    above: a scan that passes because the file is absent proves nothing.
+    """
+    from tests.helpers.ast_isolation import scan_paths
+
+    for module in (
+        TASKS_COORDINATOR_MODULE,
+        OPTIONS_FLOW_MODULE,
+        TASKS_SENSOR_MODULE,
+    ):
+        assert module.is_file(), f"{module} must exist to be isolated"
+
+    scanned = scan_paths(US4_POLLING_MODULES)
+    covered = {path.as_posix() for path in scanned}
+    assert TASKS_COORDINATOR_MODULE.as_posix() in covered
+    assert OPTIONS_FLOW_MODULE.as_posix() in covered
+    assert TASKS_SENSOR_MODULE.as_posix() in covered
+
+    for path, facts in scanned.items():
+        assert not facts.references("HospitableWriteClient"), path
+        assert not facts.references("_post"), path
+        assert not facts.imports_from("custom_components.hospitable.actions"), path
+        assert not facts.imports_from(
+            "custom_components.hospitable.api.write_client"
+        ), path

@@ -52,6 +52,11 @@ def _mock_all_endpoints(respx_router: Any) -> None:
     respx_router.get(f"{BASE_URL}/properties/prop-example-002/calendar").mock(
         return_value=httpx.Response(200, json=load_fixture("calendar_prop2.json"))
     )
+    # US4 adds a tasks coordinator to the lifecycle, so the shared route
+    # set has to cover /tasks or an unmocked call would abort setup.
+    respx_router.get(f"{BASE_URL}/tasks").mock(
+        return_value=httpx.Response(200, json=load_fixture("tasks_empty.json"))
+    )
 
 
 async def test_full_lifecycle_issues_only_get_requests(
@@ -78,9 +83,12 @@ async def test_full_lifecycle_issues_only_get_requests(
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
 
-    # Every coordinator, calendar included, participates in the lifecycle.
+    # Every coordinator, calendar and tasks included, participates in
+    # the lifecycle. The set is exact rather than a subset so a NEW
+    # coordinator cannot join the lifecycle without being added here and
+    # therefore proved GET-only by the assertion below.
     coordinators = entry.runtime_data["coordinators"]
-    assert set(coordinators) == {"properties", "reservations", "calendar"}
+    assert set(coordinators) == {"properties", "reservations", "calendar", "tasks"}
     for coordinator in coordinators.values():
         await coordinator.async_refresh()
     await hass.async_block_till_done()
