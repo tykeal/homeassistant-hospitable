@@ -6,6 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+from homeassistant.data_entry_flow import InvalidData
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
@@ -141,3 +145,145 @@ async def test_reauth_replaces_token_for_same_account_only(
     assert result["reason"] == "reauth_successful"
     assert entry.data[CONF_TOKEN] == "replacement-token"
     assert entry.data[CONF_ACCOUNT_NAMESPACE] == "acct-example-0001"
+
+
+# --- US3 guest-contact-details options toggle (T096, FR-038b) -----------
+#
+# ``config_flow.py``, ``strings.json`` and ``translations/en.json`` all
+# already exist, so these fail on real behaviour rather than on imports.
+
+_RED_TOGGLE = "TDD red phase: T096 the guest-contact toggle does not exist"
+
+
+def _guest_entry() -> MockConfigEntry:
+    """Build a loaded-looking entry with one selected property."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_TOKEN: "hp_test_synthetic_token_000000000000000000000000",
+            CONF_ACCOUNT_NAMESPACE: "acct-example-0001",
+            CONF_NAMESPACE_SOURCE: "account",
+        },
+        options={
+            CONF_SELECTED_PROPERTIES: ["prop-example-001"],
+            "reservation_interval_minutes": 5,
+            "property_interval_minutes": 60,
+            "lookback_days": 90,
+            "lookahead_days": 90,
+        },
+        unique_id="acct-example-0001",
+    )
+
+
+def _guest_base_input() -> dict[str, Any]:
+    """Return otherwise-valid options-flow input."""
+    return {
+        CONF_SELECTED_PROPERTIES: ["prop-example-001"],
+        "reservation_interval_minutes": 5,
+        "property_interval_minutes": 60,
+        "lookback_days": 90,
+        "lookahead_days": 90,
+    }
+
+
+@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
+async def test_options_flow_offers_the_guest_contact_toggle(hass: Any) -> None:
+    """The options form exposes the guest-contact-details field."""
+    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
+    entry = _guest_entry()
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    keys = {str(key) for key in result["data_schema"].schema}
+    assert CONF_GUEST_CONTACT_DETAILS in keys
+
+
+@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
+async def test_the_guest_contact_toggle_defaults_to_disabled(hass: Any) -> None:
+    """Submitting the form untouched leaves the opt-in OFF (FR-038b).
+
+    Default OFF is a requirement, not a preference, so the default is
+    asserted through a real submission rather than by reading a
+    constant.
+    """
+    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
+    entry = _guest_entry()
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], _guest_base_input()
+    )
+
+    assert result["type"] == "create_entry"
+    assert CONF_GUEST_CONTACT_DETAILS in result["data"], "the option is not persisted"
+    assert result["data"][CONF_GUEST_CONTACT_DETAILS] is False
+
+
+@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
+async def test_enabling_the_guest_contact_toggle_persists(hass: Any) -> None:
+    """An explicit opt-in is stored on the entry options."""
+    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
+    entry = _guest_entry()
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    user_input = _guest_base_input()
+    user_input[CONF_GUEST_CONTACT_DETAILS] = True
+    # A schema that does not know the field rejects the submission
+    # outright; that is converted here so the red phase fails with a
+    # plain assertion about the missing option rather than a voluptuous
+    # error type.
+    submitted: dict[str, Any] | None = None
+    try:
+        submitted = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input
+        )
+    except InvalidData:
+        submitted = None
+    assert submitted is not None, "the options schema rejects the guest-contact field"
+    result = submitted
+
+    assert result["type"] == "create_entry"
+    assert CONF_GUEST_CONTACT_DETAILS in result["data"], "the option is not persisted"
+    assert result["data"][CONF_GUEST_CONTACT_DETAILS] is True
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "custom_components/hospitable/strings.json",
+        "custom_components/hospitable/translations/en.json",
+    ],
+)
+@pytest.mark.xfail(raises=AssertionError, strict=True, reason=_RED_TOGGLE)
+def test_the_toggle_states_its_privacy_implication(relative_path: str) -> None:
+    """Both string files label the toggle and explain what it exposes.
+
+    A toggle that says only "guest contact details" does not tell a user
+    that enabling it writes an email address and a phone number into
+    entity attributes visible on a dashboard.
+    """
+    import json
+    from pathlib import Path
+
+    data = json.loads(Path(relative_path).read_text(encoding="utf-8"))
+    init_step = data["options"]["step"]["init"]
+
+    assert "guest_contact_details" in init_step["data"], "the field has no label"
+
+    description = " ".join(
+        [
+            str(init_step.get("description", "")),
+            str(init_step["data"]["guest_contact_details"]),
+            str(init_step.get("data_description", {}).get("guest_contact_details", "")),
+        ]
+    ).lower()
+
+    assert "email" in description
+    assert "phone" in description
+    assert "attribute" in description
