@@ -51,7 +51,7 @@ and `services/`) containing all Home Assistant service-call handlers.
 The `api/client.py` gains a `_post` method, but the `_post` method is
 defined on a subclass or mixin (`HospitableWriteClient`) that is
 instantiated ONLY by `actions/` code, never by coordinators. The
-coordinator code path uses the existing `HospitableClient` which
+coordinator code path uses the existing `HospitableApiClient` which
 exposes only `_get`.
 
 **Rationale**: FR-003 demands architectural enforcement, not
@@ -81,11 +81,11 @@ assert that during the polling lifecycle, zero `POST`/`PUT`/`PATCH`/
 from spec 001's structural impossibility to test-enforced guarantee):
 
 1. **Type-level (mypy, CI-enforced)**: The coordinator's client
-   attribute MUST be annotated as the base `HospitableClient`. Since
-   `HospitableClient` has no `_post` method, any `coordinator.client.
+   attribute MUST be annotated as the base `HospitableApiClient`. Since
+   `HospitableApiClient` has no `_post` method, any `coordinator.client.
    _post(...)` call is a mypy error caught in CI.
 2. **Instance-level (runtime test)**: Coordinators MUST be constructed
-   with a base `HospitableClient` instance, NOT a
+   with a base `HospitableApiClient` instance, NOT a
    `HospitableWriteClient`. A test asserts
    `not isinstance(coordinator.client, HospitableWriteClient)` for
    every coordinator class. The `HospitableWriteClient` is a separate
@@ -415,8 +415,10 @@ automation authors who have a sensor entity (use `entity_id`) and
 script users who know the UUID directly (use `reservation_uuid`).
 
 **Resolution from entity_id**: Read the entity's state attributes for
-the `reservation_uuid` attribute. If the entity is unavailable or the
-attribute is absent, raise `ServiceValidationError`.
+the `reservation_id` attribute — the name the reservation sensor
+already ships. If the entity is unavailable or the attribute is absent,
+raise `ServiceValidationError`. The SERVICE FIELD remains
+`reservation_uuid`; only the attribute read differs.
 
 ## D-11: Guest attributes as unrecorded {#d-11}
 

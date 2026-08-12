@@ -59,10 +59,17 @@ Services that target a reservation accept exactly one of:
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `entity_id` | string | Entity ID of the reservation_status sensor; UUID read from its `reservation_uuid` attribute |
+| `entity_id` | string | Entity ID of the reservation_status sensor; UUID read from its `reservation_id` attribute |
 | `reservation_uuid` | string | Direct UUID of the reservation |
 
 Providing both or neither raises `ServiceValidationError`.
+
+The SERVICE FIELD is named `reservation_uuid`. The ENTITY ATTRIBUTE it
+is read from is named `reservation_id` — that is the attribute the
+reservation sensor already ships (`sensor/reservation.py`). Earlier
+drafts of this contract and of D-10 named the attribute
+`reservation_uuid`, which does not exist. Only the attribute name is
+corrected here; the field name is unchanged.
 
 ## Service definitions
 

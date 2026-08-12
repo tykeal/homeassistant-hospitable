@@ -201,11 +201,13 @@ New attributes added from guest data:
 | `guest_language` | `str \| None` | Yes (FR-039a) | No | Yes |
 | `guest_email` | `str \| None` | No | Yes (FR-039c) | Yes |
 | `guest_phone_numbers` | `list[str] \| None` | No | Yes (FR-039c) | Yes |
-| `reservation_uuid` | `str` | Yes | No | No |
+| `reservation_id` | `str` | Yes | No | No |
 
-`reservation_uuid` is added as a non-PII attribute to support the
-entity_id-based service target pattern (D-10). It was implicitly
-available but not previously exposed as a named attribute.
+`reservation_id` is a non-PII attribute supporting the entity_id-based
+service target pattern (D-10). It is ALREADY SHIPPED by the reservation
+sensor; earlier drafts of this table named it `reservation_uuid`, which
+was never the shipped name. The SERVICE FIELD is still
+`reservation_uuid`.
 
 ## Config entry changes
 

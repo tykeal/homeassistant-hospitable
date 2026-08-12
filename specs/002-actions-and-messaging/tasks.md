@@ -1479,10 +1479,17 @@ documentation-fix pull request against `plan.md`, `research.md`, or
 
 - **The base client class is named `HospitableApiClient`, not
   `HospitableClient`.** `plan.md` §Architecture and `research.md` D-01
-  both name it `HospitableClient`. The real class in
+  originally named it `HospitableClient`, which never existed; both were
+  corrected to `HospitableApiClient` during US2. The real class in
   `custom_components/hospitable/api/client.py` is `HospitableApiClient`.
   Tasks in this file use the real name. `HospitableWriteClient` is a new
   name and is unaffected.
+- **The reservation UUID is published as the `reservation_id` entity
+  attribute, not `reservation_uuid`.** `contracts/services.md` and D-10
+  named the attribute `reservation_uuid`; `sensor/reservation.py`
+  already ships it as `reservation_id`. Both documents were corrected
+  during US2. The SERVICE FIELD name `reservation_uuid` is unchanged —
+  only the attribute the resolver reads differs.
 - **Coordinators hold the client as a private `self._client`, not a
   public `coordinator.client`.** D-01 gate 2 is written as
   `not isinstance(coordinator.client, HospitableWriteClient)` and cannot

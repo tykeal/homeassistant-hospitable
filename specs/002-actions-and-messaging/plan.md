@@ -143,7 +143,7 @@ custom_components/hospitable/
 │   └── rate_limit.py          # Token-keyed rate-limit tracker
 ├── coordinator.py             # (MODIFIED) task coordinator added; reservation coordinator adds include=guest and optional message fetch
 ├── sensor/
-│   ├── reservation.py         # (MODIFIED) guest attributes, reservation_uuid attribute
+│   ├── reservation.py         # (MODIFIED) guest attributes (reservation_id attribute already ships)
 │   ├── tasks.py               # (NEW) next_task, task_count sensors
 │   └── messages.py            # (NEW) last_message_at, awaiting_host_reply sensors
 ├── const.py                   # (MODIFIED) new option keys, task defaults
@@ -194,11 +194,11 @@ The most important architectural decision in this feature.
 
 **Enforcement layers**:
 
-1. **Type system**: `HospitableClient` has no `_post` method.
-   Coordinators type-annotate their client as `HospitableClient`.
+1. **Type system**: `HospitableApiClient` has no `_post` method.
+   Coordinators type-annotate their client as `HospitableApiClient`.
    Any `coordinator.client._post(...)` call is a mypy error in CI.
 2. **Instance assertion**: Coordinators MUST be constructed with a
-   base `HospitableClient` instance, NOT a `HospitableWriteClient`.
+   base `HospitableApiClient` instance, NOT a `HospitableWriteClient`.
    A test asserts `not isinstance(coordinator.client,
    HospitableWriteClient)` for every coordinator class. The write
    client is a separate instance created per `actions/` handler
@@ -319,9 +319,10 @@ cases.
 ### Phase US3 (P3) — Guest identity on reservation entities
 
 **Delivers**: `include=guest` on reservation poll; `HospitableGuest`
-model; guest attributes on `reservation_status` sensor; `reservation_uuid`
-attribute; `guest_contact_details` option in options flow; PII
-redaction for guest fields; updated diagnostics.
+model; guest attributes on `reservation_status` sensor; the
+`reservation_id` attribute already ships; `guest_contact_details`
+option in options flow; PII redaction for guest fields; updated
+diagnostics.
 
 **Requirements**: FR-039 to FR-043, FR-038b.
 
