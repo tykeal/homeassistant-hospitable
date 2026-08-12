@@ -162,36 +162,36 @@ later phase depends on. **Ships in**: the US1 pull request.
 that assert no new production behaviour. Do not force these into a
 red/green pair.
 
-- [ ] T001 Create `tests/actions/__init__.py` and
+- [X] T001 Create `tests/actions/__init__.py` and
       `tests/actions/conftest.py` as empty-but-valid modules. The
       `conftest.py` MUST NOT import any `custom_components.hospitable`
       module that does not yet exist at module level (protocol rule 5).
-- [ ] T002 [P] Create `tests/fixtures/messages_thread.json`: a synthetic
+- [X] T002 [P] Create `tests/fixtures/messages_thread.json`: a synthetic
       multi-message thread with at least one host message and one guest
       message, each carrying `created_at`, `sender_type`/role, and
       `body`. Bodies MUST be obviously synthetic (no real guest text).
       (FR-020, FR-024)
-- [ ] T003 [P] Create `tests/fixtures/messages_empty.json`: a
+- [X] T003 [P] Create `tests/fixtures/messages_empty.json`: a
       well-formed empty-thread response, used to prove the
       awaiting-host-reply and `last_message_at` sensors degrade
       gracefully. (FR-036, FR-037)
-- [ ] T004 [P] Create `tests/fixtures/tasks_page1.json` with a full
+- [X] T004 [P] Create `tests/fixtures/tasks_page1.json` with a full
       first page including a `meta` block carrying BOTH `task_types` and
       `service_types` enum tables, and pagination metadata indicating a
       second page exists. The `meta` block MUST encode the real trap:
       Maintenance appears as `task_type` 5 and as `service_id` 8.
       (FR-030, FR-031, FR-033)
-- [ ] T005 [P] Create `tests/fixtures/tasks_page2.json` as the second and
+- [X] T005 [P] Create `tests/fixtures/tasks_page2.json` as the second and
       final page, with pagination metadata indicating no further pages.
       (FR-031)
-- [ ] T006 [P] Create `tests/fixtures/reservation_with_guest.json`
+- [X] T006 [P] Create `tests/fixtures/reservation_with_guest.json`
       containing three reservations: one with a complete `guest` object
       (`first_name`, `last_name`, `location`, `language`, `email`,
       `phone_numbers`, `profile_picture`), one whose `guest` object has
       NO `last_name` key (this genuinely occurs upstream), and one whose
       `guest` value is `null`. All values synthetic. (FR-039, FR-039b,
       FR-040)
-- [ ] T007 [P] Create `tests/fixtures/send_message_202_full.json` and
+- [X] T007 [P] Create `tests/fixtures/send_message_202_full.json` and
       `tests/fixtures/send_message_202_empty.json`. The first carries a
       `sent_reference_id`; the second is an empty body. **OQ-001 is
       UNVERIFIED** — no real send has been performed, so the exact 202
@@ -199,19 +199,19 @@ red/green pair.
       implementation is forced to handle either. Neither fixture may be
       described anywhere as the confirmed upstream shape. (FR-012,
       OQ-001)
-- [ ] T008 [P] Create `tests/fixtures/error_envelope_400.json` and
+- [X] T008 [P] Create `tests/fixtures/error_envelope_400.json` and
       `tests/fixtures/error_envelope_422.json`, both in the Laravel
       shape `{status_code, reason_phrase, errors: {field: [messages]}}`.
       They are deliberately structurally identical so that one parser
       demonstrably serves both the `/tasks` 400 and the send 422.
       (FR-015, FR-030, FR-045)
-- [ ] T008a [P] Create `tests/fixtures/error_envelope_429.json` holding
+- [X] T008a [P] Create `tests/fixtures/error_envelope_429.json` holding
       the OBSERVED 429 body exactly: `status_code` and `reason_phrase`
       with NO `errors` key. This is the same Laravel envelope family
       with a field absent, and exists so the shared parser is forced to
       tolerate that absence rather than raising a `KeyError`. (FR-015,
       FR-045)
-- [ ] T009 Add SPDX headers or `REUSE.toml` coverage for every file
+- [X] T009 Add SPDX headers or `REUSE.toml` coverage for every file
       created in T001..T008a and run `uv run reuse lint` to confirm the
       tree is compliant. JSON fixtures cannot carry comments, so they
       MUST be covered by a `REUSE.toml` annotation rather than an
@@ -234,56 +234,56 @@ red/green pair.
 
 **⚠️ BLOCKS all user stories. Complete before starting Phase 3.**
 
-- [ ] T010 Add endpoint path constants to
+- [X] T010 Add endpoint path constants to
       `custom_components/hospitable/api/const.py`: a single-reservation
       path, a reservation-messages path (used for both `GET` and
       `POST`), and a tasks path. Follow the existing naming style of
       `RESERVATIONS_PATH` and `PROPERTIES_PATH`. (FR-009, FR-020,
       FR-030)
-- [ ] T011 Add option keys and defaults to
+- [X] T011 Add option keys and defaults to
       `custom_components/hospitable/const.py`: the awaiting-host-reply
       toggle (default `False`), the guest-contact-details toggle
       (default `False`), and the task poll interval (default 15 minutes,
       floor 5 minutes). Both toggles default OFF; that default is a
       requirement, not a preference. (FR-037, FR-038a, FR-038b, FR-034)
-- [ ] T012 Add factory fixtures to `tests/actions/conftest.py` that
+- [X] T012 Add factory fixtures to `tests/actions/conftest.py` that
       return callables performing their `custom_components.hospitable`
       imports inside the callable body, never at module scope. Provide
       at minimum: a write-client factory, a service-call factory, and a
       loaded-config-entry factory. (protocol rule 5)
-- [ ] T013 Add a `respx` route-builder helper to
+- [X] T013 Add a `respx` route-builder helper to
       `tests/actions/conftest.py` for the messages endpoint that can
       serve a 202 with either body shape from T007, a 422 from T008, and
       a 403. (FR-012, FR-015, FR-016)
-- [ ] T013a Extend the T013 route builder so every messages-endpoint
+- [X] T013a Extend the T013 route builder so every messages-endpoint
       response can carry `x-ratelimit-limit`, `x-ratelimit-remaining`,
       and `x-ratelimit-reset` headers, and so it can serve a 429 with
       `retry-after` plus the T008a body. Headers must be settable per
       response so a test can walk `remaining` down to zero and then
       throttle. (FR-017, FR-019)
-- [ ] T013b Add a per-reservation route-builder mode so a test can hold
+- [X] T013b Add a per-reservation route-builder mode so a test can hold
       two distinct reservation UUIDs with INDEPENDENT header budgets,
       matching the observed per-reservation bucketing. (FR-017)
-- [ ] T014 Create `tests/helpers/__init__.py` and
+- [X] T014 Create `tests/helpers/__init__.py` and
       `tests/helpers/ast_isolation.py`, a test-only helper that parses a
       Python source file with `ast` and returns the set of imported
       names, imported modules, and attribute names referenced. This is
       the machinery gate 3 of the write-isolation design depends on; it
       is a test helper and MUST NOT be imported by production code.
       (FR-001)
-- [ ] T015 Extend the fixture-scanning assertions in
+- [X] T015 Extend the fixture-scanning assertions in
       `tests/test_privacy.py` so the new fixtures from T002..T008 are
       included in the synthetic-data audit rather than silently skipped.
       (FR-024, FR-041)
-- [ ] T016 Add a test helper that loads `services.yaml` and
+- [X] T016 Add a test helper that loads `services.yaml` and
       `strings.json` and returns the set of service names and field
       names declared in each. This is the machinery for the
       localisation-parity assertions in every later phase. (FR-007)
-- [ ] T017 Add a token-hashing test helper that produces the same
+- [X] T017 Add a token-hashing test helper that produces the same
       SHA-256 key the rate limiter will use, so tests can assert budget
       sharing without reaching into private state. The helper MUST NOT
       log or persist the raw token. (FR-018)
-- [ ] T018 Add a shared assertion helper
+- [X] T018 Add a shared assertion helper
       `assert_no_delivery_language(text)` to `tests/helpers/` that fails
       if a string contains "sent", "delivered", or "delivery
       confirmed" in a claim-of-delivery sense. Every phase that adds
@@ -315,7 +315,7 @@ Expected failure modes are stated per task. Groups touching
 fail with `AssertionError`, because those modules already exist —
 `ModuleNotFoundError` there means the test is wrong, not the code.
 
-- [ ] T019 [US1] In `tests/actions/test_write_client.py`, add xfail
+- [X] T019 [US1] In `tests/actions/test_write_client.py`, add xfail
       tests (`raises=AttributeError`) asserting that the base client
       class in `custom_components/hospitable/api/client.py` has NO
       `_post` attribute and that a new `HospitableWriteClient` subclass
@@ -323,16 +323,16 @@ fail with `AssertionError`, because those modules already exist —
       real base class name is `HospitableApiClient`, not
       `HospitableClient` as written in `plan.md` and `research.md`.
       (FR-001, FR-003)
-- [ ] T020 [P] [US1] In `tests/actions/test_write_client.py`, add xfail
+- [X] T020 [P] [US1] In `tests/actions/test_write_client.py`, add xfail
       tests (`raises=AttributeError`) that `HospitableWriteClient`
       inherits every existing GET helper from the base client and adds
       no second HTTP session, connection pool, or auth path. (FR-003)
-- [ ] T021 [P] [US1] In `tests/actions/test_write_client.py`, add an
+- [X] T021 [P] [US1] In `tests/actions/test_write_client.py`, add an
       xfail test (`raises=AttributeError`) that `_post` raises the same
       classified errors as `_get` for 401/403/5xx, reusing the existing
       `_raise_for_status` and `classify_403` logic rather than
       duplicating it. (FR-016, FR-045)
-- [ ] T022 [US1] Write-isolation **gate 1** (typing): in
+- [X] T022 [US1] Write-isolation **gate 1** (typing): in
       `tests/test_write_isolation.py`, add an xfail test
       (`raises=AssertionError`) asserting that every coordinator class
       in `custom_components/hospitable/coordinator.py` annotates its
@@ -342,12 +342,12 @@ fail with `AssertionError`, because those modules already exist —
       against a public `coordinator.client`. This test asserts against
       the attribute that actually exists; see Notes and known gaps.
       (FR-001)
-- [ ] T023 [US1] Write-isolation **gate 2** (runtime): in
+- [X] T023 [US1] Write-isolation **gate 2** (runtime): in
       `tests/test_write_isolation.py`, add an xfail test
       (`raises=AssertionError`) asserting, for every coordinator class,
       that its client instance is NOT an instance of
       `HospitableWriteClient`. (FR-001)
-- [ ] T024 [US1] Write-isolation **gate 3** (static AST scan): in
+- [X] T024 [US1] Write-isolation **gate 3** (static AST scan): in
       `tests/test_write_isolation.py`, add an xfail test
       (`raises=AssertionError`) that uses the T014 helper to scan
       `custom_components/hospitable/coordinator.py`, every module under
@@ -355,7 +355,7 @@ fail with `AssertionError`, because those modules already exist —
       `custom_components/hospitable/config_flow.py`, failing if any
       imports `HospitableWriteClient`, imports from the `actions`
       package, or references `_post`. (FR-001)
-- [ ] T025 [US1] Write-isolation **gate 4** (lifecycle): add xfail tests
+- [X] T025 [US1] Write-isolation **gate 4** (lifecycle): add xfail tests
       (`raises=AssertionError`) covering the NARROWED form of
       `tests/test_no_writes.py` — the polling lifecycle still issues
       zero non-GET requests, while a service call is permitted to issue
@@ -363,18 +363,18 @@ fail with `AssertionError`, because those modules already exist —
       form and MUST NOT be deleted. Its docstring currently cites spec
       001's "T140, FR-059"; update it to cite FR-001/FR-002. (FR-001,
       FR-002)
-- [ ] T026 [P] [US1] In `tests/actions/test_registration.py`, add xfail
+- [X] T026 [P] [US1] In `tests/actions/test_registration.py`, add xfail
       tests (`raises=ModuleNotFoundError`) that
       `custom_components/hospitable/actions/__init__.py` exposes a
       table-driven registration function registering every service in a
       single declarative table, following the Hostaway reference
       pattern. (FR-005)
-- [ ] T027 [P] [US1] In `tests/actions/test_registration.py`, add an
+- [X] T027 [P] [US1] In `tests/actions/test_registration.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that registration is
       IDEMPOTENT: calling setup twice, or loading a second config entry,
       does not re-register, and the guard is an explicit
       `hass.services.has_service()` check. (FR-005)
-- [ ] T028 [US1] In `tests/actions/test_registration.py`, add an xfail
+- [X] T028 [US1] In `tests/actions/test_registration.py`, add an xfail
       test (`raises=AssertionError`) that services are removed ONLY when
       the LAST config entry for the domain unloads, and remain
       registered while any other entry is still loaded. **Observed
@@ -383,39 +383,39 @@ fail with `AssertionError`, because those modules already exist —
       `if not hass.data.get(DOMAIN)` cannot be copied verbatim; the test
       must count loaded entries via the config-entry registry. See Notes
       and known gaps. (FR-006)
-- [ ] T029 [P] [US1] In `tests/actions/test_disambiguation.py`, add
+- [X] T029 [P] [US1] In `tests/actions/test_disambiguation.py`, add
       xfail tests (`raises=ModuleNotFoundError`) for the multi-entry
       resolution helper: with exactly one loaded entry the
       `config_entry_id` field is optional; with two or more loaded
       entries omitting it raises `ServiceValidationError`; an unknown or
       unloaded id raises `ServiceValidationError`. (FR-008, FR-029,
       FR-045)
-- [ ] T030 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
+- [X] T030 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the reservation target:
       the service accepts EITHER a reservation UUID directly OR an
       entity id that resolves to one, and rejects an entity id that does
       not belong to this integration. (FR-044)
-- [ ] T031 [US1] In `tests/actions/test_send_message.py`, add an xfail
+- [X] T031 [US1] In `tests/actions/test_send_message.py`, add an xfail
       test (`raises=ModuleNotFoundError`) for the happy path against a
       mocked 202: the handler returns a response that reports the
       message was **accepted for delivery**. Assert with the T018
       helper that the response contains no delivery claim. (FR-009,
       FR-011)
-- [ ] T032 [US1] In `tests/actions/test_send_message.py`, add xfail
+- [X] T032 [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) that the correlation handle
       is surfaced when present and that its ABSENCE is handled without
       error. Parameterise over both T007 fixtures. **OQ-001 is
       UNVERIFIED**: no real send has been made, so the test MUST NOT
       assert that either shape is the true upstream shape. (FR-012,
       OQ-001)
-- [ ] T033 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
+- [X] T033 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the request body schema:
       `body` is a required non-empty string, `images` is an optional
       array of URIs with a maximum of 3, and `sender_id` is optional.
       Assert `body` is transmitted VERBATIM — in particular that no
       literal `/n` to newline substitution is performed. (FR-010,
       FR-014)
-- [ ] T034 [US1] In `tests/actions/test_send_message.py`, add an xfail
+- [X] T034 [US1] In `tests/actions/test_send_message.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that `sender_id` is REJECTED
       with `ServiceValidationError` for a non-Airbnb reservation and
       accepted for an Airbnb one. The reservation model already carries
@@ -423,7 +423,7 @@ fail with `AssertionError`, because those modules already exist —
       (`api/models.py:173`, populated from `payload.get("platform")`),
       so the test MUST key off `channel`; no new field is added.
       (FR-013)
-- [ ] T034a [US1] In `tests/actions/test_send_message.py`, add xfail
+- [X] T034a [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for platform resolution per
       FR-013: with NO `sender_id`, assert zero extra requests and no
       platform lookup at all; with `sender_id` and a cached
@@ -434,37 +434,37 @@ fail with `AssertionError`, because those modules already exist —
       `channel`, assert `ServiceValidationError` is raised and NO POST
       is issued. The unresolved case must reject, never silently skip
       the check. (FR-013)
-- [ ] T035 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
+- [X] T035 [P] [US1] In `tests/actions/test_send_message.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the Laravel error
       envelope: a 422 from `error_envelope_422.json` maps to
       `ServiceValidationError` with the per-field messages preserved,
       and transport errors and 5xx map to `HomeAssistantError`.
       (FR-015, FR-045)
-- [ ] T035a [P] [US1] In `tests/actions/test_send_message.py`, add an
+- [X] T035a [P] [US1] In `tests/actions/test_send_message.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that the SAME parser
       handles `error_envelope_429.json`, which carries `status_code` and
       `reason_phrase` but NO `errors` key. A missing `errors` key must
       not raise. (FR-015, FR-045)
-- [ ] T036 [P] [US1] In `tests/actions/test_send_message.py`, add an
+- [X] T036 [P] [US1] In `tests/actions/test_send_message.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that a 403 on the send
       endpoint surfaces as an actionable `HomeAssistantError` whose
       message tells the user the token may lack the send scope.
       **OQ-005 is UNVERIFIED**: whether the PAT actually carries the
       send scope has not been established by any real send. The test
       must not assert that it does. (FR-016, OQ-005)
-- [ ] T037 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
+- [X] T037 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the per-reservation
       budget: 2 messages per rolling 60 seconds, third refused, budget
       recovering as the window slides. This figure is CONFIRMED-BY-TEST
       for the messages GET and documented for the send. (FR-017,
       FR-019)
-- [ ] T038 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
+- [X] T038 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the per-token budget: 50
       per rolling 300 seconds. This figure is DOCUMENTED ONLY and has
       not been tested; the test asserts the implementation honours the
       documented number, not that upstream enforces it. (FR-017,
       FR-019)
-- [ ] T038a [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T038a [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that the tracker is
       TWO-DIMENSIONAL and that BOTH gates are evaluated before every
       send: the per-(token, reservation) 2-per-60s gate and the
@@ -472,31 +472,31 @@ fail with `AssertionError`, because those modules already exist —
       refuse the call. The original framing of "keys on the token" is
       correct for the 50/5min budget but incomplete — there are two
       distinct dimensions. (FR-017, FR-018, FR-019)
-- [ ] T038b [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T038b [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that per-reservation buckets
       are INDEPENDENT: exhausting reservation A leaves reservation B
       immediately callable. This is CONFIRMED-BY-TEST upstream — A
       returned 429 while B returned 200 with a fresh remaining count.
       (FR-017)
-- [ ] T038c [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T038c [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that `x-ratelimit-remaining`
       and `x-ratelimit-reset` from a response are fed back into the
       tracker, and that when the server's remaining count DISAGREES with
       the locally-counted budget the SERVER value wins. Blind local
       counting is a floor, not the authority. (FR-017, FR-019)
-- [ ] T038d [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T038d [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that a 429 is treated as
       RETRYABLE-WITH-BACKOFF driven by `retry-after`, and not as a hard
       failure. See OQ-007: it is unknown whether reads and writes share
       one per-reservation bucket, so the send path must survive being
       throttled by a poll. (FR-019, OQ-007)
-- [ ] T039 [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T039 [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that accounting keys on the
       TOKEN, not the config entry: two distinct config entries holding
       the SAME token share one budget, and entries with different tokens
       have independent budgets. Use the T017 hashing helper; assert the
       raw token never appears in the tracker's keys. (FR-018)
-- [ ] T040 [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+- [X] T040 [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that a refusal raises
       `ServiceValidationError` BEFORE any HTTP request is issued, and
       that the budget is recorded only on acceptance, never on failure.
@@ -508,51 +508,51 @@ tests only.
 
 ### GREEN PHASE COMMIT — US1
 
-- [ ] T041 [US1] Create `custom_components/hospitable/api/write_client.py`
+- [X] T041 [US1] Create `custom_components/hospitable/api/write_client.py`
       with `HospitableWriteClient` subclassing the existing
       `HospitableApiClient`, adding `_post` and reusing the inherited
       session, auth, timeout, `_raise_for_status`, and `classify_403`.
       (FR-003, FR-016)
-- [ ] T042 [US1] Create `custom_components/hospitable/api/messages.py`
+- [X] T042 [US1] Create `custom_components/hospitable/api/messages.py`
       with the send helper that builds and issues the message POST and
       returns the parsed acceptance result. (FR-009, FR-010)
-- [ ] T043 [US1] Add a shared Laravel error-envelope parser to
+- [X] T043 [US1] Add a shared Laravel error-envelope parser to
       `custom_components/hospitable/api/responses.py` returning
       structured field errors. ONE parser serves both the send 422 and
       the `/tasks` 400 — do not write a second. It MUST tolerate an
       absent `errors` key, which the observed 429 body demonstrates.
       (FR-015, FR-045)
-- [ ] T044 [US1] Create `custom_components/hospitable/actions/__init__.py`
+- [X] T044 [US1] Create `custom_components/hospitable/actions/__init__.py`
       with table-driven registration and removal, an idempotent
       `hass.services.has_service()` guard, and removal only when the
       last loaded entry unloads. (FR-005, FR-006)
-- [ ] T045 [US1] Create `custom_components/hospitable/actions/helpers.py`
+- [X] T045 [US1] Create `custom_components/hospitable/actions/helpers.py`
       with multi-entry resolution and reservation-target resolution
       (UUID or entity id). Adapt, do not copy, the Hostaway
       `_resolve_entry_data` pattern: this integration stores state on
       `entry.runtime_data`, so resolution enumerates loaded config
       entries for the domain. (FR-008, FR-029, FR-044)
-- [ ] T046 [US1] Create `custom_components/hospitable/actions/schemas.py`
+- [X] T046 [US1] Create `custom_components/hospitable/actions/schemas.py`
       with the voluptuous schema for `send_message`: required `body`,
       optional `images` (max 3 URIs), optional `sender_id`, optional
       `config_entry_id`, and the reservation target. (FR-010, FR-014)
-- [ ] T047 [US1] Create
+- [X] T047 [US1] Create
       `custom_components/hospitable/actions/rate_limit.py` with the
       module-level tracker keyed on SHA-256 of the token, holding a
       per-(token, reservation) deque and a per-token deque. Never store
       or log the raw token. (FR-017, FR-018)
-- [ ] T047a [US1] Surface response headers from the API client. `_get`
+- [X] T047a [US1] Surface response headers from the API client. `_get`
       currently returns only the parsed JSON body and DISCARDS the
       `httpx.Response`, so `x-ratelimit-*` is unreachable today. Add a
       way for callers that need them to obtain the headers, without
       changing the return type of the existing GET helpers used by
       spec 001's coordinators. (FR-017)
-- [ ] T047b [US1] Feed `x-ratelimit-limit`, `x-ratelimit-remaining`, and
+- [X] T047b [US1] Feed `x-ratelimit-limit`, `x-ratelimit-remaining`, and
       `x-ratelimit-reset` into the tracker whenever a messages-endpoint
       response carries them, with the server's value overriding the
       local count. Absence of the headers must be tolerated — no other
       endpoint sends them. (FR-017, FR-019)
-- [ ] T047c [US1] Handle 429 on the messages endpoint as a
+- [X] T047c [US1] Handle 429 on the messages endpoint as a
       retryable-with-backoff condition driven by `retry-after`. **Reuse
       the EXISTING `parse_retry_after` in
       `custom_components/hospitable/api/retry.py`** — it is present and
@@ -560,7 +560,7 @@ tests only.
       the delta-seconds and HTTP-date forms and caps at `MAX_BACKOFF`.
       Do not write a second parser. What is genuinely new is reading the
       `x-ratelimit-*` family, which nothing currently does. (FR-019)
-- [ ] T048 [US1] Create
+- [X] T048 [US1] Create
       `custom_components/hospitable/actions/send_message.py` with the
       handler: validate, check rate limit, resolve platform for the
       `sender_id` rule per FR-013 (skip entirely without `sender_id`;
@@ -568,51 +568,51 @@ tests only.
       reject on unresolved), POST, record the budget on acceptance, and
       return the acceptance result. Uses `SupportsResponse.ONLY` per
       plan Deviation 2. (FR-009, FR-011, FR-013, FR-019)
-- [ ] T049 [US1] Implement defensive handling of the 202 body in the
+- [X] T049 [US1] Implement defensive handling of the 202 body in the
       send path: extract the correlation handle if present, proceed
       normally if the body is empty or unparsable. Add an inline
       comment naming OQ-001 as the reason. (FR-012, OQ-001)
-- [ ] T050 [US1] Implement the Airbnb-only `sender_id` rule, sourcing
+- [X] T050 [US1] Implement the Airbnb-only `sender_id` rule, sourcing
       the candidate identifier from the property listings' co-host
       entries and rejecting `sender_id` for any non-Airbnb reservation.
       (FR-013)
-- [ ] T051 [US1] Extend the listing model in
+- [X] T051 [US1] Extend the listing model in
       `custom_components/hospitable/api/models.py` to carry co-host
       identifiers, which the current model does not have. This model
       extension is required by FR-013 but is NOT recorded in
       `data-model.md`; see Notes and known gaps. (FR-013)
-- [ ] T052 [US1] Register the services from `async_setup_entry` in
+- [X] T052 [US1] Register the services from `async_setup_entry` in
       `custom_components/hospitable/__init__.py` and remove them from
       `async_unload_entry` only when no other entry for the domain
       remains loaded. (FR-005, FR-006)
-- [ ] T053 [US1] Create `custom_components/hospitable/services.yaml`
+- [X] T053 [US1] Create `custom_components/hospitable/services.yaml`
       describing `send_message` with every field, selector, and example.
       No such file currently exists and `plan.md`'s module layout omits
       it; it is nonetheless required by FR-007. (FR-007)
-- [ ] T054 [US1] Add service name, description, and per-field labels and
+- [X] T054 [US1] Add service name, description, and per-field labels and
       descriptions for `send_message` to
       `custom_components/hospitable/strings.json`. Omitting this is the
       Hostaway anti-pattern we explicitly do not copy. (FR-007)
-- [ ] T055 [US1] Mirror the T054 additions into
+- [X] T055 [US1] Mirror the T054 additions into
       `custom_components/hospitable/translations/en.json`. (FR-007)
-- [ ] T056 [US1] Audit all text added in T053..T055 with the T018 helper
+- [X] T056 [US1] Audit all text added in T053..T055 with the T018 helper
       so no string claims the message was sent or delivered; the only
       permitted phrasing is "accepted for delivery". Include the
       asynchronous nature explicitly in the service description.
       (FR-011)
-- [ ] T057 [US1] Document in `services.yaml` and `strings.json` that
+- [X] T057 [US1] Document in `services.yaml` and `strings.json` that
       each image must be at most 5 MB, and note in the handler that this
       limit is NOT client-side enforceable because images are supplied
       as URIs rather than uploads. Do not implement a fake size check.
       (FR-010, FR-014)
-- [ ] T058 [US1] Narrow `tests/test_no_writes.py` per T025: assert the
+- [X] T058 [US1] Narrow `tests/test_no_writes.py` per T025: assert the
       polling lifecycle issues zero non-GET requests while permitting
       service-call POSTs. Preserve the file; update its docstring to
       cite FR-001/FR-002. (FR-002)
-- [ ] T059 [US1] Ensure no service handler triggers a coordinator
+- [X] T059 [US1] Ensure no service handler triggers a coordinator
       refresh; add the assertion to `tests/actions/test_send_message.py`
       and keep handlers free of `async_request_refresh` calls. (FR-004)
-- [ ] T060 [US1] Remove every US1 xfail marker and `# type: ignore`
+- [X] T060 [US1] Remove every US1 xfail marker and `# type: ignore`
       comment added in T019..T040, run the full suite plus
       `uv run mypy` and `uv run ruff check`, and confirm green.
 
