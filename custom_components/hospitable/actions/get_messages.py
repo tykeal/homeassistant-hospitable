@@ -81,6 +81,12 @@ async def async_handle_get_messages(
 
     client = read_client(hass, entry)
     try:
+        # The budget is charged in ``finally``: the upstream bucket is
+        # spent by the REQUEST, not by a 200. Charging only on success
+        # would let a run of 404s or 429s slip past the local guard and
+        # hammer a live account. A transport failure may never have
+        # reached the server, so charging it is conservative -- it can
+        # only make the next call wait, never let more through.
         thread = await async_get_messages(client, reservation_uuid)
     except HospitableNotFoundError:
         # Not-found is a RETURN VALUE, so an automation can branch on it
@@ -97,8 +103,9 @@ async def async_handle_get_messages(
             f"The message thread for reservation {reservation_uuid} could "
             "not be retrieved. This is usually temporary; try again shortly."
         ) from exc
+    finally:
+        rate_limit.TRACKER.record(token, reservation_uuid)
 
-    rate_limit.TRACKER.record(token, reservation_uuid)
     rate_limit.TRACKER.apply_headers(token, reservation_uuid, thread.headers)
     filtered: ServiceResponse = response.serialize_response(
         {

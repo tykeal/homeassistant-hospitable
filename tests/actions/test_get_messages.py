@@ -361,6 +361,44 @@ async def test_an_upstream_429_is_reported_as_retryable(
     assert "60" in str(caught.value)
 
 
+async def test_a_failing_read_still_spends_the_local_budget(
+    hass: Any,
+    loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
+    messages_routes: Any,
+    respx_router: Any,
+) -> None:
+    """A 404 charges the budget, because the request was still made.
+
+    The upstream bucket is spent by the REQUEST, not by a 200. If the
+    local tracker were only charged on success, a run of failing reads
+    would slip past the guard entirely and hammer a live account, which
+    is the one thing the guard exists to prevent.
+    """
+    from homeassistant.exceptions import ServiceValidationError
+
+    from tests.helpers import load_fixture
+
+    await loaded_config_entry_factory(hass)
+    messages_routes.get(
+        RESERVATION_A, status=404, json_body=load_fixture("error_404.json")
+    )
+
+    first = await _call(hass, {"reservation_uuid": RESERVATION_A})
+    second = await _call(hass, {"reservation_uuid": RESERVATION_A})
+    assert first["found"] is False
+    assert second["found"] is False
+
+    with pytest.raises(ServiceValidationError):
+        await _call(hass, {"reservation_uuid": RESERVATION_A})
+
+    issued = [
+        call
+        for call in respx_router.calls
+        if call.request.url.path.endswith(f"/reservations/{RESERVATION_A}/messages")
+    ]
+    assert len(issued) == 2, "the refused third read must not reach the network"
+
+
 async def test_message_bodies_never_reach_the_logs(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],

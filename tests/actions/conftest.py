@@ -422,19 +422,26 @@ class LookupRouteBuilder:
         *,
         status: int = 200,
         json_body: Any = None,
+        include: str = "guest,properties",
     ) -> respx.Route:
         """Register a single-reservation detail response.
+
+        The route is matched on the ``include`` the service is expected
+        to send, so a handler that asked for something else -- or asked
+        for nothing -- does not silently get served this body.
 
         Args:
             reservation_uuid: Reservation UUID in the path.
             status: HTTP status to return.
             json_body: JSON body to return.
+            include: The ``include`` parameter the request must carry.
 
         Returns:
             The registered respx route.
         """
         route = self._router.get(
             f"{self._base_url}/reservations/{reservation_uuid}",
+            params={"include": include},
         )
         route.mock(return_value=httpx.Response(status, json=json_body))
         return route
