@@ -601,13 +601,14 @@ diagnostics never contain the guest name unredacted.
 - **FR-034**: The task coordinator MUST use a separate polling cadence
   (configurable, default and floor TBD in planning) and MUST implement
   failure isolation per spec 001 D-15: a failure for one property MUST
-  NOT
-  prevent other properties from updating. (Cite spec 001 D-15
-  explicitly: spec 002 has its OWN D-15, which is an unrelated decision
-  about response modes.) The FR-030 fan-out is what
-  makes this implementable — one request per property means one
+  NOT prevent other properties from updating. The FR-030 fan-out is
+  what makes this implementable — one request per property means one
   failure per property. A failed property MUST retain its last-good
   task data rather than have it cleared.
+
+  The citation is deliberately qualified as *spec 001* D-15. Spec 002
+  has its own D-15, an unrelated decision about service response
+  modes, so an unqualified reference resolves to the wrong artifact.
 - **FR-035**: Task sensor data MUST include the assignment status and
   progress status vocabularies from the `/tasks` meta response.
   (CONFIRMED-BY-TEST: assignment_statuses and progress_statuses
