@@ -16,7 +16,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -109,11 +108,6 @@ async def test_full_lifecycle_issues_only_get_requests(
         )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T025 hospitable.send_message is not registered",
-)
 async def test_service_call_may_post_while_lifecycle_stays_read_only(
     hass: Any, respx_router: Any
 ) -> None:

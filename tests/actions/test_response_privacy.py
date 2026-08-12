@@ -21,12 +21,6 @@ from typing import Any
 
 import pytest
 
-XFAIL_RED = pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: actions/response.py does not exist yet",
-)
-
 
 def _serialize(payload: Any, *, guest_contact: bool = False) -> Any:
     """Run a payload through the shared response serialiser.
@@ -38,14 +32,13 @@ def _serialize(payload: Any, *, guest_contact: bool = False) -> Any:
     Returns:
         The filtered payload.
     """
-    from custom_components.hospitable.actions.response import (  # type: ignore
+    from custom_components.hospitable.actions.response import (
         serialize_response,
     )
 
     return serialize_response(payload, guest_contact=guest_contact)
 
 
-@XFAIL_RED
 @pytest.mark.parametrize("guest_contact", [False, True])
 def test_profile_picture_never_survives(guest_contact: bool) -> None:
     """``profile_picture`` is dropped unconditionally, at any depth.
@@ -63,7 +56,6 @@ def test_profile_picture_never_survives(guest_contact: bool) -> None:
     assert "profile_picture" not in repr(filtered)
 
 
-@XFAIL_RED
 def test_guest_contact_details_are_withheld_by_default() -> None:
     """``email`` and ``phone_numbers`` need the explicit opt-in."""
     from tests.helpers import load_fixture
@@ -76,7 +68,6 @@ def test_guest_contact_details_are_withheld_by_default() -> None:
     assert "phone_numbers" not in repr(filtered)
 
 
-@XFAIL_RED
 def test_guest_contact_details_appear_only_with_the_opt_in() -> None:
     """With the opt-in on, contact details are released."""
     from tests.helpers import load_fixture
@@ -91,7 +82,6 @@ def test_guest_contact_details_appear_only_with_the_opt_in() -> None:
     assert "profile_picture" not in guest
 
 
-@XFAIL_RED
 def test_guest_fields_are_allowlisted_not_denylisted() -> None:
     """Unknown guest fields are dropped rather than passed through.
 
@@ -119,7 +109,6 @@ def test_guest_fields_are_allowlisted_not_denylisted() -> None:
     }
 
 
-@XFAIL_RED
 def test_the_message_sender_object_is_covered_too() -> None:
     """The opaque ``sender`` object on a message is filtered as well.
 
@@ -139,7 +128,6 @@ def test_the_message_sender_object_is_covered_too() -> None:
     assert "+1555" not in rendered
 
 
-@XFAIL_RED
 def test_non_identifying_message_metadata_survives() -> None:
     """Filtering removes identity, not the data the response is for.
 
@@ -159,7 +147,6 @@ def test_non_identifying_message_metadata_survives() -> None:
         assert cleaned["body"] == original["body"]
 
 
-@XFAIL_RED
 def test_lists_and_nesting_are_walked() -> None:
     """The filter is recursive over both dicts and lists."""
     payload = {"a": [{"b": [{"guest": {"profile_picture": "https://example.com/x"}}]}]}
@@ -169,11 +156,6 @@ def test_lists_and_nesting_are_walked() -> None:
     assert "profile_picture" not in repr(filtered)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: hospitable.send_message is not registered yet",
-)
 async def test_the_send_message_response_goes_through_the_chokepoint(
     hass: Any,
     loaded_config_entry_factory: Any,
@@ -215,7 +197,6 @@ async def test_the_send_message_response_goes_through_the_chokepoint(
     assert response == {"sentinel": True}
 
 
-@XFAIL_RED
 def test_every_registered_handler_is_wired_to_the_chokepoint() -> None:
     """No handler module builds a response outside the serialiser.
 
@@ -225,10 +206,9 @@ def test_every_registered_handler_is_wired_to_the_chokepoint() -> None:
     """
     from pathlib import Path
 
-    from custom_components.hospitable.actions import (  # type: ignore
+    from custom_components.hospitable.actions import (
         SERVICE_DEFINITIONS,
     )
-
     from tests.helpers.ast_isolation import scan_module
 
     actions_root = Path("custom_components/hospitable/actions")

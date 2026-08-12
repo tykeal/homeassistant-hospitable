@@ -11,8 +11,6 @@ files the Home Assistant UI renders raw field keys.
 
 from __future__ import annotations
 
-import pytest
-
 EXPECTED_SERVICES = {"send_message"}
 EXPECTED_FIELDS = {
     "send_message": {
@@ -25,14 +23,7 @@ EXPECTED_FIELDS = {
     }
 }
 
-XFAIL_RED = pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: services.yaml and service strings do not exist",
-)
 
-
-@XFAIL_RED
 def test_services_yaml_declares_every_service_and_field() -> None:
     """``services.yaml`` declares each service with all of its fields."""
     from tests.helpers.localisation import services_yaml_declarations
@@ -44,7 +35,6 @@ def test_services_yaml_declares_every_service_and_field() -> None:
         assert fields == set(declared[service]), service
 
 
-@XFAIL_RED
 def test_strings_and_translations_match_services_yaml_exactly() -> None:
     """Both translation files cover exactly what ``services.yaml`` declares."""
     from tests.helpers.localisation import (
@@ -64,7 +54,6 @@ def test_strings_and_translations_match_services_yaml_exactly() -> None:
             assert set(translated[service]) == set(fields), f"{path}:{service}"
 
 
-@XFAIL_RED
 def test_every_service_string_has_a_name_and_description() -> None:
     """No service or field ships with empty user-facing text."""
     from tests.helpers.localisation import (
@@ -80,7 +69,6 @@ def test_every_service_string_has_a_name_and_description() -> None:
             assert text.strip(), f"{path}: blank service string"
 
 
-@XFAIL_RED
 def test_service_text_never_claims_delivery() -> None:
     """User-facing service text says accepted, never sent or delivered.
 

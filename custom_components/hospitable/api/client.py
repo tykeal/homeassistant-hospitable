@@ -17,6 +17,7 @@ from custom_components.hospitable.api.const import (
     CALENDAR_PATH,
     PER_PAGE_MAX,
     PROPERTIES_PATH,
+    RESERVATION_PATH,
     RESERVATIONS_PATH,
     USER_PATH,
 )
@@ -81,6 +82,29 @@ class HospitableApiClient:
         self, path: str, *, params: Mapping[str, QueryValue] | None = None
     ) -> dict[str, Any]:
         """Issue one authenticated GET request and return JSON."""
+        body, _ = await self._get_with_response(path, params=params)
+        return body
+
+    async def _get_with_response(
+        self, path: str, *, params: Mapping[str, QueryValue] | None = None
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Issue one authenticated GET request, returning body and headers.
+
+        ``_get`` discards the response, so callers cannot see the
+        ``x-ratelimit-*`` headers the messages endpoint returns. This
+        variant surfaces them without changing the existing signature.
+
+        Args:
+            path: API path, relative to the base URL.
+            params: Query parameters.
+
+        Returns:
+            The parsed body and the lower-cased response headers.
+
+        Raises:
+            HospitableConnectionError: The request could not be sent.
+            HospitableResponseError: The body was not valid JSON.
+        """
         try:
             response = await self._http.get(
                 f"{self._base_url}{path}",
@@ -101,9 +125,10 @@ class HospitableApiClient:
             raise HospitableResponseError(
                 "Hospitable returned a malformed response", endpoint=path
             ) from exc
+        headers = {key.lower(): value for key, value in response.headers.items()}
         if not isinstance(data, dict):
-            return {}
-        return data
+            return {}, headers
+        return data, headers
 
     def _raise_for_status(self, response: httpx.Response, path: str) -> None:
         """Translate HTTP failures into typed Hospitable errors."""
@@ -136,6 +161,25 @@ class HospitableApiClient:
         raise HospitableConnectionError(
             "Hospitable API request failed", status=response.status_code, endpoint=path
         )
+
+    async def get_reservation(self, reservation_uuid: str) -> dict[str, Any]:
+        """Return one reservation's raw payload.
+
+        Used only to resolve a reservation that is not in a
+        coordinator's cache. The raw payload is returned rather than a
+        model because the caller needs the upstream ``platform`` value
+        and nothing else, and because building a model would fail on
+        payloads lacking the includes the list endpoint requests.
+
+        Args:
+            reservation_uuid: Reservation UUID to fetch.
+
+        Returns:
+            The ``data`` object, or an empty mapping when absent.
+        """
+        payload = await self._get(RESERVATION_PATH.format(uuid=reservation_uuid))
+        data = payload.get("data")
+        return data if isinstance(data, dict) else {}
 
     async def get_user(self) -> HospitableAccount:
         """Return the authenticated account identifier."""

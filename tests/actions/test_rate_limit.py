@@ -30,12 +30,6 @@ from tests.actions.conftest import (
     SYNTHETIC_TOKEN,
 )
 
-XFAIL_RED = pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: actions/rate_limit.py does not exist yet",
-)
-
 
 class FakeClock:
     """A manually advanced monotonic clock."""
@@ -70,17 +64,16 @@ def _tracker(clock: FakeClock) -> Any:
     Returns:
         A fresh rate-limit tracker.
     """
-    from custom_components.hospitable.actions.rate_limit import (  # type: ignore
+    from custom_components.hospitable.actions.rate_limit import (
         RateLimitTracker,
     )
 
     return RateLimitTracker(time_source=clock)
 
 
-@XFAIL_RED
 def test_documented_limits_are_the_defaults() -> None:
     """The tracker's defaults are the two documented budgets."""
-    from custom_components.hospitable.actions import (  # type: ignore
+    from custom_components.hospitable.actions import (
         rate_limit,
     )
 
@@ -90,7 +83,6 @@ def test_documented_limits_are_the_defaults() -> None:
     assert rate_limit.TOKEN_WINDOW_SECONDS == 300
 
 
-@XFAIL_RED
 def test_per_reservation_budget_is_two_per_sixty_seconds() -> None:
     """Two sends pass, the third is refused, and the window slides."""
     from homeassistant.exceptions import ServiceValidationError
@@ -113,7 +105,6 @@ def test_per_reservation_budget_is_two_per_sixty_seconds() -> None:
     tracker.check(SYNTHETIC_TOKEN, RESERVATION_A)
 
 
-@XFAIL_RED
 def test_per_token_budget_is_fifty_per_three_hundred_seconds() -> None:
     """The documented per-token budget is honoured and recovers.
 
@@ -138,7 +129,6 @@ def test_per_token_budget_is_fifty_per_three_hundred_seconds() -> None:
     tracker.check(SYNTHETIC_TOKEN, "res-example-9999")
 
 
-@XFAIL_RED
 def test_both_gates_are_evaluated_on_every_check() -> None:
     """Exhausting either dimension alone refuses the call."""
     from homeassistant.exceptions import ServiceValidationError
@@ -166,7 +156,6 @@ def test_both_gates_are_evaluated_on_every_check() -> None:
     )
 
 
-@XFAIL_RED
 def test_per_reservation_buckets_are_independent() -> None:
     """Exhausting reservation A leaves reservation B callable.
 
@@ -187,7 +176,6 @@ def test_per_reservation_buckets_are_independent() -> None:
     tracker.check(SYNTHETIC_TOKEN, RESERVATION_B)
 
 
-@XFAIL_RED
 def test_server_headers_override_optimistic_local_counting() -> None:
     """A server ``remaining`` of zero refuses even with local budget left.
 
@@ -217,7 +205,6 @@ def test_server_headers_override_optimistic_local_counting() -> None:
         tracker.check(SYNTHETIC_TOKEN, RESERVATION_A)
 
 
-@XFAIL_RED
 def test_server_headers_also_relax_a_pessimistic_local_count() -> None:
     """A server ``remaining`` above zero wins over a local exhaustion.
 
@@ -240,7 +227,6 @@ def test_server_headers_also_relax_a_pessimistic_local_count() -> None:
     tracker.check(SYNTHETIC_TOKEN, RESERVATION_A)
 
 
-@XFAIL_RED
 def test_a_stale_server_hint_expires_at_its_reset() -> None:
     """A server hint stops applying once its reset time has passed."""
     clock = FakeClock()
@@ -260,7 +246,6 @@ def test_a_stale_server_hint_expires_at_its_reset() -> None:
     tracker.check(SYNTHETIC_TOKEN, RESERVATION_A)
 
 
-@XFAIL_RED
 def test_a_429_is_retryable_with_backoff_not_a_hard_failure() -> None:
     """A 429 yields a retry delay driven by ``retry-after``.
 
@@ -277,7 +262,6 @@ def test_a_429_is_retryable_with_backoff_not_a_hard_failure() -> None:
     assert tracker.retry_after({}) is None
 
 
-@XFAIL_RED
 def test_accounting_keys_on_a_hash_of_the_token() -> None:
     """Two entries sharing a token share a budget; the raw token never leaks."""
     from homeassistant.exceptions import ServiceValidationError
@@ -301,7 +285,6 @@ def test_accounting_keys_on_a_hash_of_the_token() -> None:
     assert token_key(SYNTHETIC_TOKEN) in rendered
 
 
-@XFAIL_RED
 def test_the_budget_is_recorded_only_on_acceptance() -> None:
     """A failed send consumes no budget."""
     clock = FakeClock()
@@ -314,11 +297,6 @@ def test_the_budget_is_recorded_only_on_acceptance() -> None:
     tracker.check(SYNTHETIC_TOKEN, RESERVATION_A)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: hospitable.send_message is not registered yet",
-)
 async def test_refusal_happens_before_any_http_request(
     hass: Any,
     loaded_config_entry_factory: Any,

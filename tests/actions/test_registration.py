@@ -18,8 +18,6 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import pytest
-
 from tests.actions.conftest import (
     ACCOUNT_NAMESPACE,
     SECOND_ACCOUNT_NAMESPACE,
@@ -27,17 +25,13 @@ from tests.actions.conftest import (
 )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T026 actions/__init__.py does not exist yet",
-)
 def test_registration_table_is_declarative() -> None:
     """Every service is declared once in a single registration table."""
-    from custom_components.hospitable.actions import (  # type: ignore
+    from homeassistant.core import SupportsResponse
+
+    from custom_components.hospitable.actions import (
         SERVICE_DEFINITIONS,
     )
-    from homeassistant.core import SupportsResponse
 
     names = [definition.name for definition in SERVICE_DEFINITIONS]
 
@@ -49,18 +43,12 @@ def test_registration_table_is_declarative() -> None:
         assert definition.supports_response is SupportsResponse.ONLY, definition.name
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T026 table-driven registration not implemented",
-)
 async def test_setup_registers_every_service_in_the_table(hass: Any) -> None:
     """Setup registers exactly the services the table declares."""
     from custom_components.hospitable.actions import (
         SERVICE_DEFINITIONS,
         async_setup_services,
     )
-
     from custom_components.hospitable.const import DOMAIN
 
     async_setup_services(hass)
@@ -69,17 +57,11 @@ async def test_setup_registers_every_service_in_the_table(hass: Any) -> None:
         assert hass.services.has_service(DOMAIN, definition.name), definition.name
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T027 idempotent registration not implemented",
-)
 async def test_registration_is_idempotent(hass: Any) -> None:
     """Registering twice does not replace the already-registered handler."""
     from custom_components.hospitable.actions import (
         async_setup_services,
     )
-
     from custom_components.hospitable.const import DOMAIN
 
     async_setup_services(hass)
@@ -90,11 +72,6 @@ async def test_registration_is_idempotent(hass: Any) -> None:
     assert first is second
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T027 has_service guard not implemented",
-)
 def test_registration_guard_is_an_explicit_has_service_check() -> None:
     """The idempotency guard is an explicit ``has_service`` call."""
     from pathlib import Path
@@ -102,7 +79,6 @@ def test_registration_guard_is_an_explicit_has_service_check() -> None:
     from custom_components.hospitable.actions import (
         async_setup_services,
     )
-
     from tests.helpers.ast_isolation import scan_module
 
     assert async_setup_services is not None
@@ -111,11 +87,6 @@ def test_registration_guard_is_an_explicit_has_service_check() -> None:
     assert "has_service" in facts.attribute_names
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T028 services are not registered from setup",
-)
 async def test_services_survive_until_the_last_entry_unloads(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],

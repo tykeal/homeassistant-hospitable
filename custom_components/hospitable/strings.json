@@ -4,17 +4,23 @@
       "user": {
         "title": "Connect Hospitable",
         "description": "Enter a Hospitable Personal Access Token from Apps > API access. Public API access requires a paid Hospitable plan; Essentials is excluded. The token needs read access to user, property, reservation, and calendar data.",
-        "data": {"token": "Personal Access Token"}
+        "data": {
+          "token": "Personal Access Token"
+        }
       },
       "properties": {
         "title": "Select properties",
         "description": "Choose at least one property to monitor.",
-        "data": {"selected_properties": "Properties"}
+        "data": {
+          "selected_properties": "Properties"
+        }
       },
       "reauth_confirm": {
         "title": "Update Hospitable token",
         "description": "Enter a replacement Personal Access Token for the Hospitable account {account}. Generate one under Apps > API access and confirm the account has paid Public API access.",
-        "data": {"token": "Personal Access Token"}
+        "data": {
+          "token": "Personal Access Token"
+        }
       }
     },
     "error": {
@@ -71,10 +77,18 @@
           "unknown": "Unknown"
         }
       },
-      "next_arrival": {"name": "Next arrival"},
-      "next_departure": {"name": "Next departure"},
-      "upcoming_reservations": {"name": "Upcoming reservations"},
-      "property_info": {"name": "Property info"},
+      "next_arrival": {
+        "name": "Next arrival"
+      },
+      "next_departure": {
+        "name": "Next departure"
+      },
+      "upcoming_reservations": {
+        "name": "Upcoming reservations"
+      },
+      "property_info": {
+        "name": "Property info"
+      },
       "availability": {
         "name": "Availability",
         "state": {
@@ -93,6 +107,38 @@
     "persistent_failure": {
       "title": "Hospitable is repeatedly unavailable",
       "description": "The Hospitable integration for account {account} has failed to refresh several times in a row. Check your network connection and the Hospitable status page, then reload the integration once service is restored."
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Send message",
+      "description": "Submits a message to a reservation's guest thread. Hospitable accepts the message for delivery and delivers it asynchronously, so acceptance is not confirmation that the guest has received it.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        },
+        "entity_id": {
+          "name": "Reservation entity",
+          "description": "A Hospitable entity that identifies the reservation. Give this or a reservation UUID, not both."
+        },
+        "reservation_uuid": {
+          "name": "Reservation UUID",
+          "description": "The reservation to message. Give this or a reservation entity, not both."
+        },
+        "body": {
+          "name": "Message",
+          "description": "The message text. It is submitted exactly as written."
+        },
+        "images": {
+          "name": "Images",
+          "description": "Up to three image URLs to include, each at most 5MB."
+        },
+        "sender_id": {
+          "name": "Sender",
+          "description": "The sending identity to use. Accepted only on Airbnb reservations."
+        }
+      }
     }
   }
 }

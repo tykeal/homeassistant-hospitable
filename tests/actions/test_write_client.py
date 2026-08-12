@@ -43,28 +43,17 @@ def test_base_client_exposes_no_post_method() -> None:
     assert not hasattr(HospitableApiClient, "post")
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T019 api/write_client.py does not exist yet",
-)
 def test_write_client_subclass_adds_post() -> None:
     """``HospitableWriteClient`` subclasses the base and adds ``_post``."""
-    from custom_components.hospitable.api.write_client import (  # type: ignore
+    from custom_components.hospitable.api.client import HospitableApiClient
+    from custom_components.hospitable.api.write_client import (
         HospitableWriteClient,
     )
-
-    from custom_components.hospitable.api.client import HospitableApiClient
 
     assert issubclass(HospitableWriteClient, HospitableApiClient)
     assert hasattr(HospitableWriteClient, "_post")
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T020 write client inheritance not implemented",
-)
 async def test_write_client_inherits_every_get_helper(
     write_client_factory: Callable[[httpx.AsyncClient, str], Any],
     mock_httpx_client: httpx.AsyncClient,
@@ -78,11 +67,6 @@ async def test_write_client_inherits_every_get_helper(
         assert getattr(type(client), helper) is getattr(HospitableApiClient, helper)
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T020 write client session reuse not implemented",
-)
 async def test_write_client_adds_no_second_session_or_auth_path(
     write_client_factory: Callable[[httpx.AsyncClient, str], Any],
     mock_httpx_client: httpx.AsyncClient,
@@ -100,11 +84,6 @@ async def test_write_client_adds_no_second_session_or_auth_path(
     )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T021 shared error classification not implemented",
-)
 @pytest.mark.parametrize(
     ("status", "fixture", "exception_name"),
     [
@@ -139,11 +118,6 @@ async def test_post_classifies_errors_exactly_as_get(
         )
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T021 transport error classification not implemented",
-)
 async def test_post_maps_transport_failure_to_connection_error(
     write_client_factory: Callable[[httpx.AsyncClient, str], Any],
     mock_httpx_client: httpx.AsyncClient,

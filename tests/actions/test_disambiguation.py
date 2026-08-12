@@ -23,17 +23,12 @@ import pytest
 from tests.actions.conftest import SECOND_ACCOUNT_NAMESPACE, SECOND_TOKEN
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T029 actions/helpers.py does not exist yet",
-)
 async def test_single_entry_resolves_without_an_explicit_id(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
 ) -> None:
     """One loaded entry is selected automatically."""
-    from custom_components.hospitable.actions.helpers import (  # type: ignore
+    from custom_components.hospitable.actions.helpers import (
         resolve_config_entry,
     )
 
@@ -42,20 +37,16 @@ async def test_single_entry_resolves_without_an_explicit_id(
     assert resolve_config_entry(hass, None) is entry
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T029 actions/helpers.py does not exist yet",
-)
 async def test_two_entries_require_an_explicit_id(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
 ) -> None:
     """Two loaded entries make ``config_entry_id`` mandatory."""
+    from homeassistant.exceptions import ServiceValidationError
+
     from custom_components.hospitable.actions.helpers import (
         resolve_config_entry,
     )
-    from homeassistant.exceptions import ServiceValidationError
 
     first = await loaded_config_entry_factory(hass)
     second = await loaded_config_entry_factory(
@@ -69,20 +60,16 @@ async def test_two_entries_require_an_explicit_id(
     assert resolve_config_entry(hass, second.entry_id) is second
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T029 actions/helpers.py does not exist yet",
-)
 async def test_unknown_entry_id_is_rejected(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
 ) -> None:
     """An id that matches no Hospitable entry is a validation error."""
+    from homeassistant.exceptions import ServiceValidationError
+
     from custom_components.hospitable.actions.helpers import (
         resolve_config_entry,
     )
-    from homeassistant.exceptions import ServiceValidationError
 
     await loaded_config_entry_factory(hass)
 
@@ -90,11 +77,6 @@ async def test_unknown_entry_id_is_rejected(
         resolve_config_entry(hass, "not-a-real-entry-id")
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T029 actions/helpers.py does not exist yet",
-)
 async def test_unloaded_entry_id_is_rejected(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -105,10 +87,11 @@ async def test_unloaded_entry_id_is_rejected(
     fail later with an opaque ``AttributeError`` instead of a message
     the user can act on.
     """
+    from homeassistant.exceptions import ServiceValidationError
+
     from custom_components.hospitable.actions.helpers import (
         resolve_config_entry,
     )
-    from homeassistant.exceptions import ServiceValidationError
 
     first = await loaded_config_entry_factory(hass)
     await loaded_config_entry_factory(
@@ -121,17 +104,13 @@ async def test_unloaded_entry_id_is_rejected(
         resolve_config_entry(hass, first.entry_id)
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    strict=True,
-    reason="TDD red phase: T029 actions/helpers.py does not exist yet",
-)
 async def test_no_loaded_entry_is_rejected(hass: Any) -> None:
     """With nothing loaded there is no account to act on."""
+    from homeassistant.exceptions import ServiceValidationError
+
     from custom_components.hospitable.actions.helpers import (
         resolve_config_entry,
     )
-    from homeassistant.exceptions import ServiceValidationError
 
     with pytest.raises(ServiceValidationError):
         resolve_config_entry(hass, None)

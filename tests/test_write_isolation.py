@@ -28,7 +28,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pytest
 import respx
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -45,11 +44,6 @@ SENSOR_PACKAGE = INTEGRATION_ROOT / "sensor"
 BASE_CLIENT_NAME = "HospitableApiClient"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T022 coordinators expose no annotated client",
-)
 def test_gate_1_coordinators_annotate_the_base_client_type() -> None:
     """Coordinators type their client as the GET-only base client.
 
@@ -73,11 +67,6 @@ def test_gate_1_coordinators_annotate_the_base_client_type() -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T023 coordinators expose no public client",
-)
 async def test_gate_2_no_coordinator_holds_a_write_client(
     hass: Any, respx_router: respx.Router
 ) -> None:
@@ -109,22 +98,16 @@ async def test_gate_2_no_coordinator_holds_a_write_client(
             f"coordinator {name} exposes no public client accessor"
         )
 
-    from custom_components.hospitable.api.write_client import (  # type: ignore
+    from custom_components.hospitable.api.client import HospitableApiClient
+    from custom_components.hospitable.api.write_client import (
         HospitableWriteClient,
     )
-
-    from custom_components.hospitable.api.client import HospitableApiClient
 
     for name, coordinator in coordinators.items():
         assert isinstance(coordinator.client, HospitableApiClient), name
         assert not isinstance(coordinator.client, HospitableWriteClient), name
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T024 the actions package does not exist yet",
-)
 def test_gate_3_polling_modules_never_name_write_symbols() -> None:
     """No polling-lifecycle module reaches for a write-capable symbol.
 

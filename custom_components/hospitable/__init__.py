@@ -9,6 +9,10 @@ from typing import Any
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.httpx_client import get_async_client
 
+from custom_components.hospitable.actions import (
+    async_setup_services,
+    async_unload_services,
+)
 from custom_components.hospitable.api.auth import StaticTokenProvider
 from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.const import (
@@ -134,6 +138,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         "listeners": [remove_listener],
     }
 
+    async_setup_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -146,6 +151,7 @@ async def async_unload_entry(hass: Any, entry: Any) -> bool:
         for remove_listener in runtime_data.get("listeners", []):
             remove_listener()
     entry.runtime_data = None
+    async_unload_services(hass, unloading_entry_id=entry.entry_id)
     return bool(unload_ok)
 
 

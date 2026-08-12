@@ -31,6 +31,7 @@ RESERVATION_AIRBNB = "res-example-guest-full"
 RESERVATION_BOOKING = "res-example-guest-no-surname"
 RESERVATION_NO_PLATFORM = "res-example-guest-null"
 
+
 # Every service-bus test asserts the service is registered BEFORE it
 # does anything else. Home Assistant's ``ServiceNotFound`` is a SUBCLASS
 # of ``ServiceValidationError``, so a negative test wrapping the call in
@@ -40,18 +41,6 @@ RESERVATION_NO_PLATFORM = "res-example-guest-null"
 # against real behaviour, which is also what Principle XII asks for
 # wherever the surrounding modules already exist. This is a deliberate
 # deviation from the ``raises=ModuleNotFoundError`` written in tasks.md.
-XFAIL_RED = pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: hospitable.send_message is not registered yet",
-)
-XFAIL_RED_IMPORT = pytest.mark.xfail(
-    raises=ImportError,
-    strict=True,
-    reason="TDD red phase: the shared envelope parser does not exist yet",
-)
-
-
 async def _call(hass: Any, data: dict[str, Any]) -> Any:
     """Invoke ``hospitable.send_message`` through the real service bus.
 
@@ -72,7 +61,6 @@ async def _call(hass: Any, data: dict[str, Any]) -> Any:
     )
 
 
-@XFAIL_RED
 async def test_reservation_uuid_target_is_accepted(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -94,7 +82,6 @@ async def test_reservation_uuid_target_is_accepted(
     assert response["reservation_uuid"] == RESERVATION_A
 
 
-@XFAIL_RED
 async def test_entity_id_target_resolves_to_a_reservation_uuid(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -135,7 +122,6 @@ async def test_entity_id_target_resolves_to_a_reservation_uuid(
     assert response["reservation_uuid"] == reservation_uuid
 
 
-@XFAIL_RED
 async def test_foreign_entity_id_is_rejected(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -154,7 +140,6 @@ async def test_foreign_entity_id_is_rejected(
     assert len(respx_router.calls) == before
 
 
-@XFAIL_RED
 async def test_both_targets_at_once_is_rejected(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -175,7 +160,6 @@ async def test_both_targets_at_once_is_rejected(
         )
 
 
-@XFAIL_RED
 async def test_happy_path_reports_acceptance_not_delivery(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -200,11 +184,10 @@ async def test_happy_path_reports_acceptance_not_delivery(
     assert_payload_has_no_delivery_language(response)
 
 
-@XFAIL_RED
 @pytest.mark.parametrize(
     ("fixture", "expected_reference"),
     [
-        ("send_message_202_full.json", "sent-ref-example-0001"),
+        ("send_message_202_full.json", "ref-example-accepted-0001"),
         ("send_message_202_empty.json", None),
     ],
 )
@@ -233,7 +216,6 @@ async def test_correlation_handle_is_surfaced_or_absent_without_error(
     assert response["sent_reference_id"] == expected_reference
 
 
-@XFAIL_RED
 async def test_a_202_with_an_empty_body_is_not_an_error(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -255,7 +237,6 @@ async def test_a_202_with_an_empty_body_is_not_an_error(
     assert response["sent_reference_id"] is None
 
 
-@XFAIL_RED
 async def test_body_is_required_and_must_be_non_empty(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -276,7 +257,6 @@ async def test_body_is_required_and_must_be_non_empty(
     assert len(respx_router.calls) == before
 
 
-@XFAIL_RED
 async def test_body_is_transmitted_verbatim(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -304,7 +284,6 @@ async def test_body_is_transmitted_verbatim(
     assert sent["body"] == text
 
 
-@XFAIL_RED
 async def test_images_are_optional_and_capped_at_three(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -346,7 +325,6 @@ async def test_images_are_optional_and_capped_at_three(
         )
 
 
-@XFAIL_RED
 async def test_optional_fields_are_omitted_when_not_supplied(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -368,7 +346,6 @@ async def test_optional_fields_are_omitted_when_not_supplied(
     assert set(sent) == {"body"}
 
 
-@XFAIL_RED
 async def test_sender_id_is_accepted_for_an_airbnb_reservation(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -406,7 +383,6 @@ async def test_sender_id_is_accepted_for_an_airbnb_reservation(
     assert sent["sender_id"] == "sender-example-0001"
 
 
-@XFAIL_RED
 @pytest.mark.parametrize(
     "reservation_uuid", [RESERVATION_BOOKING, RESERVATION_NO_PLATFORM]
 )
@@ -445,7 +421,6 @@ async def test_sender_id_is_rejected_when_not_airbnb_or_unresolved(
     assert len(respx_router.calls) == before
 
 
-@XFAIL_RED
 async def test_no_sender_id_performs_no_platform_lookup(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -473,7 +448,6 @@ async def test_no_sender_id_performs_no_platform_lookup(
     assert new_calls[0].request.method == "POST"
 
 
-@XFAIL_RED
 async def test_cached_reservation_needs_no_platform_lookup(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -504,7 +478,6 @@ async def test_cached_reservation_needs_no_platform_lookup(
     assert [call.request.method for call in new_calls] == ["POST"]
 
 
-@XFAIL_RED
 async def test_uncached_reservation_costs_exactly_one_lookup(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -537,7 +510,6 @@ async def test_uncached_reservation_costs_exactly_one_lookup(
     assert lookup.call_count == 1
 
 
-@XFAIL_RED
 @pytest.mark.parametrize("status", [404, 500])
 async def test_failed_platform_lookup_rejects_without_sending(
     status: int,
@@ -570,7 +542,6 @@ async def test_failed_platform_lookup_rejects_without_sending(
     assert not route.called
 
 
-@XFAIL_RED
 async def test_422_maps_to_service_validation_error_with_field_messages(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -594,10 +565,9 @@ async def test_422_maps_to_service_validation_error_with_field_messages(
             assert message in rendered
 
 
-@XFAIL_RED_IMPORT
 async def test_400_and_422_share_one_envelope_parser() -> None:
     """One parser serves the ``/tasks`` 400 and the send 422 alike."""
-    from custom_components.hospitable.api.responses import (  # type: ignore[attr-defined]
+    from custom_components.hospitable.api.responses import (
         parse_error_envelope,
     )
     from tests.helpers import load_fixture
@@ -610,10 +580,9 @@ async def test_400_and_422_share_one_envelope_parser() -> None:
         assert parsed.errors == envelope["errors"]
 
 
-@XFAIL_RED_IMPORT
 async def test_envelope_parser_tolerates_a_missing_errors_key() -> None:
     """The observed 429 body has no ``errors`` key and must not raise."""
-    from custom_components.hospitable.api.responses import (  # type: ignore[attr-defined]
+    from custom_components.hospitable.api.responses import (
         parse_error_envelope,
     )
     from tests.helpers import load_fixture
@@ -628,7 +597,6 @@ async def test_envelope_parser_tolerates_a_missing_errors_key() -> None:
     assert parsed.errors == {}
 
 
-@XFAIL_RED
 @pytest.mark.parametrize("status", [500, 502, 503])
 async def test_server_errors_map_to_home_assistant_error(
     status: int,
@@ -648,7 +616,6 @@ async def test_server_errors_map_to_home_assistant_error(
     assert not isinstance(excinfo.value, ServiceValidationError)
 
 
-@XFAIL_RED
 async def test_transport_failure_maps_to_home_assistant_error(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -666,7 +633,6 @@ async def test_transport_failure_maps_to_home_assistant_error(
     assert not isinstance(excinfo.value, ServiceValidationError)
 
 
-@XFAIL_RED
 async def test_403_is_actionable_about_a_possible_missing_scope(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
