@@ -267,8 +267,9 @@ diagnostics never contain the guest name unredacted.
    updates, **Then** `guest_last_name` reports no value and any
    display-name derivation shows only the first name.
 4. **Given** any log level or diagnostics download, **When** the
-   output is audited, **Then** no guest field (first_name, last_name,
-   email, phone_numbers, location, language) is present unredacted.
+   output is audited, **Then** no guest field (`first_name`,
+   `last_name`, `email`, `phone_numbers`, `location`, `language`,
+   `profile_picture`) is present unredacted.
 5. **Given** the `guest` object is null on a reservation, **When** the
    entity updates, **Then** guest attributes report no value rather
    than raising or becoming unavailable.
@@ -554,8 +555,8 @@ diagnostics never contain the guest name unredacted.
   marked as unrecorded attributes so they live in entity state memory
   only and are NEVER written to the recorder database or captured in
   backups. This follows the `_unrecorded_attributes` precedent
-  established in spec 001 (used by the availability sensor's
-  `forward_window` attribute).
+  established by the availability sensor's `forward_window` attribute
+  in the existing implementation.
 - **FR-040**: The `guest` object response MUST be validated: if
   `include=guest` is requested and the response contains the `guest`
   key, its value may be an object or null. A null `guest` means no
@@ -631,11 +632,11 @@ diagnostics never contain the guest name unredacted.
 - **SC-008**: Task sensors correctly label Maintenance tasks as
   Maintenance (not as task_type-5's misleading service_id) in 100% of
   cases.
-- **SC-009**: Guest first_name and last_name are visible as
-  reservation entity attributes when present in the API response, and
-  absent (not errored) when the guest object is null or last_name is
-  missing. All guest attributes are unrecorded and never appear in the
-  recorder database.
+- **SC-009**: `guest_first_name` and `guest_last_name` are visible as
+  reservation entity attributes when the API returns a non-null
+  `guest` object, and absent (not errored) when the guest object is
+  null or `last_name` is missing. All guest attributes are unrecorded
+  and never appear in the recorder database.
 
 ## Assumptions
 
