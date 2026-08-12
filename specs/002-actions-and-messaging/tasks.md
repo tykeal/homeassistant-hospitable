@@ -99,6 +99,47 @@ exempt on those grounds and are therefore NOT split red/green.
   indicator is "awaiting host reply".
 - **`include=guest` is SINGULAR.** Plural `guests` is a silently-ignored
   no-op upstream.
+- **The messages endpoint is NOT paginated** and IS rate limited. See
+  the live-probe evidence block below.
+
+---
+
+## Live-probe evidence (2026-08-12, read-only GETs)
+
+A read-only probe of `GET /reservations/{uuid}/messages` was performed
+against the live account after this task list was first written. No POST
+was issued. The findings below are **CONFIRMED-BY-TEST** and are
+authoritative for the tasks that cite them.
+
+1. **The endpoint is NOT paginated.** The envelope is `{data}` only —
+   no `meta`, no `links`, unlike `/reservations` and `/tasks`, which
+   carry all three. `per_page=1`, `per_page=2`, `page=1`, `page=2`, and
+   `per_page=1&page=2` all returned the identical full set of 10 items.
+   Both parameters are **silently ignored** — the fourth instance of
+   silent-ignore behaviour in this API.
+   **Scope caveat, stated honestly**: the busiest conversation on this
+   account holds only 10 messages, so behaviour above that volume was
+   NOT observed. Pagination may appear above some threshold. Tasks
+   therefore assert the observed contract AND require the code to
+   tolerate a `meta`/`links` block appearing later rather than crashing.
+   The practical consequence today is that there is no way to bound the
+   payload: a very long conversation arrives in full, so no code may
+   assume a small list.
+2. **The endpoint is rate limited at 2 requests per 60 seconds, PER
+   RESERVATION.** It returns `x-ratelimit-limit: 2` and
+   `x-ratelimit-remaining: <n>`. On 429 it also returns
+   `retry-after: 60` (observed 59–60) and `x-ratelimit-reset: <epoch>`.
+   The buckets are independent per reservation: reservation A was burned
+   to `remaining: 0` and returned 429, and reservation B immediately
+   returned HTTP 200 with a fresh `remaining: 1`.
+3. **The 429 body is the Laravel envelope with NO `errors` key**:
+   `{"status_code": 429, "reason_phrase": "Too Many Attempts."}`. The
+   shared envelope parser must tolerate the missing key.
+4. **This is scoped to the messages endpoint ONLY.** `/properties`,
+   `/reservations`, and `/tasks` were re-checked in the same session and
+   expose NO `x-ratelimit-*` and NO `retry-after` headers. Spec 001's
+   recorded finding remains CORRECT for the endpoints spec 001 tested.
+   This is **not** a spec 001 defect, and spec 001 must not be edited.
 
 ---
 
@@ -154,8 +195,14 @@ red/green pair.
       They are deliberately structurally identical so that one parser
       demonstrably serves both the `/tasks` 400 and the send 422.
       (FR-015, FR-030, FR-045)
+- [ ] T008a [P] Create `tests/fixtures/error_envelope_429.json` holding
+      the OBSERVED 429 body exactly: `status_code` and `reason_phrase`
+      with NO `errors` key. This is the same Laravel envelope family
+      with a field absent, and exists so the shared parser is forced to
+      tolerate that absence rather than raising a `KeyError`. (FR-015,
+      FR-045)
 - [ ] T009 Add SPDX headers or `REUSE.toml` coverage for every file
-      created in T001..T008 and run `uv run reuse lint` to confirm the
+      created in T001..T008a and run `uv run reuse lint` to confirm the
       tree is compliant. JSON fixtures cannot carry comments, so they
       MUST be covered by a `REUSE.toml` annotation rather than an
       in-file header.
@@ -198,6 +245,15 @@ red/green pair.
       `tests/actions/conftest.py` for the messages endpoint that can
       serve a 202 with either body shape from T007, a 422 from T008, and
       a 403. (FR-012, FR-015, FR-016)
+- [ ] T013a Extend the T013 route builder so every messages-endpoint
+      response can carry `x-ratelimit-limit`, `x-ratelimit-remaining`,
+      and `x-ratelimit-reset` headers, and so it can serve a 429 with
+      `retry-after` plus the T008a body. Headers must be settable per
+      response so a test can walk `remaining` down to zero and then
+      throttle. (FR-017, FR-019)
+- [ ] T013b Add a per-reservation route-builder mode so a test can hold
+      two distinct reservation UUIDs with INDEPENDENT header budgets,
+      matching the observed per-reservation bucketing. (FR-017)
 - [ ] T014 Create `tests/helpers/__init__.py` and
       `tests/helpers/ast_isolation.py`, a test-only helper that parses a
       Python source file with `ast` and returns the set of imported
@@ -362,6 +418,11 @@ fail with `AssertionError`, because those modules already exist —
       `ServiceValidationError` with the per-field messages preserved,
       and transport errors and 5xx map to `HomeAssistantError`.
       (FR-015, FR-045)
+- [ ] T035a [P] [US1] In `tests/actions/test_send_message.py`, add an
+      xfail test (`raises=ModuleNotFoundError`) that the SAME parser
+      handles `error_envelope_429.json`, which carries `status_code` and
+      `reason_phrase` but NO `errors` key. A missing `errors` key must
+      not raise. (FR-015, FR-045)
 - [ ] T036 [P] [US1] In `tests/actions/test_send_message.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that a 403 on the send
       endpoint surfaces as an actionable `HomeAssistantError` whose
@@ -372,10 +433,41 @@ fail with `AssertionError`, because those modules already exist —
 - [ ] T037 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the per-reservation
       budget: 2 messages per rolling 60 seconds, third refused, budget
-      recovering as the window slides. (FR-017, FR-019)
+      recovering as the window slides. This figure is CONFIRMED-BY-TEST
+      for the messages GET and documented for the send. (FR-017,
+      FR-019)
 - [ ] T038 [P] [US1] In `tests/actions/test_rate_limit.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the per-token budget: 50
-      per rolling 300 seconds. (FR-017, FR-019)
+      per rolling 300 seconds. This figure is DOCUMENTED ONLY and has
+      not been tested; the test asserts the implementation honours the
+      documented number, not that upstream enforces it. (FR-017,
+      FR-019)
+- [ ] T038a [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that the tracker is
+      TWO-DIMENSIONAL and that BOTH gates are evaluated before every
+      send: the per-(token, reservation) 2-per-60s gate and the
+      per-token 50-per-300s gate. Exhausting either one alone must
+      refuse the call. The original framing of "keys on the token" is
+      correct for the 50/5min budget but incomplete — there are two
+      distinct dimensions. (FR-017, FR-018, FR-019)
+- [ ] T038b [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that per-reservation buckets
+      are INDEPENDENT: exhausting reservation A leaves reservation B
+      immediately callable. This is CONFIRMED-BY-TEST upstream — A
+      returned 429 while B returned 200 with a fresh remaining count.
+      (FR-017)
+- [ ] T038c [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that `x-ratelimit-remaining`
+      and `x-ratelimit-reset` from a response are fed back into the
+      tracker, and that when the server's remaining count DISAGREES with
+      the locally-counted budget the SERVER value wins. Blind local
+      counting is a floor, not the authority. (FR-017, FR-019)
+- [ ] T038d [US1] In `tests/actions/test_rate_limit.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that a 429 is treated as
+      RETRYABLE-WITH-BACKOFF driven by `retry-after`, and not as a hard
+      failure. See OQ-007: it is unknown whether reads and writes share
+      one per-reservation bucket, so the send path must survive being
+      throttled by a poll. (FR-019, OQ-007)
 - [ ] T039 [US1] In `tests/actions/test_rate_limit.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that accounting keys on the
       TOKEN, not the config entry: two distinct config entries holding
@@ -405,7 +497,9 @@ tests only.
 - [ ] T043 [US1] Add a shared Laravel error-envelope parser to
       `custom_components/hospitable/api/responses.py` returning
       structured field errors. ONE parser serves both the send 422 and
-      the `/tasks` 400 — do not write a second. (FR-015, FR-045)
+      the `/tasks` 400 — do not write a second. It MUST tolerate an
+      absent `errors` key, which the observed 429 body demonstrates.
+      (FR-015, FR-045)
 - [ ] T044 [US1] Create `custom_components/hospitable/actions/__init__.py`
       with table-driven registration and removal, an idempotent
       `hass.services.has_service()` guard, and removal only when the
@@ -425,6 +519,25 @@ tests only.
       module-level tracker keyed on SHA-256 of the token, holding a
       per-(token, reservation) deque and a per-token deque. Never store
       or log the raw token. (FR-017, FR-018)
+- [ ] T047a [US1] Surface response headers from the API client. `_get`
+      currently returns only the parsed JSON body and DISCARDS the
+      `httpx.Response`, so `x-ratelimit-*` is unreachable today. Add a
+      way for callers that need them to obtain the headers, without
+      changing the return type of the existing GET helpers used by
+      spec 001's coordinators. (FR-017)
+- [ ] T047b [US1] Feed `x-ratelimit-limit`, `x-ratelimit-remaining`, and
+      `x-ratelimit-reset` into the tracker whenever a messages-endpoint
+      response carries them, with the server's value overriding the
+      local count. Absence of the headers must be tolerated — no other
+      endpoint sends them. (FR-017, FR-019)
+- [ ] T047c [US1] Handle 429 on the messages endpoint as a
+      retryable-with-backoff condition driven by `retry-after`. **Reuse
+      the EXISTING `parse_retry_after` in
+      `custom_components/hospitable/api/retry.py`** — it is present and
+      already wired into `_raise_for_status`, and it already parses both
+      the delta-seconds and HTTP-date forms and caps at `MAX_BACKOFF`.
+      Do not write a second parser. What is genuinely new is reading the
+      `x-ratelimit-*` family, which nothing currently does. (FR-019)
 - [ ] T048 [US1] Create
       `custom_components/hospitable/actions/send_message.py` with the
       handler: validate, check rate limit, resolve platform for the
@@ -512,14 +625,37 @@ assert a return value rather than an exception.
 - [ ] T063 [P] [US2] In `tests/actions/test_get_messages.py`, add xfail
       tests (`raises=ModuleNotFoundError`) that the reservation target
       is accepted as either a UUID or an entity id. (FR-022, FR-044)
-- [ ] T064 [US2] In `tests/actions/test_get_messages.py`, add xfail
-      tests (`raises=ModuleNotFoundError`) covering BOTH pagination
-      possibilities: a response carrying pagination metadata is paged
-      through to exhaustion, and a response carrying none is treated as
-      complete. **OQ-002 is UNVERIFIED** — whether this endpoint
-      paginates at all is unknown. Neither branch may be written as the
-      confirmed behaviour, and the paging loop must be bounded so an
-      unexpected shape cannot loop forever. (FR-023, OQ-002)
+- [ ] T064 [US2] In `tests/actions/test_get_messages.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that the messages response is
+      consumed in ONE request: assert the envelope carries `data` only,
+      with NO `meta` and NO `links`, and that exactly one HTTP request
+      is issued. **OQ-002 is CLOSED — CONFIRMED-BY-TEST**: this endpoint
+      is not paginated, unlike `/reservations` and `/tasks`. Do NOT
+      write a pagination loop here. (FR-023)
+- [ ] T064a [US2] In `tests/actions/test_get_messages.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that the handler never sends
+      `page` or `per_page` to this endpoint. Both are SILENTLY IGNORED
+      upstream — `per_page=1`, `page=2`, and `per_page=1&page=2` all
+      returned the identical full set. Sending them would create a false
+      impression that the payload is bounded. (FR-023)
+- [ ] T064b [US2] In `tests/actions/test_get_messages.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that a LARGE thread — build a
+      fixture with several hundred messages — is handled without
+      truncation and without assuming a small list, because there is no
+      upstream mechanism to bound the payload. (FR-023)
+- [ ] T064c [US2] In `tests/actions/test_get_messages.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that a response which DOES
+      carry a `meta` or `links` block is tolerated rather than crashing.
+      The observed non-pagination was measured against a busiest thread
+      of only 10 messages, so pagination appearing above some unobserved
+      threshold cannot be ruled out. This test guards forward
+      compatibility; it must not be written as if pagination were the
+      expected behaviour. (FR-023)
+- [ ] T064d [US2] In `tests/actions/test_get_messages.py`, add an xfail
+      test (`raises=ModuleNotFoundError`) that the GET honours the
+      CONFIRMED per-reservation limit of 2 requests per 60 seconds and
+      that a 429 surfaces as a clear, retryable condition rather than a
+      crash or a silent empty result. (FR-017, FR-019, FR-023)
 - [ ] T065 [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=AssertionError`) that message bodies never appear in
       any log record emitted during the call, at any level. This must
@@ -564,9 +700,16 @@ assert a return value rather than an exception.
 ### GREEN PHASE COMMIT — US2
 
 - [ ] T074 [US2] Extend `custom_components/hospitable/api/messages.py`
-      with the thread-fetch helper and a bounded, defensive pagination
-      loop that terminates on either metadata shape. Add an inline
-      comment naming OQ-002. (FR-023, OQ-002)
+      with a SINGLE-REQUEST thread-fetch helper. No pagination loop:
+      OQ-002 is closed by live probe and the endpoint returns the whole
+      thread in one `{data}` envelope. Tolerate an unexpected
+      `meta`/`links` block without crashing, and record in a comment
+      that non-pagination was observed only up to a 10-message thread.
+      (FR-023)
+- [ ] T074a [US2] Apply the per-reservation rate-limit accounting and
+      the `x-ratelimit-*` header feedback from T047b to the messages
+      GET, so reads and writes share one tracker. Handle 429 with
+      `retry-after` backoff. (FR-017, FR-019, OQ-007)
 - [ ] T075 [US2] Add the `HospitableMessage` model to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-020)
@@ -870,6 +1013,32 @@ fetch per property per cycle with it on.
       (`raises=ModuleNotFoundError`) that with the option enabled the
       integration performs AT MOST ONE message fetch per property per
       polling cycle. Assert on the recorded request count. (FR-037)
+- [ ] T136a [US5] In `tests/sensor/test_messages.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that the EFFECTIVE per-reservation
+      message-fetch interval is at least 60 seconds. The confirmed
+      upstream limit of 2 requests per 60 seconds per reservation would
+      mathematically permit a 30-second interval; 60 seconds is a
+      DELIBERATELY CONSERVATIVE choice that consumes at most one of the
+      two slots, leaving the other free for a user-initiated send. See
+      OQ-007: if reads and writes share one bucket, polling at the
+      mathematical maximum would starve the send path. (FR-037, FR-017,
+      OQ-007)
+- [ ] T136b [US5] In `tests/sensor/test_messages.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that a rapid double refresh — two
+      manual coordinator refreshes back to back — does NOT exceed the
+      per-reservation budget: the second fetch for the same reservation
+      is skipped or deferred rather than issued. (FR-037, FR-017,
+      FR-019)
+- [ ] T136c [US5] In `tests/sensor/test_messages.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that fanning out across MANY
+      DIFFERENT reservations in one cycle is permitted, because the
+      buckets are per-reservation and independent. The constraint is
+      per reservation, not global. (FR-037, FR-017)
+- [ ] T136d [US5] In `tests/sensor/test_messages.py`, add an xfail test
+      (`raises=ModuleNotFoundError`) that a 429 on the message fetch is
+      handled gracefully: `retry-after` is respected, the last-good
+      indicator value is retained, and the entity is NOT marked
+      unavailable. A throttle is not an outage. (FR-037, FR-019)
 - [ ] T137 [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the indicator computes from
       the sender role of the most recent message, and add an assertion
@@ -902,6 +1071,23 @@ fetch per property per cycle with it on.
       `custom_components/hospitable/coordinator.py`, capped at one fetch
       per property per cycle and skipped entirely when the option is
       off. (FR-037)
+- [ ] T142a [US5] Enforce a per-reservation message-fetch floor of 60
+      seconds in the coordinator, independent of the configured
+      reservation poll interval — the reservation interval floor is 1
+      minute, so an aggressively configured entry could otherwise reach
+      the upstream limit. The floor is a conservative budget reservation,
+      not the upstream maximum: 2 per 60 seconds would permit 30
+      seconds, and the second slot is deliberately left unused so a
+      user-initiated send is not starved (OQ-007). Route the fetch
+      through the shared tracker from T047 rather than a second counter.
+      (FR-037, FR-017, OQ-007)
+- [ ] T142b [US5] Handle 429 on the optional message fetch without
+      failing the whole reservation update: retain the previous
+      indicator value, respect `retry-after`, and do not raise
+      `UpdateFailed` for the reservation data that was fetched
+      successfully. Note that the existing coordinator behaviour logs a
+      429 and does NOT reschedule; the message fetch needs its own
+      handling rather than inheriting that path. (FR-037, FR-019)
 - [ ] T143 [US5] Register the new sensors in
       `custom_components/hospitable/sensor/__init__.py`. (FR-036,
       FR-037)
@@ -959,6 +1145,12 @@ phase.
       `quickstart.md`. (FR-008, FR-029)
 - [ ] T155 [P] [US6] Automate VS-9 (rate-limit enforcement) from
       `quickstart.md`. (FR-017, FR-019)
+- [ ] T155a [P] [US6] Add an end-to-end throttling test: with the
+      awaiting-host-reply option on, drive a reservation's
+      `x-ratelimit-remaining` to zero across polling cycles, serve a
+      429, and assert the entity keeps its last-good value, the poll
+      does not fail, and the next fetch waits for `retry-after`.
+      (FR-017, FR-019, FR-037)
 - [ ] T156 [P] [US6] Automate VS-10 (static import isolation) from
       `quickstart.md`, reusing the T014 AST helper. (FR-001)
 - [ ] T157 [US6] Add a genuine end-to-end test in
@@ -1020,9 +1212,12 @@ checks. Both ship in the same pull request.
       `README.md`, including the privacy implication of the
       guest-contact-details opt-in and the API cost of the
       awaiting-host-reply opt-in. (FR-038a, FR-038b, FR-043)
-- [ ] T166 [P] Document the rate limits in `README.md`, including that
-      the budget is shared by every config entry using the same token.
-      (FR-017, FR-018)
+- [ ] T166 [P] Document the rate limits in `README.md`: the per-token
+      50-per-5-minutes budget shared by every config entry using the
+      same token, AND the per-reservation 2-per-60-seconds limit that
+      applies to reading and sending messages. State that enabling the
+      awaiting-host-reply option consumes per-reservation budget.
+      (FR-017, FR-018, FR-037)
 - [ ] T167 [P] Update `info.md` for HACS with a summary of the new
       capabilities.
 - [ ] T168 Confirm `uv run reuse lint` passes over every file added or
@@ -1030,9 +1225,23 @@ checks. Both ship in the same pull request.
 - [ ] T169 Confirm coverage thresholds are met and that no new module is
       excluded from coverage or from mypy.
 - [ ] T170 Record the still-open questions in the PR description:
-      OQ-001, OQ-002, and OQ-005 remain UNVERIFIED and can only be
-      closed by performing a real send, which has not been done.
-      (OQ-001, OQ-002, OQ-005)
+      OQ-001 and OQ-005 remain UNVERIFIED and can only be closed by
+      performing a real send, which has not been done. OQ-007 (whether
+      reads and writes share one per-reservation bucket) is likewise
+      unclosable without a real POST. OQ-002 is CLOSED by the
+      2026-08-12 read-only probe. (OQ-001, OQ-005, OQ-007)
+- [ ] T170a Raise OQ-007 for the record: the confirmed GET limit is 2
+      per 60 seconds per reservation and the DOCUMENTED send limit is
+      also 2 per 60 seconds per reservation, which makes a SHARED
+      per-reservation bucket plausible but unproven. If shared, an
+      awaiting-host-reply poll could consume budget a user needs to
+      send a message, and vice versa. It cannot be tested without
+      issuing a real POST to a real guest, which is prohibited. The
+      design must be defensive in BOTH directions and must assert
+      neither answer: the send path treats 429 as
+      retryable-with-backoff rather than a hard failure (T038d,
+      T047c), and the polling path must never starve the send path
+      (T142a, T142b). (OQ-007)
 - [ ] T171 Re-read this task list against `spec.md` and confirm every FR
       from FR-001 to FR-045 is still named by at least one task after
       any in-flight edits, using the traceability table below.
@@ -1061,14 +1270,19 @@ COMMIT. No exceptions.
 
 ## Parallel opportunities
 
-- Phase 1: T002..T008 are all independent fixture files.
+- Phase 1: T002..T008a are all independent fixture files.
 - Phase 2: T012..T018 are independent test helpers.
-- US1 red phase: T020, T021, T026, T027, T029, T030, T033, T035, T036,
-  T037, T038 touch distinct files or distinct test classes.
+- US1 red phase: T020, T021, T026, T027, T029, T030, T033, T035, T035a,
+  T036, T037, T038 touch distinct files or distinct test classes.
+  T038a..T038d all edit `tests/actions/test_rate_limit.py` and are NOT
+  parallel with each other or with T037/T038.
 - US2 red phase: T061, T062, T063, T066, T067, T068, T069, T071, T072.
+  T064..T064d all edit `tests/actions/test_get_messages.py` and must be
+  serialised.
 - US3 red phase: T086, T089, T093, T096.
 - US4 red phase: T113, T115, T117, T118, T119, T120, T121.
-- US5 red phase: T132, T134, T138, T139.
+- US5 red phase: T132, T134, T138, T139. T136..T136d all edit
+  `tests/sensor/test_messages.py` and must be serialised.
 - US6: T149..T156 are independent scenario files.
 - Phase 9: T164..T167 are independent documents.
 
@@ -1179,14 +1393,46 @@ documentation-fix pull request against `plan.md`, `research.md`, or
 - **`tests/test_no_writes.py` currently documents itself against spec
   001's "T140, FR-059".** T058 updates the docstring to FR-001/FR-002
   while PRESERVING the file. FR-002 forbids deleting it.
-- **OQ-001, OQ-002, and OQ-005 are UNVERIFIED and cannot be closed by
-  this task list.** They can only be closed by performing a real send,
-  which has NOT been performed. Specifically: the exact shape of the 202
-  response body (OQ-001), whether the messages endpoint paginates at all
-  (OQ-002), and whether the personal access token actually carries the
-  send scope (OQ-005). Every task touching them requires handling BOTH
-  possibilities and forbids asserting either as fact. If a reviewer asks
-  for one branch to be deleted as dead code, the answer is no.
+- **OQ-001 and OQ-005 are UNVERIFIED and cannot be closed by this task
+  list.** They can only be closed by performing a real send, which has
+  NOT been performed. Specifically: the exact shape of the 202 response
+  body (OQ-001) and whether the personal access token actually carries
+  the send scope (OQ-005). Every task touching them requires handling
+  BOTH possibilities and forbids asserting either as fact. If a reviewer
+  asks for one branch to be deleted as dead code, the answer is no.
+- **OQ-002 is now CLOSED — CONFIRMED-BY-TEST.** The 2026-08-12
+  read-only probe established that the messages endpoint is not
+  paginated. `spec.md` still lists OQ-002 as open. That is a
+  documentation divergence this file is not permitted to fix; it needs
+  its own documentation-fix pull request against `spec.md` and
+  `research.md`. It is reported here, not silently reconciled.
+- **OQ-007 is NEW and OPEN.** The confirmed GET limit and the
+  documented send limit are both 2 per 60 seconds per reservation, so
+  reads and writes may share ONE per-reservation bucket. If they do, a
+  poll can consume budget a send needs. This cannot be tested without
+  issuing a real POST to a real guest. It is not recorded in `spec.md`;
+  raising it there is likewise a job for a documentation-fix pull
+  request.
+- **`parse_retry_after` was NOT removed and is NOT dead code.** It
+  exists at `custom_components/hospitable/api/retry.py`, handles both
+  the delta-seconds and HTTP-date forms, caps at `MAX_BACKOFF`, and is
+  already wired into `_raise_for_status` in `api/client.py` and into
+  `HospitableRateLimitError.retry_after`, which
+  `coordinator._log_rate_limit_once` consumes. It does not need to be
+  reintroduced. What is genuinely new is that **nothing currently reads
+  the `x-ratelimit-*` family**, and that `_get` discards the
+  `httpx.Response` entirely, so response headers are unreachable to
+  callers today — that is the gap T047a closes.
+- **The existing coordinator logs a 429 but deliberately does NOT
+  reschedule**, recovering on the next scheduled poll instead. That
+  behaviour is correct for the spec 001 endpoints, which never send
+  `retry-after`. The messages endpoint does, so T142b gives the
+  optional message fetch its own handling rather than inheriting that
+  path. This is an addition, not a correction.
+- **The observed non-pagination was measured against a 10-message
+  thread**, the busiest on the account. Behaviour above that volume was
+  not observed. T064c requires tolerating a `meta`/`links` block if one
+  ever appears, without treating pagination as expected.
 - **This file does not claim complete coverage of every requirement's
   every nuance.** It claims that each of FR-001 through FR-045,
   including the lettered sub-requirements, is named by at least one
@@ -1217,15 +1463,15 @@ it; it does not follow that the task fully discharges it.
 | FR-012 | T007, T013, T032, T049 |
 | FR-013 | T034, T048, T050, T051, T069, T079 |
 | FR-014 | T033, T046, T057 |
-| FR-015 | T008, T013, T035, T043 |
+| FR-015 | T008, T008a, T013, T035, T035a, T043 |
 | FR-016 | T013, T021, T036, T041 |
-| FR-017 | T037, T038, T047, T155, T166 |
-| FR-018 | T017, T039, T047, T158, T166 |
-| FR-019 | T037, T038, T040, T048, T155 |
+| FR-017 | T013a, T013b, T037, T038, T038a, T038b, T038c, T047, T047a, T047b, T064d, T074a, T136a, T136b, T136c, T142a, T155, T155a, T166 |
+| FR-018 | T017, T038a, T039, T047, T158, T166 |
+| FR-019 | T013a, T037, T038, T038a, T038c, T038d, T040, T047b, T047c, T048, T064d, T074a, T136b, T136d, T142b, T155, T155a |
 | FR-020 | T002, T010, T061, T066, T072, T075, T076, T149 |
 | FR-021 | T062, T076 |
 | FR-022 | T063, T080 |
-| FR-023 | T064, T074 |
+| FR-023 | T064, T064a, T064b, T064c, T064d, T074 |
 | FR-024 | T002, T015, T065, T076, T138, T153 |
 | FR-025 | T067, T077, T150 |
 | FR-026 | T068, T078, T150 |
@@ -1239,7 +1485,7 @@ it; it does not follow that the task fully discharges it.
 | FR-034 | T011, T116, T117, T121, T125, T128, T129 |
 | FR-035 | T115, T120, T123 |
 | FR-036 | T003, T132, T133, T134, T140, T143 |
-| FR-037 | T003, T011, T135, T136, T137, T141, T142, T143, T145, T160 |
+| FR-037 | T003, T011, T135, T136, T136a, T136b, T136c, T136d, T137, T141, T142, T142a, T142b, T143, T145, T155a, T160, T166 |
 | FR-038 | T133, T140 |
 | FR-038a | T011, T135, T139, T141, T144, T145, T165 |
 | FR-038b | T011, T090, T096, T102, T106, T107, T165 |
@@ -1254,19 +1500,28 @@ it; it does not follow that the task fully discharges it.
 | FR-042 | T092, T095, T104, T105, T120, T153 |
 | FR-043 | T095, T105, T107, T153, T165 |
 | FR-044 | T030, T045, T063, T080, T093, T101 |
-| FR-045 | T008, T021, T029, T035, T040, T043, T111, T171 |
+| FR-045 | T008, T008a, T021, T029, T035, T035a, T040, T043, T111, T171 |
 
 ### Success criteria and open questions
 
 | Item | Tasks |
 | --- | --- |
-| SC-001 to SC-009 | T148, T149, T150, T151, T152, T153, T154, T155, T156, T157, T158, T163 |
-| OQ-001 (202 body shape) | T007, T032, T049, T170 |
-| OQ-002 (message pagination) | T064, T074, T170 |
-| OQ-005 (PAT send scope) | T036, T170 |
+| SC-001 to SC-009 | T148, T149, T150, T151, T152, T153, T154, T155, T155a, T156, T157, T158, T163 |
+| OQ-001 (202 body shape) — OPEN | T007, T032, T049, T170 |
+| OQ-002 (message pagination) — CLOSED | T064, T064a, T064b, T064c, T074 |
+| OQ-005 (PAT send scope) — OPEN | T036, T170 |
+| OQ-007 (shared read/write bucket) — OPEN, NEW | T038d, T047c, T074a, T136a, T142a, T142b, T170, T170a |
 
-OQ-001, OQ-002, and OQ-005 are **UNVERIFIED**. No real send has been
-performed. The tasks above require defensive handling of both
-possibilities; none of them may assert an unverified shape as fact.
+OQ-001, OQ-005, and OQ-007 are **UNVERIFIED**. No real send has been
+performed, and none of them can be closed without one. The tasks above
+require defensive handling of both possibilities; none of them may
+assert an unverified answer as fact.
+
+OQ-002 is **CLOSED — CONFIRMED-BY-TEST** by the 2026-08-12 read-only
+probe: the messages endpoint is not paginated and silently ignores
+`page` and `per_page`. `spec.md` has not been updated to reflect this
+and still lists OQ-002 as open; correcting it is a separate
+documentation-fix pull request, not this file's job.
+
 OQ-003, OQ-004, and OQ-006 are outside the scope of this task list as
 written and are not claimed to be closed by it.
