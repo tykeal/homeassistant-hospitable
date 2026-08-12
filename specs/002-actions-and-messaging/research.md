@@ -36,7 +36,7 @@ Nothing in this document upgrades a tier.
 | D-11 | Guest attributes as unrecorded | FR-039e, FR-042 |
 | D-12 | PII redaction for guest and message fields | FR-041, FR-042, FR-024 |
 | D-13 | Task type vs service_id explicit mapping | FR-033, FR-035 |
-| D-14 | `SupportsResponse.ONLY` on all services except send | FR-021, FR-025 to FR-027 |
+| D-14 | `SupportsResponse.ONLY` on all services including send | FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
 
 ## D-01: Write isolation via module path {#d-01}
@@ -318,7 +318,7 @@ them for the lifetime of the coordinator. If meta is absent (defensive
 case), fall back to hard-coded mappings derived from the confirmed
 observation.
 
-## D-14: `SupportsResponse.ONLY` on all lookup services {#d-14}
+## D-14: `SupportsResponse.ONLY` on all services {#d-14}
 
 **Decision**: All lookup services (`find_reservation`,
 `get_reservations`, `get_property_info`, `get_messages`) use
