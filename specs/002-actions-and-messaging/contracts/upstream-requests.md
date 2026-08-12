@@ -157,23 +157,27 @@ request naming every property.
 | Auth | Bearer PAT |
 | Required params | `properties[]` — MUST always be sent |
 | Fan-out | One request per property; `properties[]` carries exactly one |
-| Prohibited params | Date parameters — MUST NOT be sent |
+| Omitted params | Date parameters — MUST NOT be sent by default |
 | Response | 200 with `{data, links, meta}` envelope |
 | Pagination | Mandatory; followed independently per property |
 | Rate limit | None published; no `x-ratelimit-*`, no `retry-after` |
 
-**Fan-out rationale**: a batched request has a single outcome for every
-property, so one failure would blank every task sensor at once. One
-request per property gives the per-property failure isolation FR-034
-requires, matching spec 001's calendar coordinator and its last-good
-retention. At reference scale this is 13 requests per poll on an
-endpoint that publishes no rate limit.
+**Fan-out rationale**: a batched multi-property request does work; a
+live probe returned HTTP 200 with `total: 7` for three properties.
+Fan-out is a deliberate failure-isolation choice, not an upstream
+limitation. One request per property gives the per-property failure
+isolation FR-034 requires, matching spec 001's calendar coordinator
+and its last-good retention. At reference scale this is 13 requests per
+poll on an endpoint that publishes no rate limit.
 
-**Pagination scope caveat**: `meta.last_page: 2` was observed for a
-BATCHED request returning 164 tasks across 13 properties. It is NOT a
-per-property page count. Under fan-out each property returns its own
-`meta.last_page`, which MUST be followed independently; most properties
-are expected to fit a single page and none may be assumed to.
+**Default window and pagination**: with no date parameters, a live
+probe returned tasks from 2026-08-12 through 2026-08-24, roughly a
+14-day forward window. A wide explicit window returned 153 tasks across
+the five properties with any tasks, instead of 12 tasks across all 13
+properties with no dates. Pagination is real and honoured: `per_page=1`
+on a three-task property yielded `last_page: 3`, and `page=2` returned
+the second task. Under fan-out each property returns its own
+`meta.last_page`, which MUST be followed independently.
 
 **Failure mode**: Bare call or dates-only returns HTTP 400
 `{"status_code":400,"reason_phrase":"The properties field is required.","errors":{...}}`.
@@ -181,14 +185,19 @@ are expected to fit a single page and none may be assumed to.
 
 **Meta vocabularies** (CONFIRMED-BY-TEST):
 
-- `meta.task_types` — canonical task type labels
-- `meta.service_types` — canonical service type labels
-- `meta.assignment_statuses` — `{pending, accepted, rejected, cancelled, unassigned}`
-- `meta.progress_statuses` — `{not_started, on_the_way, arrived,
-  in_progress, completed, cancelled}`
+- `meta.task_types` — object-valued canonical task type labels and
+  associated `service_id` values
+- `meta.service_types` — object-valued canonical service type labels
+- `meta.assignment_statuses` — object-valued status labels for
+  `pending`, `accepted`, `rejected`, `cancelled`, and `unassigned`
+- `meta.progress_statuses` — object-valued status labels for
+  `not_started`, `on_the_way`, `arrived`, `in_progress`, `completed`,
+  and `cancelled`
 
-**TRAP**: Maintenance is task_type 5 but service_id 8. These two enum
-namespaces are NOT interchangeable. (CONFIRMED-BY-TEST)
+**TRAP**: Maintenance is task_type 5 with service_id 8, while
+service_type 5 is Owner. Looking up task_type 5 in the service-type
+table yields the wrong label. This is confirmed by the meta vocabulary;
+no divergent task-level row was observed live. (CONFIRMED-BY-TEST)
 
 **Post-condition**: `meta.current_page` asserted equal to the page
 requested (existing pagination contract from spec 001).

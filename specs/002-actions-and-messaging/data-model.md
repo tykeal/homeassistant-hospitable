@@ -76,17 +76,32 @@ deliberate: a control scoped to one surface does not protect another
 
 ### `HospitableTask`
 
-Built from an item of `GET /tasks` response `data` array.
+Built from an item of the `GET /tasks` response `data` array.
+A live read-only capture on 2026-08-12 observed exactly these fourteen
+upstream keys on all 153 captured task objects: `duration_hours`,
+`end_date`, `id`, `name`, `note`, `progress_status`, `property`,
+`reservation`, `service_id`, `start_date`, `task_assignment`,
+`task_type`, `teammate`, and `timezone`.
 
 | Field | Type | Source key | Tier | Notes |
 | --- | --- | --- | --- | --- |
-| `task_id` | `int` | `id` | CONFIRMED-BY-TEST | |
-| `property_id` | `str` | UNRESOLVED — see below | Presence CONFIRMED-BY-TEST; exact key UNVERIFIED | Association key |
-| `task_type` | `int` | `task_type` | CONFIRMED-BY-TEST | 1-5; maps via meta vocabulary |
+| `task_id` | `str` | `id` | CONFIRMED-BY-TEST | UUID string, not an integer |
+| `name` | `str` | `name` | CONFIRMED-BY-TEST | Short upstream task code |
+| `note` | `str \| None` | `note` | CONFIRMED-BY-TEST | Free text; see privacy note |
+| `property_id` | `str` | `property.id` | CONFIRMED-BY-TEST | Association key resolved by live capture |
+| `property_name` | `str` | `property.name` | CONFIRMED-BY-TEST | Operational label; review exposure before surfacing |
+| `reservation_id` | `str` | `reservation.id` | CONFIRMED-BY-TEST | Opaque reservation identifier |
+| `reservation_code` | `str` | `reservation.code` | CONFIRMED-BY-TEST | Guest-adjacent free text; see privacy note |
+| `teammate_id` | `str` | `teammate.id` | CONFIRMED-BY-TEST | Opaque teammate identifier; teammate name is excluded |
+| `task_type` | `int` | `task_type` | CONFIRMED-BY-TEST | 1-5; maps via `meta.task_types` |
 | `service_id` | `int` | `service_id` | CONFIRMED-BY-TEST | 1-8; NOT interchangeable with task_type |
-| `assignment_status` | `str` | `assignment_status` | CONFIRMED-BY-TEST | From meta vocabulary |
-| `progress_status` | `str` | `progress_status` | CONFIRMED-BY-TEST | From meta vocabulary |
-| `scheduled_date` | `str` | `scheduled_date` | CONFIRMED-BY-TEST | ISO date |
+| `assignment_status` | `str` | `task_assignment.status` | CONFIRMED-BY-TEST | From meta vocabulary |
+| `assignment_updated_at` | `str` | `task_assignment.updated_at` | CONFIRMED-BY-TEST | ISO-8601 timestamp with offset |
+| `progress_status` | `str \| None` | `progress_status` | CONFIRMED-BY-TEST | Null was observed on 54/153 live tasks |
+| `start_date` | `str` | `start_date` | CONFIRMED-BY-TEST | ISO-8601 datetime with offset |
+| `end_date` | `str` | `end_date` | CONFIRMED-BY-TEST | ISO-8601 datetime with offset |
+| `timezone` | `str` | `timezone` | CONFIRMED-BY-TEST | IANA timezone name |
+| `duration_hours` | `int` | `duration_hours` | CONFIRMED-BY-TEST | Numeric duration |
 | `task_type_label` | `str` | derived from `meta.task_types` | DERIVED | Human-readable; not an upstream field |
 | `service_type_label` | `str` | derived from `meta.service_types` | DERIVED | Human-readable; not an upstream field |
 
@@ -94,23 +109,38 @@ Built from an item of `GET /tasks` response `data` array.
 upstream confirmation. These two labels are computed by the
 integration by looking a code up in the corresponding meta vocabulary.
 What is CONFIRMED-BY-TEST is that the vocabularies exist in `meta` and
-that the two are distinct (Maintenance is task_type 5 but service_id
-8). The lookup itself is our code, so it is verified by our tests, not
-by the API.
+that the two are distinct.
 
-**UNRESOLVED — the property association key**: an earlier revision
-recorded the source as "`property_id` or `property.id`" while tiering
-it CONFIRMED-BY-TEST. Those cannot both be true: an unresolved
-alternation is not a confirmed observation. The task payload is known
-to associate each task with a property, but which of the two shapes it
-uses has NOT been pinned down from a captured response. The
-implementation MUST read whichever key the recorded `/tasks` fixture
-actually contains and MUST NOT accept both silently, since a
-permissive reader would hide the answer permanently. Resolving this
-costs one look at the fixture during US4 and no additional API call.
+**Resolved property association key**: the live task capture resolves
+the earlier open question. Tasks carry `property` as a nested object
+with `id` and `name`; no flat `property_id` key was present on any of
+the 153 observed objects. The implementation MUST read `property.id`
+and MUST NOT accept both `property.id` and `property_id` silently,
+since a permissive reader would hide a future upstream drift.
 
-**Deliberately absent**: assignee details (PII), notes (may contain
-PII), custom fields. Only operational status fields are modelled.
+**Privacy and exposure**: `teammate.name` is a person's name and MUST
+NOT be parsed into the model at all. Follow the US3 `profile_picture`
+precedent in `custom_components/hospitable/api/guest.py`: a field with
+no permitted exposure surface is simply not a model field, so it cannot
+leak onto an entity attribute, service response, diagnostic, log, or
+exception path someone forgets to guard. `teammate.id` is an opaque
+identifier and MAY be retained. `reservation.code` and `note` are also
+free-text or guest-adjacent values. Recommendation: keep them out of
+entity attributes and diagnostics for US4 unless a specific user-facing
+requirement names the surface and protection; if retained internally,
+redact them anywhere payloads are logged or reported.
+
+**Meta vocabularies**: live `/tasks` responses carry object-valued
+vocabularies in `meta.task_types`, `meta.service_types`,
+`meta.assignment_statuses`, and `meta.progress_statuses`. The task and
+service namespaces are distinct. The Maintenance trap is confirmed by
+the meta vocabulary: `meta.task_types["5"]` is `{"label":
+"Maintenance", "service_id": 8}` while `meta.service_types["5"]` is
+`{"label": "Owner"}`. Looking up task_type 5 in the service-type table
+therefore yields the wrong label, `Owner`. No divergent task-level row
+was observed live; all 153 captured tasks had `task_type: 1` and
+`service_id: 1`. The synthetic fixture includes a Maintenance row only
+to exercise this confirmed vocabulary trap.
 
 ## Modified domain models
 
@@ -177,8 +207,8 @@ thread was sent by the guest.
 | Property | Value |
 | --- | --- |
 | State | Task type label of the soonest upcoming task, or `None` |
-| Attributes | `task_type`, `service_type`, `assignment_status`, `progress_status`, `scheduled_date`, `task_id` |
-| Unrecorded attributes | None — task data is operational, not PII |
+| Attributes | `task_type`, `service_type`, `assignment_status`, `assignment_updated_at`, `progress_status`, `start_date`, `end_date`, `timezone`, `duration_hours`, `task_id`, `reservation_id`, `teammate_id` |
+| Unrecorded attributes | None by default; do not surface `teammate.name`, and treat `note` and `reservation.code` as protected unless a later requirement explicitly exposes them |
 
 ### `task_count` sensor
 
@@ -233,22 +263,35 @@ needed — the options flow handles absent keys by applying defaults.
 | Property | Value |
 | --- | --- |
 | Data type | `dict[str, tuple[HospitableTask, ...]]` |
-| Key | `property_id` |
+| Key | `property_id` from `property.id` |
 | Interval option | `task_interval_minutes` |
 | Default | 15 min |
 | Floor | 5 min |
 | Request shape | Fan-out: ONE request per selected property (FR-030) |
 | Upstream cost | One request per property per refresh, plus one per additional page; 13 at reference scale |
 | Required params | `properties[]` — always sent, carrying exactly one property |
-| Prohibited params | Date parameters — never sent (FR-030) |
+| Omitted params | Date parameters — not sent by default (FR-030) |
+| Default upstream window | With no dates, live capture returned tasks from 2026-08-12 through 2026-08-24, roughly a 14-day forward window |
 | Pagination | Mandatory from day one (FR-031); each property's own `meta.last_page` is followed independently |
-| Failure isolation | Genuinely per-property, because each property has its own request. A failing property retains its last-good task data and every other property still updates. Spec 001 D-15, applied exactly as the calendar coordinator applies it. |
+| Failure isolation | Per-property by deliberate fan-out. A failing property retains its last-good task data and every other property still updates. Spec 001 D-15, applied exactly as the calendar coordinator applies it. |
 
-**Why fan-out**: a single batched request naming every property has one
-outcome for all of them, so any failure would blank every task sensor at
-once. The observed `meta.last_page: 2` came from such a batched request
-covering 164 tasks across 13 properties and is NOT a per-property page
-count.
+**Why fan-out**: a batched multi-property `/tasks` request does work;
+a live probe sent three properties in one request and received HTTP 200
+with `total: 7`. Fan-out is therefore not an upstream workaround. It is
+a deliberate failure-isolation choice made for FR-034: a batched
+request has one outcome for all properties, while one request per
+property lets one failing property keep its last-good task data without
+blocking the others.
+
+**Date-window decision**: date parameters remain omitted by default.
+That means `task_count` counts tasks in Hospitable's default window,
+which the 2026-08-12 live probe measured as today through 2026-08-24
+for one property. A wide explicit window (`start_date=2020-01-01` and
+`end_date=2027-12-31`) returned 153 tasks across the five properties
+that had any tasks, instead of 12 tasks across all 13 properties with
+no dates. Any future configurable window must account for the upstream
+constraint that `end_date` more than three years in the future returns
+HTTP 400.
 
 **Wired into setup**: from the phase that introduces task sensors
 (US4). Not instantiated until that phase ships.

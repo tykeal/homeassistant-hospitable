@@ -96,7 +96,7 @@ receipt — it cannot detect messages read in other clients."
 | Entity key | `next_task` |
 | Platform | `sensor` |
 | State | Task type label of soonest upcoming task, or `None` |
-| Attributes | `task_type` (int), `service_type` (str), `assignment_status`, `progress_status`, `scheduled_date`, `task_id` |
+| Attributes | `task_type` (int), `service_type` (str), `assignment_status`, `assignment_updated_at`, `progress_status`, `start_date`, `end_date`, `timezone`, `duration_hours`, `task_id`, `reservation_id`, `teammate_id` |
 | Phase | US4 |
 
 ### `task_count` sensor

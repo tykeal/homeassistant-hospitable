@@ -1,45 +1,148 @@
 {
   "data": [
     {
-      "id": 700003,
+      "id": "33333333-3333-4333-8333-333333333333",
+      "name": "H-SYNTH-003",
+      "note": null,
       "task_type": 2,
-      "service_id": 4,
-      "assignment_status": "unassigned",
-      "progress_status": "not_started",
-      "scheduled_date": "2025-06-18",
-      "property_id": "prop-example-002",
-      "description": "Synthetic check-in greeting"
+      "service_id": 2,
+      "start_date": "2026-08-16T15:00:00-07:00",
+      "end_date": "2026-08-16T16:00:00-07:00",
+      "timezone": "America/Los_Angeles",
+      "duration_hours": 1,
+      "progress_status": null,
+      "task_assignment": {
+        "status": "unassigned",
+        "updated_at": "2026-08-12T19:00:00+00:00"
+      },
+      "property": {
+        "id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+        "name": "Synthetic Mountain Cabin"
+      },
+      "reservation": {
+        "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+        "code": "SYN-RES-003"
+      },
+      "teammate": {
+        "id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+        "name": "Synthetic Teammate Three"
+      }
     }
   ],
   "links": [
-    {"url": "http://public.api.hospitable.com/v2/tasks?page=2", "label": "2", "active": true}
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=1",
+      "label": "&laquo; Previous",
+      "active": false
+    },
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=1",
+      "label": "1",
+      "active": false
+    },
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=2",
+      "label": "2",
+      "active": true
+    },
+    {
+      "url": null,
+      "label": "Next &raquo;",
+      "active": false
+    }
   ],
   "meta": {
     "current_page": 2,
     "from": 3,
     "last_page": 2,
-    "path": "http://public.api.hospitable.com/v2/tasks",
     "per_page": 2,
     "to": 3,
     "total": 3,
+    "path": "http://public.api.hospitable.com/v2/tasks",
     "task_types": {
-      "1": "Cleaning",
-      "2": "Check-in",
-      "3": "Check-out",
-      "4": "Concierge",
-      "5": "Maintenance"
+      "1": {
+        "label": "Cleaning",
+        "service_id": 1
+      },
+      "2": {
+        "label": "Check-in",
+        "service_id": 2
+      },
+      "3": {
+        "label": "Concierge",
+        "service_id": 3
+      },
+      "4": {
+        "label": "Check-out",
+        "service_id": 4
+      },
+      "5": {
+        "label": "Maintenance",
+        "service_id": 8
+      }
     },
     "service_types": {
-      "1": "Turnover clean",
-      "2": "Deep clean",
-      "3": "Linen change",
-      "4": "Check-in greeting",
-      "5": "Check-out inspection",
-      "6": "Concierge request",
-      "7": "Restock",
-      "8": "Maintenance"
+      "1": {
+        "label": "Cleaning"
+      },
+      "2": {
+        "label": "Check-in"
+      },
+      "3": {
+        "label": "Concierge"
+      },
+      "4": {
+        "label": "Check-out"
+      },
+      "5": {
+        "label": "Owner"
+      },
+      "6": {
+        "label": "Manager"
+      },
+      "7": {
+        "label": "Laundry"
+      },
+      "8": {
+        "label": "Maintenance"
+      }
     },
-    "assignment_statuses": ["pending", "accepted", "rejected", "cancelled", "unassigned"],
-    "progress_statuses": ["not_started", "on_the_way", "arrived", "in_progress", "completed", "cancelled"]
+    "assignment_statuses": {
+      "pending": {
+        "label": "Pending"
+      },
+      "accepted": {
+        "label": "Accepted"
+      },
+      "rejected": {
+        "label": "Rejected"
+      },
+      "cancelled": {
+        "label": "Cancelled"
+      },
+      "unassigned": {
+        "label": "Unassigned"
+      }
+    },
+    "progress_statuses": {
+      "not_started": {
+        "label": "Not Started"
+      },
+      "on_the_way": {
+        "label": "On the Way"
+      },
+      "arrived": {
+        "label": "Arrived"
+      },
+      "in_progress": {
+        "label": "In Progress"
+      },
+      "completed": {
+        "label": "Completed"
+      },
+      "cancelled": {
+        "label": "Cancelled"
+      }
+    }
   }
 }

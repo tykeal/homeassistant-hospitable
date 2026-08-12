@@ -43,6 +43,7 @@ directly, and the exact bound of what was observed is stated with it.
 | D-14 | `SupportsResponse.ONLY` on all services including send | FR-011a, FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
 | D-16 | Single response-builder chokepoint for guest and sender PII | FR-046, FR-047, FR-047a, FR-048 |
+| D-17 | `/tasks` live constraints and pagination behaviour | FR-030, FR-031, FR-034 |
 
 ## D-01: Write isolation via module path {#d-01}
 
@@ -455,7 +456,7 @@ new data domain.
 **Decision**: Two separate enum mappings, both populated from the
 `/tasks` response `meta` vocabularies:
 
-- `TASK_TYPE_MAP: dict[int, str]` — e.g., `{1: "Check-in", ..., 5: "Maintenance"}`
+- `TASK_TYPE_MAP: dict[int, str]` — e.g., `{1: "Cleaning", ..., 5: "Maintenance"}`
 - `SERVICE_TYPE_MAP: dict[int, str]` — e.g., `{1: "Cleaning", ..., 8: "Maintenance"}`
 
 The sensor displays the task_type label. The service_id is available
@@ -463,8 +464,12 @@ as an attribute for automations that need it but is never conflated
 with task_type.
 
 **Rationale**: FR-033. Maintenance is task_type 5 but service_id 8.
-Conflating them would mislabel maintenance tasks. The meta
-vocabularies are the authoritative source (CONFIRMED-BY-TEST).
+Conflating them would mislabel maintenance tasks. The live meta
+vocabulary shows the precise trap: task_type 5 is Maintenance with
+service_id 8, while service_type 5 is Owner. No divergent task row was
+observed live; all 153 observed tasks were task_type 1 and service_id
+
+1. The evidence is the meta vocabulary (CONFIRMED-BY-TEST).
 
 **Implementation**: On first successful task poll, extract the
 vocabularies from `meta.task_types` and `meta.service_types`. Cache
@@ -585,3 +590,40 @@ when the option is on.
   intent.
 - *Filter in the schema layer*: Rejected. Voluptuous schemas validate
   service INPUT. The response path does not pass through them.
+
+## D-17: `/tasks` live constraints and pagination behaviour {#d-17}
+
+**Decision**: Keep the US4 task coordinator's default request shape as
+one fan-out `GET /tasks` request per property with no date parameters,
+while recording the live constraints discovered by the 2026-08-12
+read-only probes.
+
+**Live-probe confirmations**:
+
+- Bare `/tasks` with no `properties[]` returns HTTP 400 with a Laravel
+  envelope whose reason phrase is "The properties field is required."
+- `/tasks` exposes no `x-ratelimit-*` or `retry-after` headers, unlike
+  the messages endpoint.
+- Default `per_page` is 10.
+- Pagination is real and honoured: `per_page=1` on a three-task
+  property yielded `last_page: 3`, and `page=2` returned the second
+  task. This contrasts with the messages endpoint, which silently
+  ignores both parameters.
+- With no date parameters, one property returned only tasks from
+  2026-08-12 through 2026-08-24, an upstream default forward window of
+  roughly 14 days. A wide explicit window returned 153 tasks across
+  the five properties that had any tasks, versus 12 tasks across all
+  13 properties with no date filter.
+- An `end_date` more than three years in the future returns HTTP 400
+  with the Laravel envelope reason phrase "You cannot fetch tasks more
+  than 3 years in the future." Future configurable task windows must
+  validate or cap this bound before sending requests.
+- A batched multi-property request does work: three properties in one
+  request returned HTTP 200 with `total: 7`. Fan-out remains a repo
+  owner failure-isolation choice, not an upstream limitation.
+
+**Rationale**: These facts define the polling window and future window
+constraints without changing US4's decision to omit date parameters by
+default. They also keep the task endpoint's pagination and rate-header
+behaviour distinct from the messages endpoint, where pagination
+parameters were observed to be ignored.

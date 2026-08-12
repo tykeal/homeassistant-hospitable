@@ -567,9 +567,10 @@ diagnostics never contain the guest name unredacted.
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
   `properties[]` parameter and MUST NOT include date parameters (the
-  endpoint does not require them and their interaction is not
-  verified). (CONFIRMED-BY-TEST: `properties[]` required; bare call or
-  dates-only → 400)
+  default request omits them). Hospitable then applies its own roughly
+  14-day forward window, measured on 2026-08-12 as returning tasks
+  through 2026-08-24. (CONFIRMED-BY-TEST: `properties[]` required;
+  bare call or dates-only → 400)
   The poll MUST FAN OUT: exactly ONE request per selected property,
   each carrying that single property in `properties[]`, rather than one
   batched request naming every selected property. Fan-out is what makes
@@ -582,17 +583,14 @@ diagnostics never contain the guest name unredacted.
   `x-ratelimit-*` headers.
 - **FR-031**: The integration MUST paginate `/tasks` from day one.
   A naive single-page fetch silently loses tasks. (CONFIRMED-BY-TEST:
-  164 tasks across 13 properties, `meta.last_page: 2`)
+  `per_page=1` on a three-task property returned `last_page: 3`, and
+  `page=2` returned the second task.)
   Pagination MUST be followed PER PROPERTY. Each property's response
   carries its own `meta.last_page`, and the integration MUST follow
-  each independently rather than assuming a shared page count. The
-  observed `meta.last_page: 2` was measured on a BATCHED request
-  covering all 13 properties, so it says nothing about how many pages
-  any individual property returns; most are expected to fit one page
-  and none may be assumed to.
+  each independently rather than assuming a shared page count.
 - **FR-032**: The integration MUST expose per-property task sensors:
-  at minimum a next-task sensor (type, status, progress, scheduled
-  date) and a task-count sensor.
+  at minimum a next-task sensor (type, assignment status, progress,
+  start/end datetimes, timezone, duration) and a task-count sensor.
 - **FR-033**: Task type mapping MUST explicitly distinguish task_type
   IDs from service_id values. These are two different enums:
   Maintenance is task_type 5 but service_id 8. Conflating them would
@@ -793,9 +791,10 @@ diagnostics never contain the guest name unredacted.
 
 - **Task**: A scheduled operational activity for a property (cleaning,
   check-in, check-out, concierge, maintenance). Identified by a
-  numeric ID. Carries a task_type (1–5), a service_id
-  (1–8, NOT interchangeable with task_type), assignment_status,
-  progress_status, scheduled date, and property association.
+  UUID string. Carries a task_type (1–5), a service_id
+  (1–8, NOT interchangeable with task_type), nested task assignment
+  status, nullable progress_status, start/end datetimes with timezone,
+  duration, reservation association, and nested property association.
 - **Message**: A single message in a reservation's conversation
   thread. Identified by a numeric ID. Carries body, sender_type,
   sender_role, sender object, created_at, content_type, attachments,
@@ -904,11 +903,10 @@ rather than implying a test exists.
 - `/tasks` publishes no rate limit and exposes no `x-ratelimit-*` or
   `retry-after` headers, so fanning the poll out to one request per
   property is affordable. (CONFIRMED-BY-TEST)
-- Task pagination is real and mandatory: 164 tasks across 2 pages
-  observed for a BATCHED request naming all 13 properties.
-  (CONFIRMED-BY-TEST) Under the FR-030 per-property fan-out this is not
-  a per-property page count, so each property's own `meta.last_page`
-  must be followed. (INFERRED)
+- Task pagination is real and mandatory: `per_page=1` on a
+  three-task property produced `last_page: 3`, and `page=2` returned
+  the second task. (CONFIRMED-BY-TEST) Under the FR-030 per-property
+  fan-out, each property's own `meta.last_page` must be followed.
 - The task_type/service_id enum divergence (Maintenance = task_type
   5 but service_id 8) is stable API behaviour, not a bug.
   (CONFIRMED-BY-TEST)
