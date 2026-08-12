@@ -87,3 +87,65 @@ def test_service_text_never_claims_delivery() -> None:
         assert collected, f"{path} declares no service text at all"
         for text in collected:
             assert not find_delivery_claims(text), f"{path}: {text}"
+
+
+# --- US2: parity for all five services -------------------------------
+
+US2_EXPECTED_FIELDS = {
+    "send_message": {
+        "config_entry_id",
+        "entity_id",
+        "reservation_uuid",
+        "body",
+        "images",
+        "sender_id",
+    },
+    "get_messages": {"config_entry_id", "entity_id", "reservation_uuid"},
+    "find_reservation": {"config_entry_id", "entity_id", "reservation_uuid"},
+    "get_reservations": {"config_entry_id", "property_id"},
+    "get_property_info": {"config_entry_id", "property_id"},
+}
+
+
+def test_every_registered_service_is_declared_in_services_yaml() -> None:
+    """The registration table and ``services.yaml`` agree exactly.
+
+    Driven off the table rather than a literal list so a service added
+    later cannot ship without its UI declaration.
+    """
+    from custom_components.hospitable.actions import SERVICE_DEFINITIONS
+    from tests.helpers.localisation import services_yaml_declarations
+
+    declared = services_yaml_declarations()
+    registered = {definition.name for definition in SERVICE_DEFINITIONS}
+
+    assert registered == US2_EXPECTED_FIELDS.keys(), (
+        "this test's field table is out of date with the registration table"
+    )
+    assert set(declared) == registered
+    for service, fields in US2_EXPECTED_FIELDS.items():
+        assert set(declared[service]) == fields, service
+
+
+def test_every_registered_service_is_translated() -> None:
+    """Both translation files cover every registered service and field.
+
+    ``services.yaml`` alone renders raw field keys in the UI. That is the
+    reference integration's anti-pattern, explicitly not copied here.
+    """
+    from custom_components.hospitable.actions import SERVICE_DEFINITIONS
+    from tests.helpers.localisation import (
+        STRINGS_JSON,
+        TRANSLATIONS_EN_JSON,
+        strings_declarations,
+    )
+
+    registered = {definition.name for definition in SERVICE_DEFINITIONS}
+    assert registered == US2_EXPECTED_FIELDS.keys(), (
+        "this test's field table is out of date with the registration table"
+    )
+    for path in (STRINGS_JSON, TRANSLATIONS_EN_JSON):
+        translated = strings_declarations(path)
+        assert set(translated) == registered, path
+        for service, fields in US2_EXPECTED_FIELDS.items():
+            assert set(translated[service]) == fields, f"{path}:{service}"

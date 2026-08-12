@@ -11,6 +11,12 @@ Two rules, deliberately asymmetric:
 
 * ``profile_picture`` is dropped unconditionally, at any depth. No
   opt-in re-enables it.
+* The opaque message ``sender`` object is dropped unconditionally and
+  ENTIRELY. FR-047a is stricter than FR-047 here: nothing inside
+  ``sender`` is a role discriminator, because the discriminators
+  ``sender_type`` and ``sender_role`` are its SIBLINGS, not its
+  members. Reducing it to an allowlist would therefore release guest
+  identity for no benefit.
 * ``email`` and ``phone_numbers`` are released only when the
   guest-contact opt-in is on.
 
@@ -23,15 +29,16 @@ from __future__ import annotations
 
 from typing import Any
 
-# Objects known to carry guest identity. ``sender`` is the opaque author
-# object on a message and carries the same fields as ``guest``.
-IDENTITY_KEYS = frozenset({"guest", "sender"})
+# Objects known to carry guest identity and reduced to an allowlist.
+IDENTITY_KEYS = frozenset({"guest"})
 # Released unconditionally: non-identifying enough to be useful.
 IDENTITY_ALLOWED = ("first_name", "last_name", "location", "language")
 # Released only behind the guest-contact opt-in.
 IDENTITY_CONTACT = ("email", "phone_numbers")
-# Never released, under any option.
-ALWAYS_DROPPED = frozenset({"profile_picture"})
+# Never released, under any option, at any depth. ``sender`` is the
+# opaque message author object; it carries the same fields as ``guest``
+# and has no returnable part (FR-047a).
+ALWAYS_DROPPED = frozenset({"profile_picture", "sender"})
 
 
 def serialize_response(payload: Any, *, guest_contact: bool = False) -> Any:

@@ -162,24 +162,125 @@ class HospitableApiClient:
             "Hospitable API request failed", status=response.status_code, endpoint=path
         )
 
-    async def get_reservation(self, reservation_uuid: str) -> dict[str, Any]:
+    async def get_reservation(
+        self,
+        reservation_uuid: str,
+        *,
+        include: str | None = None,
+        require: tuple[str, ...] = (),
+    ) -> dict[str, Any]:
         """Return one reservation's raw payload.
 
-        Used only to resolve a reservation that is not in a
-        coordinator's cache. The raw payload is returned rather than a
-        model because the caller needs the upstream ``platform`` value
-        and nothing else, and because building a model would fail on
-        payloads lacking the includes the list endpoint requests.
+        The raw payload is returned rather than a model for two
+        reasons: the send path needs only the upstream ``platform``
+        value, and the lookup path must return upstream fields a model
+        deliberately drops. Building a model would also fail on payloads
+        lacking the includes the LIST endpoint requests.
+
+        ``include`` is SINGULAR ``guest``; plural ``guests`` is a
+        silently-ignored no-op upstream. Because unrecognised include
+        NAMES are ignored rather than rejected, callers that need an
+        include MUST verify the key arrived rather than assume it
+        (FR-075) — see ``assert_include``.
 
         Args:
             reservation_uuid: Reservation UUID to fetch.
+            include: Comma-separated include list, when one is wanted.
+            require: Include keys that MUST be present in the response.
+                Deliberately narrower than ``include``: only the
+                CONFIRMED-BY-TEST includes belong here, so an include
+                whose behaviour on this endpoint was never observed
+                cannot turn a working lookup into an error.
 
         Returns:
             The ``data`` object, or an empty mapping when absent.
+
+        Raises:
+            HospitableIncludeMissingError: A required include key is
+                absent from the response.
         """
-        payload = await self._get(RESERVATION_PATH.format(uuid=reservation_uuid))
+        path = RESERVATION_PATH.format(uuid=reservation_uuid)
+        payload = await self._get(
+            path, params={"include": include} if include else None
+        )
         data = payload.get("data")
-        return data if isinstance(data, dict) else {}
+        item = data if isinstance(data, dict) else {}
+        for key in require:
+            assert_include([item], key, endpoint=path)
+        return item
+
+    async def get_property_payloads(self) -> list[dict[str, Any]]:
+        """Return every property's RAW payload, across all pages.
+
+        The model drops fields a property-info service caller needs,
+        notably the per-listing ``co_hosts`` array FR-013 depends on, so
+        the raw items are surfaced alongside the model accessor rather
+        than reconstructed from it.
+
+        Returns:
+            Every raw property object.
+        """
+        page = 1
+        payloads: list[dict[str, Any]] = []
+        while True:
+            payload = await self._get(
+                PROPERTIES_PATH,
+                params=build_properties_params(page=page, per_page=PER_PAGE_MAX),
+            )
+            items = validate_list_envelope(payload, expected_page=page)
+            assert_include(items, "listings", endpoint=PROPERTIES_PATH)
+            payloads.extend(items)
+            meta = payload.get("meta", {})
+            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
+            if page >= int(last_page):
+                break
+            page += 1
+        return payloads
+
+    async def get_reservation_payloads(
+        self,
+        property_ids: list[str],
+        start: date,
+        end: date,
+        *,
+        include: str = "properties",
+    ) -> list[dict[str, Any]]:
+        """Return raw reservation payloads for a window.
+
+        Each requested include is verified as honoured, because an
+        unrecognised include name is silently ignored upstream rather
+        than rejected (FR-075).
+
+        Args:
+            property_ids: Properties to query.
+            start: Window start date.
+            end: Window end date.
+            include: Comma-separated include list.
+
+        Returns:
+            Every raw reservation object in the window.
+        """
+        wanted = [part.strip() for part in include.split(",") if part.strip()]
+        payloads: list[dict[str, Any]] = []
+        for batch in chunk_property_ids(property_ids):
+            page = 1
+            while True:
+                params = build_reservation_params(batch, start, end)
+                params["include"] = include
+                params["page"] = page
+                payload = await self._get(RESERVATIONS_PATH, params=params)
+                items = validate_list_envelope(payload, expected_page=page)
+                for key in wanted:
+                    assert_include(items, key, endpoint=RESERVATIONS_PATH)
+                payloads.extend(items)
+                meta = payload.get("meta", {})
+                last_page = (
+                    meta.get("last_page", page) if isinstance(meta, dict) else page
+                )
+                if page >= int(last_page):
+                    break
+                page += 1
+        return payloads
 
     async def get_user(self) -> HospitableAccount:
         """Return the authenticated account identifier."""

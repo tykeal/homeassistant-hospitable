@@ -139,6 +139,70 @@
           "description": "The sending identity to use. Accepted only on Airbnb reservations."
         }
       }
+    },
+    "get_messages": {
+      "name": "Get messages",
+      "description": "Returns the guest conversation for a reservation. The whole thread is retrieved in one request, so a long conversation arrives in full. Message senders are identified by role only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        },
+        "entity_id": {
+          "name": "Reservation entity",
+          "description": "A Hospitable entity that identifies the reservation. Give this or a reservation UUID, not both."
+        },
+        "reservation_uuid": {
+          "name": "Reservation UUID",
+          "description": "The reservation whose messages to read. Give this or a reservation entity, not both."
+        }
+      }
+    },
+    "find_reservation": {
+      "name": "Find reservation",
+      "description": "Returns the details of one reservation. If the reservation cannot be found the result reports that rather than failing. Guest contact details are included only when the guest contact details option is turned on.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        },
+        "entity_id": {
+          "name": "Reservation entity",
+          "description": "A Hospitable entity that identifies the reservation. Give this or a reservation UUID, not both."
+        },
+        "reservation_uuid": {
+          "name": "Reservation UUID",
+          "description": "The reservation to look up. Give this or a reservation entity, not both."
+        }
+      }
+    },
+    "get_reservations": {
+      "name": "Get reservations",
+      "description": "Returns a property's reservations across the window this account polls. A property this account does not hold is reported as not found, which is a different answer from a property with no bookings.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        },
+        "property_id": {
+          "name": "Property",
+          "description": "The Hospitable property identifier to look up."
+        }
+      }
+    },
+    "get_property_info": {
+      "name": "Get property info",
+      "description": "Returns a property's details together with its sales channels and their co-hosts, so the identifiers other actions need can be discovered.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        },
+        "property_id": {
+          "name": "Property",
+          "description": "The Hospitable property identifier to look up."
+        }
+      }
     }
   }
 }

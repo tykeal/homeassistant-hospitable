@@ -16,8 +16,16 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.httpx_client import get_async_client
 
-from custom_components.hospitable.const import DOMAIN
+from custom_components.hospitable.api.auth import StaticTokenProvider
+from custom_components.hospitable.api.client import HospitableApiClient
+from custom_components.hospitable.const import (
+    CONF_GUEST_CONTACT_DETAILS,
+    CONF_TOKEN,
+    DEFAULT_GUEST_CONTACT_DETAILS,
+    DOMAIN,
+)
 
 # The reservation UUID is published on reservation sensors under this
 # attribute. contracts/services.md and D-10 name it ``reservation_uuid``;
@@ -150,3 +158,59 @@ def cached_reservation(entry: ConfigEntry, reservation_uuid: str) -> Any | None:
         if getattr(reservation, "reservation_id", None) == reservation_uuid:
             return reservation
     return None
+
+
+def guest_contact_enabled(entry: ConfigEntry) -> bool:
+    """Return whether the guest-contact opt-in is on for this account.
+
+    Args:
+        entry: The config entry serving the call.
+
+    Returns:
+        True when contact details may be released to a caller.
+    """
+    return bool(
+        entry.options.get(CONF_GUEST_CONTACT_DETAILS, DEFAULT_GUEST_CONTACT_DETAILS)
+    )
+
+
+def read_client(hass: HomeAssistant, entry: ConfigEntry) -> HospitableApiClient:
+    """Return the GET-only client the read services use.
+
+    Reusing the entry's own client is the point: it is the base
+    ``HospitableApiClient``, which has no ``_post``, so a read service
+    physically cannot write. Constructing a fresh one when runtime data
+    is unexpectedly absent keeps that same GET-only type.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: The config entry serving the call.
+
+    Returns:
+        A GET-only API client bound to this account's token.
+    """
+    runtime = getattr(entry, "runtime_data", None)
+    if isinstance(runtime, dict):
+        client = runtime.get("client")
+        if isinstance(client, HospitableApiClient):
+            return client
+    return HospitableApiClient(
+        StaticTokenProvider(str(entry.data[CONF_TOKEN])), get_async_client(hass)
+    )
+
+
+def known_property_ids(entry: ConfigEntry) -> set[str]:
+    """Return the property identifiers this account is known to hold.
+
+    Args:
+        entry: The config entry serving the call.
+
+    Returns:
+        Known property identifiers, empty when runtime data is absent.
+    """
+    runtime = getattr(entry, "runtime_data", None)
+    if not isinstance(runtime, dict):
+        return set()
+    known = runtime.get("known_property_ids") or []
+    selected = runtime.get("selected_property_ids") or []
+    return {str(item) for item in [*known, *selected]}
