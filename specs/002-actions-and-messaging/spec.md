@@ -566,11 +566,11 @@ diagnostics never contain the guest name unredacted.
 #### Task sensors
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
-  `properties[]` parameter and MUST NOT include date parameters (the
-  default request omits them). Hospitable then applies its own roughly
-  14-day forward window, measured on 2026-08-12 as returning tasks
-  through 2026-08-24. (CONFIRMED-BY-TEST: `properties[]` required;
-  bare call or dates-only → 400)
+  `properties[]` parameter and MUST omit date parameters by default.
+  Hospitable then applies its own roughly 14-day forward window,
+  measured on 2026-08-12 as returning tasks through 2026-08-24.
+  (CONFIRMED-BY-TEST: `properties[]` required; bare call or
+  dates-only → 400)
   The poll MUST FAN OUT: exactly ONE request per selected property,
   each carrying that single property in `properties[]`, rather than one
   batched request naming every selected property. Fan-out is what makes

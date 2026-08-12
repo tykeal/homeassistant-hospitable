@@ -467,9 +467,9 @@ with task_type.
 Conflating them would mislabel maintenance tasks. The live meta
 vocabulary shows the precise trap: task_type 5 is Maintenance with
 service_id 8, while service_type 5 is Owner. No divergent task row was
-observed live; all 153 observed tasks were task_type 1 and service_id
-
-1. The evidence is the meta vocabulary (CONFIRMED-BY-TEST).
+observed live; all 153 observed tasks carried task_type 1 with
+service_id 1. The evidence is the meta vocabulary
+(CONFIRMED-BY-TEST).
 
 **Implementation**: On first successful task poll, extract the
 vocabularies from `meta.task_types` and `meta.service_types`. Cache
