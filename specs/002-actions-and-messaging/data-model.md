@@ -271,7 +271,8 @@ needed — the options flow handles absent keys by applying defaults.
 | Floor | 5 min |
 | Request shape | Fan-out: ONE request per selected property (FR-030) |
 | Upstream cost | One request per property per refresh, plus one per additional page; 13 at reference scale |
-| Required params | `properties[]` — always sent, carrying exactly one property; `start_date` and `end_date` — always sent, derived from `task_window_days` (FR-030) |
+| Required params | `properties[]` — upstream-required, carrying exactly one property |
+| Always-sent params | `start_date` and `end_date` — derived from `task_window_days`; not upstream-required, sent by our choice (FR-030) |
 | Date window | `start_date` = today, `end_date` = today + `task_window_days`; forward-only, no lookback |
 | Pagination | Mandatory from day one (FR-031); each property's own `meta.last_page` is followed independently |
 | Failure isolation | Per-property by deliberate fan-out. A failing property retains its last-good task data and every other property still updates. Spec 001 D-15, applied exactly as the calendar coordinator applies it. |

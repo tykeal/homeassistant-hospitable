@@ -155,7 +155,8 @@ request naming every property.
 | --- | --- |
 | Tier | CONFIRMED-BY-TEST |
 | Auth | Bearer PAT |
-| Required params | `properties[]` — MUST always be sent; `start_date` and `end_date` — MUST always be sent |
+| Upstream-required params | `properties[]` — a request without it is a 400 |
+| Always-sent by integration | `start_date` and `end_date` — not required upstream; sent by our own choice under FR-030 |
 | Fan-out | One request per property; `properties[]` carries exactly one |
 | Date window | `start_date` = today, `end_date` = today + `task_window_days` (default 14, range 1-730); forward-only |
 | Response | 200 with `{data, links, meta}` envelope |
