@@ -1,0 +1,82 @@
+{
+  "data": [
+    {
+      "id": 900001,
+      "platform": "airbnb",
+      "platform_id": "msg-example-0001",
+      "conversation_id": "conv-example-0001",
+      "reservation_id": "res-example-accepted",
+      "content_type": "text",
+      "body": "Synthetic host message one.",
+      "attachments": [],
+      "reactions": [],
+      "sender_type": "host",
+      "sender_role": "host",
+      "sender": {
+        "id": "user-example-host",
+        "first_name": "Example",
+        "last_name": "Host",
+        "email": "host@example.com",
+        "phone_numbers": ["+15550101000"],
+        "profile_picture": "https://example.com/host.png"
+      },
+      "created_at": "2025-06-10T09:00:00Z",
+      "source": "hospitable",
+      "integration": "api",
+      "sent_reference_id": "ref-example-0001",
+      "author": "host"
+    },
+    {
+      "id": 900002,
+      "platform": "airbnb",
+      "platform_id": "msg-example-0002",
+      "conversation_id": "conv-example-0001",
+      "reservation_id": "res-example-accepted",
+      "content_type": "text",
+      "body": "Synthetic guest reply one.",
+      "attachments": [],
+      "reactions": [],
+      "sender_type": "guest",
+      "sender_role": "guest",
+      "sender": {
+        "id": "user-example-guest",
+        "first_name": "Example",
+        "last_name": "Guest",
+        "email": "guest@example.com",
+        "phone_numbers": ["+15550101001"],
+        "profile_picture": "https://example.com/guest.png"
+      },
+      "created_at": "2025-06-10T10:30:00Z",
+      "source": "airbnb",
+      "integration": "channel",
+      "sent_reference_id": null,
+      "author": "guest"
+    },
+    {
+      "id": 900003,
+      "platform": "airbnb",
+      "platform_id": "msg-example-0003",
+      "conversation_id": "conv-example-0001",
+      "reservation_id": "res-example-accepted",
+      "content_type": "text",
+      "body": "Synthetic host message two.",
+      "attachments": [],
+      "reactions": [],
+      "sender_type": "host",
+      "sender_role": "host",
+      "sender": {
+        "id": "user-example-host",
+        "first_name": "Example",
+        "last_name": "Host",
+        "email": "host@example.com",
+        "phone_numbers": ["+15550101000"],
+        "profile_picture": "https://example.com/host.png"
+      },
+      "created_at": "2025-06-10T11:15:00Z",
+      "source": "hospitable",
+      "integration": "api",
+      "sent_reference_id": "ref-example-0003",
+      "author": "host"
+    }
+  ]
+}

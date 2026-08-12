@@ -1,0 +1,45 @@
+{
+  "data": [
+    {
+      "id": 700003,
+      "task_type": 2,
+      "service_id": 4,
+      "assignment_status": "unassigned",
+      "progress_status": "not_started",
+      "scheduled_date": "2025-06-18",
+      "property_id": "prop-example-002",
+      "description": "Synthetic check-in greeting"
+    }
+  ],
+  "links": [
+    {"url": "http://public.api.hospitable.com/v2/tasks?page=2", "label": "2", "active": true}
+  ],
+  "meta": {
+    "current_page": 2,
+    "from": 3,
+    "last_page": 2,
+    "path": "http://public.api.hospitable.com/v2/tasks",
+    "per_page": 2,
+    "to": 3,
+    "total": 3,
+    "task_types": {
+      "1": "Cleaning",
+      "2": "Check-in",
+      "3": "Check-out",
+      "4": "Concierge",
+      "5": "Maintenance"
+    },
+    "service_types": {
+      "1": "Turnover clean",
+      "2": "Deep clean",
+      "3": "Linen change",
+      "4": "Check-in greeting",
+      "5": "Check-out inspection",
+      "6": "Concierge request",
+      "7": "Restock",
+      "8": "Maintenance"
+    },
+    "assignment_statuses": ["pending", "accepted", "rejected", "cancelled", "unassigned"],
+    "progress_statuses": ["not_started", "on_the_way", "arrived", "in_progress", "completed", "cancelled"]
+  }
+}

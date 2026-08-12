@@ -1,0 +1,8 @@
+{
+  "status_code": 422,
+  "reason_phrase": "The given data was invalid.",
+  "errors": {
+    "body": ["The body field is required."],
+    "images": ["The images field must not have more than 3 items."]
+  }
+}
