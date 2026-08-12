@@ -25,6 +25,7 @@
         "total": 3
       },
       "id": "res-example-accepted",
+      "last_message_at": "2026-08-12T18:45:00Z",
       "nights": 2,
       "platform": "airbnb",
       "platform_id": "ABC123EXAMPLE",
@@ -64,6 +65,7 @@
         "total": 3
       },
       "id": "res-example-cancelled",
+      "last_message_at": null,
       "nights": 2,
       "platform": "airbnb",
       "platform_id": "ABC123EXAMPLE",
