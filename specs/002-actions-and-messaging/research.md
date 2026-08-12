@@ -622,8 +622,14 @@ read-only probes.
   request returned HTTP 200 with `total: 7`. Fan-out remains a repo
   owner failure-isolation choice, not an upstream limitation.
 
-**Rationale**: These facts define the polling window and future window
-constraints without changing US4's decision to omit date parameters by
-default. They also keep the task endpoint's pagination and rate-header
+**Rationale**: These facts define the polling window and its
+constraints. US4's original decision to omit date parameters by
+default has since been REVERSED by the repo owner: the integration now
+sends explicit forward-only dates derived from a configurable
+`task_window_days` option (default 14, matching the measured upstream
+default), so the window is a property of our configuration rather than
+of an undocumented upstream behaviour. The three-year ceiling above is
+what bounds that option. These facts also keep the task endpoint's
+pagination and rate-header
 behaviour distinct from the messages endpoint, where pagination
 parameters were observed to be ignored.
