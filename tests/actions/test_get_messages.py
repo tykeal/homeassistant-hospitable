@@ -33,12 +33,6 @@ import pytest
 
 from tests.actions.conftest import RESERVATION_A, RESERVATION_B
 
-XFAIL = pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T076: hospitable.get_messages is not implemented yet",
-    strict=True,
-)
-
 
 async def _call(hass: Any, data: dict[str, Any]) -> Any:
     """Invoke ``hospitable.get_messages`` through the real service bus.
@@ -89,7 +83,6 @@ def _big_thread(count: int) -> dict[str, Any]:
     }
 
 
-@XFAIL
 async def test_thread_is_returned_in_upstream_order(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -122,7 +115,6 @@ async def test_thread_is_returned_in_upstream_order(
     ]
 
 
-@XFAIL
 async def test_service_is_declared_response_only(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -141,7 +133,6 @@ async def test_service_is_declared_response_only(
     assert service.supports_response is SupportsResponse.ONLY
 
 
-@XFAIL
 async def test_reservation_uuid_target_is_accepted(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -161,7 +152,6 @@ async def test_reservation_uuid_target_is_accepted(
     assert response["reservation_uuid"] == RESERVATION_A
 
 
-@XFAIL
 async def test_entity_id_target_resolves_to_a_reservation_uuid(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -198,7 +188,6 @@ async def test_entity_id_target_resolves_to_a_reservation_uuid(
     assert response["reservation_uuid"] == reservation_uuid
 
 
-@XFAIL
 async def test_thread_is_consumed_in_exactly_one_request(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -229,7 +218,6 @@ async def test_thread_is_consumed_in_exactly_one_request(
     assert len(issued) == 1, f"expected one request, got {len(issued)}"
 
 
-@XFAIL
 async def test_page_and_per_page_are_never_sent(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -261,7 +249,6 @@ async def test_page_and_per_page_are_never_sent(
         assert "per_page" not in params, f"per_page was sent: {call.request.url}"
 
 
-@XFAIL
 async def test_a_very_large_thread_is_returned_whole(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -282,7 +269,6 @@ async def test_a_very_large_thread_is_returned_whole(
     assert response["messages"][-1]["id"] == payload["data"][-1]["id"]
 
 
-@XFAIL
 async def test_an_unexpected_meta_block_is_tolerated(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -317,7 +303,6 @@ async def test_an_unexpected_meta_block_is_tolerated(
     assert len(issued) == 1, "a meta block must not start a pagination loop"
 
 
-@XFAIL
 async def test_the_per_reservation_budget_is_honoured(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -347,7 +332,6 @@ async def test_the_per_reservation_budget_is_honoured(
     assert other["messages"] == []
 
 
-@XFAIL
 async def test_an_upstream_429_is_reported_as_retryable(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -377,7 +361,6 @@ async def test_an_upstream_429_is_reported_as_retryable(
     assert "60" in str(caught.value)
 
 
-@XFAIL
 async def test_message_bodies_never_reach_the_logs(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -405,7 +388,6 @@ async def test_message_bodies_never_reach_the_logs(
         assert body not in captured, "a message body was logged"
 
 
-@XFAIL
 async def test_an_empty_thread_returns_an_empty_collection(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -423,7 +405,6 @@ async def test_an_empty_thread_returns_an_empty_collection(
     assert response["messages"] == []
 
 
-@XFAIL
 async def test_an_unknown_reservation_is_a_return_value(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -443,7 +424,6 @@ async def test_an_unknown_reservation_is_a_return_value(
     assert response["messages"] == []
 
 
-@XFAIL
 async def test_a_transport_failure_raises_rather_than_returning_empty(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -467,7 +447,6 @@ async def test_a_transport_failure_raises_rather_than_returning_empty(
         await _call(hass, {"reservation_uuid": RESERVATION_A})
 
 
-@XFAIL
 async def test_the_read_path_never_builds_a_write_client() -> None:
     """``get_messages`` reads with the GET-only client.
 

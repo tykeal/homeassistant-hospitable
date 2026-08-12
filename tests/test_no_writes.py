@@ -184,3 +184,66 @@ async def test_service_call_may_post_while_lifecycle_stays_read_only(
         if call.request.method != "GET"
     ]
     assert not after_unload
+
+
+async def test_the_read_services_issue_only_get_requests(
+    hass: Any, respx_router: Any
+) -> None:
+    """Every US2 lookup service is GET-only, end to end.
+
+    Write-isolation gate 4, widened rather than weakened: the four
+    services added in US2 are READ services by contract, so exercising
+    all of them on a real config entry must leave the recorded traffic
+    entirely ``GET``. ``send_message`` is deliberately NOT called here —
+    its POST is proved legitimate by the test above, and mixing the two
+    would blunt this assertion.
+    """
+    from tests.actions.conftest import LookupRouteBuilder, MessagesRouteBuilder
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_TOKEN: "hp_test_synthetic_token_000000000000000000000000",
+            CONF_ACCOUNT_NAMESPACE: _ACCOUNT,
+            CONF_NAMESPACE_SOURCE: "account",
+        },
+        options={
+            CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
+            CONF_LOOKAHEAD_DAYS: 30,
+        },
+        unique_id=_ACCOUNT,
+    )
+    entry.add_to_hass(hass)
+    messages = MessagesRouteBuilder(respx_router, BASE_URL)
+    lookups = LookupRouteBuilder(respx_router, BASE_URL)
+    messages.get("res-example-accepted", json_body=load_fixture("messages_thread.json"))
+    lookups.reservation(
+        "res-example-guest-full",
+        json_body={"data": load_fixture("reservation_with_guest.json")["data"][0]},
+    )
+    lookups.reservations(json_body=load_fixture("reservation_with_guest.json"))
+    _mock_all_endpoints(respx_router)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    calls: list[tuple[str, dict[str, Any]]] = [
+        ("get_messages", {"reservation_uuid": "res-example-accepted"}),
+        ("find_reservation", {"reservation_uuid": "res-example-guest-full"}),
+        ("get_reservations", {"property_id": "prop-example-001"}),
+        ("get_property_info", {"property_id": "prop-example-001"}),
+    ]
+    for service, data in calls:
+        assert hass.services.has_service(DOMAIN, service), service
+        response = await hass.services.async_call(
+            DOMAIN, service, data, blocking=True, return_response=True
+        )
+        assert response is not None, service
+        assert response["found"] is True, service
+
+    assert respx_router.calls, "no requests were recorded"
+    for call in respx_router.calls:
+        assert call.request.method == "GET", (
+            f"Non-GET request from a read service: "
+            f"{call.request.method} {call.request.url}"
+        )

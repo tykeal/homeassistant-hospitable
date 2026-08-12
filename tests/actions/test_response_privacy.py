@@ -233,11 +233,6 @@ def test_every_registered_handler_is_wired_to_the_chokepoint() -> None:
 # now exists, so an import error here would prove nothing. Each test
 # asserts the service is registered before doing anything else.
 
-US2_XFAIL = pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T079a: the four US2 services are not routed through the chokepoint yet",
-    strict=True,
-)
 
 RESERVATION_WITH_GUEST = "res-example-guest-full"
 PROPERTY_A = "prop-example-001"
@@ -337,7 +332,6 @@ async def _call_every_service(hass: Any) -> dict[str, Any]:
     return responses
 
 
-@US2_XFAIL
 @pytest.mark.parametrize("guest_contact", [False, True])
 @pytest.mark.parametrize("awaiting_host_reply", [False, True])
 async def test_profile_picture_is_absent_from_every_service_response(
@@ -383,7 +377,6 @@ async def test_profile_picture_is_absent_from_every_service_response(
         assert "profile_picture" not in repr(response), name
 
 
-@US2_XFAIL
 @pytest.mark.parametrize("service", ["find_reservation", "get_reservations"])
 async def test_contact_details_are_withheld_unless_the_option_is_on(
     hass: Any,
@@ -422,7 +415,6 @@ async def test_contact_details_are_withheld_unless_the_option_is_on(
     assert "Example" in repr(withheld), "first_name must survive the filter"
 
 
-@US2_XFAIL
 @pytest.mark.parametrize("service", ["find_reservation", "get_reservations"])
 async def test_contact_details_are_released_with_the_option_on(
     hass: Any,
@@ -455,7 +447,6 @@ async def test_contact_details_are_released_with_the_option_on(
     assert "profile_picture" not in rendered, "the opt-in never releases this"
 
 
-@US2_XFAIL
 async def test_a_new_upstream_guest_key_is_dropped(
     hass: Any,
     loaded_config_entry_factory: Any,
@@ -493,7 +484,6 @@ async def test_a_new_upstream_guest_key_is_dropped(
     assert "date_of_birth" not in rendered
 
 
-@US2_XFAIL
 async def test_get_messages_returns_roles_but_never_the_sender_object(
     hass: Any,
     loaded_config_entry_factory: Any,
@@ -530,11 +520,6 @@ async def test_get_messages_returns_roles_but_never_the_sender_object(
         assert "sender_role" in message
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T075a: the serialiser still reduces sender instead of dropping it",
-    strict=True,
-)
 def test_the_serialiser_drops_sender_outright() -> None:
     """``sender`` is DROPPED, not reduced to an allowlist.
 
@@ -555,18 +540,14 @@ def test_the_serialiser_drops_sender_outright() -> None:
     assert filtered["sender_role"] == "host"
 
 
-# ``send_message`` already routes through the chokepoint (US1), so its
-# parameter must NOT carry the red-phase marker: a strict xfail would
-# turn its correct behaviour into a failure. Only the four new services
-# are red here.
 @pytest.mark.parametrize(
     "service",
     [
         "send_message",
-        pytest.param("get_messages", marks=US2_XFAIL),
-        pytest.param("find_reservation", marks=US2_XFAIL),
-        pytest.param("get_reservations", marks=US2_XFAIL),
-        pytest.param("get_property_info", marks=US2_XFAIL),
+        "get_messages",
+        "find_reservation",
+        "get_reservations",
+        "get_property_info",
     ],
 )
 async def test_every_service_response_comes_out_of_the_chokepoint(
@@ -608,7 +589,6 @@ async def test_every_service_response_comes_out_of_the_chokepoint(
     assert response == {"sentinel": service}, service
 
 
-@US2_XFAIL
 def test_the_audited_service_set_matches_the_registration_table() -> None:
     """The privacy audit covers every service the table declares.
 

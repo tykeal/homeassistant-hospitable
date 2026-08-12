@@ -40,12 +40,6 @@ RESERVATION_WITH_GUEST = "res-example-guest-full"
 
 LOOKUP_SERVICES = ("find_reservation", "get_reservations", "get_property_info")
 
-XFAIL = pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T077-T079: the lookup services are not implemented yet",
-    strict=True,
-)
-
 
 async def _call(hass: Any, service: str, data: dict[str, Any]) -> Any:
     """Invoke one lookup service through the real service bus.
@@ -83,7 +77,6 @@ def _single_reservation(index: int = 0) -> dict[str, Any]:
     return {"data": load_fixture("reservation_with_guest.json")["data"][index]}
 
 
-@XFAIL
 async def test_find_reservation_returns_the_reservation(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -106,7 +99,6 @@ async def test_find_reservation_returns_the_reservation(
     assert reservation["guest"]["first_name"] == "Example"
 
 
-@XFAIL
 async def test_find_reservation_requests_the_guest_include(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -136,7 +128,6 @@ async def test_find_reservation_requests_the_guest_include(
     assert "guests" not in parts, "plural guests is a silently-ignored no-op"
 
 
-@XFAIL
 async def test_find_reservation_rejects_a_dishonoured_include(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -160,7 +151,6 @@ async def test_find_reservation_rejects_a_dishonoured_include(
         )
 
 
-@XFAIL
 async def test_find_reservation_tolerates_a_missing_surname(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -181,7 +171,6 @@ async def test_find_reservation_tolerates_a_missing_surname(
     assert "last_name" not in response["reservation"]["guest"]
 
 
-@XFAIL
 async def test_get_reservations_returns_the_window(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -216,7 +205,6 @@ async def test_get_reservations_returns_the_window(
     assert params.get("end_date")
 
 
-@XFAIL
 async def test_get_reservations_reports_an_unknown_property(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -239,7 +227,6 @@ async def test_get_reservations_reports_an_unknown_property(
     assert response["reservations"] == []
 
 
-@XFAIL
 async def test_get_reservations_returns_an_empty_window_as_found(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -260,7 +247,6 @@ async def test_get_reservations_returns_an_empty_window_as_found(
     assert response["reservations"] == []
 
 
-@XFAIL
 async def test_get_property_info_returns_listings_and_co_hosts(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -280,7 +266,6 @@ async def test_get_property_info_returns_listings_and_co_hosts(
     assert "co_hosts" in listings[0], "co-host identifiers are required by FR-013"
 
 
-@XFAIL
 async def test_get_property_info_reports_an_unknown_property(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -294,7 +279,6 @@ async def test_get_property_info_reports_an_unknown_property(
     assert response["property"] is None
 
 
-@XFAIL
 async def test_find_reservation_reports_not_found_as_a_value(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
@@ -316,7 +300,6 @@ async def test_find_reservation_reports_not_found_as_a_value(
     assert response["reservation"] is None
 
 
-@XFAIL
 @pytest.mark.parametrize("service", LOOKUP_SERVICES)
 async def test_api_failures_still_raise(
     hass: Any,
@@ -349,7 +332,6 @@ async def test_api_failures_still_raise(
         await _call(hass, service, data)
 
 
-@XFAIL
 @pytest.mark.parametrize("service", LOOKUP_SERVICES)
 async def test_config_entry_id_is_required_when_ambiguous(
     hass: Any,
@@ -382,7 +364,6 @@ async def test_config_entry_id_is_required_when_ambiguous(
         await _call(hass, service, data)
 
 
-@XFAIL
 @pytest.mark.parametrize("service", LOOKUP_SERVICES)
 async def test_an_explicit_config_entry_id_disambiguates(
     hass: Any,
@@ -411,7 +392,6 @@ async def test_an_explicit_config_entry_id_disambiguates(
     assert response["found"] is True
 
 
-@XFAIL
 @pytest.mark.parametrize("service", LOOKUP_SERVICES)
 async def test_an_unknown_config_entry_id_is_rejected(
     hass: Any,
@@ -433,7 +413,6 @@ async def test_an_unknown_config_entry_id_is_rejected(
         await _call(hass, service, data)
 
 
-@XFAIL
 @pytest.mark.parametrize("service", LOOKUP_SERVICES)
 def test_no_lookup_handler_builds_a_write_client(service: str) -> None:
     """The lookup handlers read with the GET-only client.

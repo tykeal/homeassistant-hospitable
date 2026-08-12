@@ -38,3 +38,69 @@ send_message:
       example: 00000000-1111-2222-3333-444444444444
       selector:
         text:
+get_messages:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable
+    entity_id:
+      required: false
+      example: sensor.example_property_reservation_status
+      selector:
+        entity:
+          integration: hospitable
+          domain: sensor
+    reservation_uuid:
+      required: false
+      example: 11111111-2222-3333-4444-555555555555
+      selector:
+        text:
+find_reservation:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable
+    entity_id:
+      required: false
+      example: sensor.example_property_reservation_status
+      selector:
+        entity:
+          integration: hospitable
+          domain: sensor
+    reservation_uuid:
+      required: false
+      example: 11111111-2222-3333-4444-555555555555
+      selector:
+        text:
+get_reservations:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable
+    property_id:
+      required: true
+      example: 66666666-7777-8888-9999-000000000000
+      selector:
+        text:
+get_property_info:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable
+    property_id:
+      required: true
+      example: 66666666-7777-8888-9999-000000000000
+      selector:
+        text:

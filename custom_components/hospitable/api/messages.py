@@ -17,7 +17,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.api.const import RESERVATION_MESSAGES_PATH
+from custom_components.hospitable.api.models import HospitableMessage
 from custom_components.hospitable.api.write_client import HospitableWriteClient
 
 
@@ -103,3 +105,57 @@ async def async_send_message(
         json=build_send_body(body=body, images=images, sender_id=sender_id),
     )
     return parse_acceptance(reservation_uuid, result.data, result.headers)
+
+
+@dataclass(frozen=True, slots=True)
+class MessageThread:
+    """One reservation's conversation, fetched in a SINGLE request."""
+
+    reservation_uuid: str
+    messages: tuple[HospitableMessage, ...]
+    headers: dict[str, str] = field(default_factory=dict)
+
+
+async def async_get_messages(
+    client: HospitableApiClient, reservation_uuid: str
+) -> MessageThread:
+    """Fetch one reservation's whole thread in ONE request.
+
+    There is deliberately NO pagination loop and no ``page`` or
+    ``per_page`` parameter. ``GET /reservations/{uuid}/messages``
+    returns a ``{data}`` envelope with no ``meta`` and no ``links``, and
+    both parameters are silently ignored upstream, so sending them would
+    create a false impression that the payload is bounded (D-07,
+    FR-023).
+
+    Scope caveat, recorded rather than assumed away: non-pagination was
+    observed only up to a TEN-message thread, the busiest on the
+    reference account. Pagination appearing above some unobserved
+    threshold cannot be ruled out, so a ``meta`` or ``links`` block is
+    tolerated here — but it is deliberately NOT followed, because
+    following it would build the pagination loop this decision forbids
+    on evidence that does not exist.
+
+    Args:
+        client: GET-only API client. A write client is neither needed
+            nor accepted by the read path's typing.
+        reservation_uuid: Target reservation UUID.
+
+    Returns:
+        The thread and the response headers, which carry the
+        ``x-ratelimit-*`` budget this endpoint reports.
+    """
+    payload, headers = await client._get_with_response(
+        RESERVATION_MESSAGES_PATH.format(uuid=reservation_uuid)
+    )
+    data = payload.get("data")
+    items = (
+        [item for item in data if isinstance(item, dict)]
+        if isinstance(data, list)
+        else []
+    )
+    return MessageThread(
+        reservation_uuid=reservation_uuid,
+        messages=tuple(HospitableMessage.from_api(item) for item in items),
+        headers=headers,
+    )

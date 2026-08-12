@@ -11,8 +11,6 @@ files the Home Assistant UI renders raw field keys.
 
 from __future__ import annotations
 
-import pytest
-
 EXPECTED_SERVICES = {"send_message"}
 EXPECTED_FIELDS = {
     "send_message": {
@@ -108,14 +106,7 @@ US2_EXPECTED_FIELDS = {
     "get_property_info": {"config_entry_id", "property_id"},
 }
 
-US2_XFAIL = pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T082/T083: the four US2 services are not localised yet",
-    strict=True,
-)
 
-
-@US2_XFAIL
 def test_every_registered_service_is_declared_in_services_yaml() -> None:
     """The registration table and ``services.yaml`` agree exactly.
 
@@ -136,7 +127,6 @@ def test_every_registered_service_is_declared_in_services_yaml() -> None:
         assert set(declared[service]) == fields, service
 
 
-@US2_XFAIL
 def test_every_registered_service_is_translated() -> None:
     """Both translation files cover every registered service and field.
 

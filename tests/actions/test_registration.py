@@ -18,8 +18,6 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import pytest
-
 from tests.actions.conftest import (
     ACCOUNT_NAMESPACE,
     SECOND_ACCOUNT_NAMESPACE,
@@ -53,11 +51,6 @@ def test_registration_table_is_declarative() -> None:
         assert definition.supports_response is SupportsResponse.ONLY, definition.name
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T081: the four US2 services are not in the registration table yet",
-    strict=True,
-)
 def test_all_five_services_are_declared_with_their_response_mode() -> None:
     """All five services sit in the one table, each response-only.
 
@@ -78,11 +71,6 @@ def test_all_five_services_are_declared_with_their_response_mode() -> None:
         assert definition.supports_response is SupportsResponse.ONLY, name
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T081: the four US2 services are not registered yet",
-    strict=True,
-)
 async def test_setup_registers_all_five_services(hass: Any) -> None:
     """Setting up services puts all five on the service bus."""
     from custom_components.hospitable.actions import async_setup_services
@@ -94,11 +82,6 @@ async def test_setup_registers_all_five_services(hass: Any) -> None:
         assert hass.services.has_service(DOMAIN, name), name
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="T081: the four US2 services are not registered yet",
-    strict=True,
-)
 async def test_all_five_services_go_with_the_last_entry(
     hass: Any,
     loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],

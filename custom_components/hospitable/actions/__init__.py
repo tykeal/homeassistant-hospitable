@@ -24,8 +24,26 @@ from homeassistant.core import (
     SupportsResponse,
 )
 
+from custom_components.hospitable.actions.find_reservation import (
+    async_handle_find_reservation,
+)
+from custom_components.hospitable.actions.get_messages import (
+    async_handle_get_messages,
+)
+from custom_components.hospitable.actions.get_property_info import (
+    async_handle_get_property_info,
+)
+from custom_components.hospitable.actions.get_reservations import (
+    async_handle_get_reservations,
+)
 from custom_components.hospitable.actions.helpers import loaded_entries
-from custom_components.hospitable.actions.schemas import SEND_MESSAGE_SCHEMA
+from custom_components.hospitable.actions.schemas import (
+    FIND_RESERVATION_SCHEMA,
+    GET_MESSAGES_SCHEMA,
+    GET_PROPERTY_INFO_SCHEMA,
+    GET_RESERVATIONS_SCHEMA,
+    SEND_MESSAGE_SCHEMA,
+)
 from custom_components.hospitable.actions.send_message import (
     async_handle_send_message,
 )
@@ -36,6 +54,10 @@ ServiceHandler = Callable[
 ]
 
 SERVICE_SEND_MESSAGE = "send_message"
+SERVICE_GET_MESSAGES = "get_messages"
+SERVICE_FIND_RESERVATION = "find_reservation"
+SERVICE_GET_RESERVATIONS = "get_reservations"
+SERVICE_GET_PROPERTY_INFO = "get_property_info"
 
 
 class ServiceDefinition(NamedTuple):
@@ -52,6 +74,30 @@ SERVICE_DEFINITIONS: tuple[ServiceDefinition, ...] = (
         name=SERVICE_SEND_MESSAGE,
         schema=SEND_MESSAGE_SCHEMA,
         handler=async_handle_send_message,
+        supports_response=SupportsResponse.ONLY,
+    ),
+    ServiceDefinition(
+        name=SERVICE_GET_MESSAGES,
+        schema=GET_MESSAGES_SCHEMA,
+        handler=async_handle_get_messages,
+        supports_response=SupportsResponse.ONLY,
+    ),
+    ServiceDefinition(
+        name=SERVICE_FIND_RESERVATION,
+        schema=FIND_RESERVATION_SCHEMA,
+        handler=async_handle_find_reservation,
+        supports_response=SupportsResponse.ONLY,
+    ),
+    ServiceDefinition(
+        name=SERVICE_GET_RESERVATIONS,
+        schema=GET_RESERVATIONS_SCHEMA,
+        handler=async_handle_get_reservations,
+        supports_response=SupportsResponse.ONLY,
+    ),
+    ServiceDefinition(
+        name=SERVICE_GET_PROPERTY_INFO,
+        schema=GET_PROPERTY_INFO_SCHEMA,
+        handler=async_handle_get_property_info,
         supports_response=SupportsResponse.ONLY,
     ),
 )
