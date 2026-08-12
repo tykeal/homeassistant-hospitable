@@ -54,6 +54,42 @@ def _task_requests(route: Any) -> list[httpx.Request]:
     return [call.request for call in route.calls]
 
 
+def test_both_recorded_pages_belong_to_one_property() -> None:
+    """The two recorded pages really are one property's response.
+
+    The integration fans out ONE request per property, so a single
+    paginated response can only ever describe a single property. The
+    two recorded pages declare a shared ``meta`` envelope
+    (``total: 3``, ``last_page: 2``, ``per_page: 2``), which asserts
+    exactly that relationship. If their tasks named different
+    properties the pair would describe a response upstream cannot
+    produce, and every reader of them would be reasoning about
+    fiction.
+    """
+    page1 = load_fixture("tasks_page1.json")
+    page2 = load_fixture("tasks_page2.json")
+
+    # The pair must claim to be one paginated response...
+    for page, current in ((page1, 1), (page2, 2)):
+        assert page["meta"]["current_page"] == current
+        assert page["meta"]["last_page"] == 2
+        assert page["meta"]["per_page"] == 2
+        assert page["meta"]["total"] == 3
+
+    # ...and every task across BOTH pages must therefore agree on the
+    # property, both by id and by name.
+    properties = {
+        (task["property"]["id"], task["property"]["name"])
+        for page in (page1, page2)
+        for task in page["data"]
+    }
+    assert len(properties) == 1, (
+        f"the two pages of one property's response name {len(properties)} "
+        f"properties: {sorted(properties)}"
+    )
+    assert properties == {(FIXTURE_PROPERTY_ID, "Synthetic Ocean Condo")}
+
+
 async def test_every_tasks_request_carries_a_single_property(
     hass: Any, respx_router: Any
 ) -> None:

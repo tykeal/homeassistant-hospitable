@@ -14,15 +14,23 @@ not be edited: nested ``property.id``, a UUID string ``id``, a nullable
 their VALUES are unusable in an end-to-end test, so this harness rewrites
 them in memory and leaves the files untouched:
 
-- the synthetic ``property.id`` values do not match the
-  ``prop-example-00N`` ids every other fixture in this suite uses, so
-  nothing would land on a sensor;
+- the synthetic ``property.id`` values are UUID strings, while every
+  other fixture in this suite identifies properties as
+  ``prop-example-00N``. Without a rewrite nothing would land on a
+  sensor. Both pages now carry the SAME property id, so serving them
+  together really is one property's two-page response; the rewrite
+  therefore only re-labels a property, it no longer has to paper over
+  an impossible envelope;
 - the ``start_date`` / ``end_date`` values are fixed calendar dates, so a
   "soonest upcoming task" assertion would silently stop meaning anything
-  once the wall clock passed them.
+  once the wall clock passed them. This rewrite is load-bearing and
+  must stay.
 
 Rewriting here keeps the recorded shape authoritative while making the
-end-to-end assertions independent of the clock.
+end-to-end assertions independent of the clock. The property rewrite is
+also what lets a single recorded page be re-labelled onto a SECOND
+property, which is how the per-property fan-out is exercised without a
+second near-identical fixture.
 """
 
 from __future__ import annotations
