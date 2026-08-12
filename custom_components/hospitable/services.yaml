@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
+# SPDX-License-Identifier: Apache-2.0
+---
+send_message:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable
+    entity_id:
+      required: false
+      example: sensor.example_property_reservation_status
+      selector:
+        entity:
+          integration: hospitable
+          domain: sensor
+    reservation_uuid:
+      required: false
+      example: 11111111-2222-3333-4444-555555555555
+      selector:
+        text:
+    body:
+      required: true
+      example: Your check-in instructions are on their way.
+      selector:
+        text:
+          multiline: true
+    images:
+      required: false
+      example:
+        - https://example.com/welcome.png
+      selector:
+        object:
+    sender_id:
+      required: false
+      example: 00000000-1111-2222-3333-444444444444
+      selector:
+        text:

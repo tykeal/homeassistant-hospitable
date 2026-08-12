@@ -78,6 +78,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
 
     default_minutes: int
     floor_minutes: int
+    _client: HospitableApiClient
 
     def __init__(
         self,
@@ -99,6 +100,19 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
         self.consecutive_failures = 0
         self._logged_scope_limitation = False
         self._logged_rate_limit = False
+
+    @property
+    def client(self) -> HospitableApiClient:
+        """Return this coordinator's read-only API client.
+
+        Annotated as the GET-only base client so that a write call site
+        on a coordinator is a type error rather than a runtime surprise
+        (research.md D-01 gate 1).
+
+        Returns:
+            The GET-only client backing this coordinator.
+        """
+        return self._client
 
     async def _async_update_data(self) -> DataT:
         """Fetch fresh data and maintain the consecutive-failure counter."""
@@ -257,7 +271,7 @@ class HospitableReservationsCoordinator(
             config_entry=config_entry,
             interval_minutes=interval_minutes,
         )
-        self._client = client
+        self._client: HospitableApiClient = client
         self._property_ids = list(property_ids)
         self._lookback_days = lookback_days
         self._lookahead_days = lookahead_days
@@ -308,7 +322,7 @@ class HospitablePropertiesCoordinator(
             config_entry=config_entry,
             interval_minutes=interval_minutes,
         )
-        self._client = client
+        self._client: HospitableApiClient = client
         self.monitored_property_ids: set[str] = set()
         self._disappeared_warned: set[str] = set()
 
@@ -369,7 +383,7 @@ class HospitableCalendarCoordinator(
             config_entry=config_entry,
             interval_minutes=interval_minutes,
         )
-        self._client = client
+        self._client: HospitableApiClient = client
         self._property_ids = list(property_ids or [])
         self._lookahead_days = lookahead_days
         self._property_failures: dict[str, int] = {}

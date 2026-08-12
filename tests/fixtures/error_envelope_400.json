@@ -1,0 +1,7 @@
+{
+  "status_code": 400,
+  "reason_phrase": "The properties field is required.",
+  "errors": {
+    "properties": ["The properties field is required."]
+  }
+}

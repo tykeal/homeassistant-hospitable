@@ -11,7 +11,9 @@ from urllib.parse import parse_qs
 
 import httpx
 
-FIXTURES = Path(__file__).parent / "fixtures"
+# ``tests/helpers`` is a PACKAGE, so ``__file__`` sits one level deeper
+# than the ``tests/`` root that holds ``fixtures/``.
+FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
 def load_fixture(name: str) -> Any:

@@ -66,3 +66,30 @@ class HospitableResponseError(HospitableError):
 
 class HospitableIncludeMissingError(HospitableResponseError):
     """Raised when an include post-condition is not honored."""
+
+
+class HospitableRequestValidationError(HospitableError):
+    """Upstream rejected the request body with 400 or 422.
+
+    Carries the parsed Laravel envelope so the caller can surface the
+    per-field messages the user needs to fix the call.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        field_messages: list[str] | None = None,
+        status: int | None = None,
+        endpoint: str = "",
+    ) -> None:
+        """Initialize with the per-field validation messages.
+
+        Args:
+            message: Sanitized summary message.
+            field_messages: Per-field messages from the envelope.
+            status: HTTP status that produced the error.
+            endpoint: Endpoint path that was called.
+        """
+        super().__init__(message, status=status, endpoint=endpoint)
+        self.field_messages = list(field_messages or [])

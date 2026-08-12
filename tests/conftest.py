@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import importlib
 import sys
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -81,3 +81,25 @@ def model_factory() -> Callable[[str, dict[str, Any]], Any]:
         return model.from_api(payload)
 
     return _factory
+
+
+@pytest.fixture(autouse=True)
+def reset_write_rate_limits() -> Iterator[None]:
+    """Give every test a fresh write rate-limit budget.
+
+    The tracker is a module-level singleton because the upstream budget
+    is per token, not per config entry. Without this reset the budget
+    would leak between tests and one test's sends would refuse the next
+    test's.
+
+    Yields:
+        Control to the test.
+    """
+    from custom_components.hospitable.actions import rate_limit
+
+    original = rate_limit.TRACKER
+    rate_limit.TRACKER = rate_limit.RateLimitTracker()
+    try:
+        yield
+    finally:
+        rate_limit.TRACKER = original
