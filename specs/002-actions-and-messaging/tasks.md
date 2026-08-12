@@ -638,36 +638,36 @@ assert a return value rather than an exception.
 
 ### RED PHASE COMMIT — US2 (tests only)
 
-- [ ] T061 [P] [US2] In `tests/actions/test_get_messages.py`, add xfail
+- [X] T061 [P] [US2] In `tests/actions/test_get_messages.py`, add xfail
       tests (`raises=ModuleNotFoundError`) for the happy path against
       `messages_thread.json`: the handler returns the thread with
       timestamps and sender roles preserved in upstream order.
       (FR-020)
-- [ ] T062 [P] [US2] In `tests/actions/test_get_messages.py`, add an
+- [X] T062 [P] [US2] In `tests/actions/test_get_messages.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that the service is
       declared `SupportsResponse.ONLY`. (FR-021)
-- [ ] T063 [P] [US2] In `tests/actions/test_get_messages.py`, add xfail
+- [X] T063 [P] [US2] In `tests/actions/test_get_messages.py`, add xfail
       tests (`raises=ModuleNotFoundError`) that the reservation target
       is accepted as either a UUID or an entity id. (FR-022, FR-044)
-- [ ] T064 [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T064 [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that the messages response is
       consumed in ONE request: assert the envelope carries `data` only,
       with NO `meta` and NO `links`, and that exactly one HTTP request
       is issued. **OQ-002 is CLOSED — CONFIRMED-BY-TEST**: this endpoint
       is not paginated, unlike `/reservations` and `/tasks`. Do NOT
       write a pagination loop here. (FR-023)
-- [ ] T064a [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T064a [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that the handler never sends
       `page` or `per_page` to this endpoint. Both are SILENTLY IGNORED
       upstream — `per_page=1`, `page=2`, and `per_page=1&page=2` all
       returned the identical full set. Sending them would create a false
       impression that the payload is bounded. (FR-023)
-- [ ] T064b [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T064b [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that a LARGE thread — build a
       fixture with several hundred messages — is handled without
       truncation and without assuming a small list, because there is no
       upstream mechanism to bound the payload. (FR-023)
-- [ ] T064c [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T064c [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that a response which DOES
       carry a `meta` or `links` block is tolerated rather than crashing.
       The observed non-pagination was measured against a busiest thread
@@ -675,44 +675,44 @@ assert a return value rather than an exception.
       threshold cannot be ruled out. This test guards forward
       compatibility; it must not be written as if pagination were the
       expected behaviour. (FR-023)
-- [ ] T064d [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T064d [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that the GET honours the
       CONFIRMED per-reservation limit of 2 requests per 60 seconds and
       that a 429 surfaces as a clear, retryable condition rather than a
       crash or a silent empty result. (FR-017, FR-019, FR-023)
-- [ ] T065 [US2] In `tests/actions/test_get_messages.py`, add an xfail
+- [X] T065 [US2] In `tests/actions/test_get_messages.py`, add an xfail
       test (`raises=AssertionError`) that message bodies never appear in
       any log record emitted during the call, at any level. This must
       fail on real captured log output, not on an import error.
       (FR-024)
-- [ ] T066 [P] [US2] In `tests/actions/test_get_messages.py`, add an
+- [X] T066 [P] [US2] In `tests/actions/test_get_messages.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that an empty thread
       (`messages_empty.json`) returns an empty collection rather than
       raising. (FR-020, FR-028)
-- [ ] T067 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
+- [X] T067 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for `find_reservation`: located by
       the documented lookup key, returning the reservation payload.
       (FR-025)
-- [ ] T068 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
+- [X] T068 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for `get_reservations` including
       its filter arguments. (FR-026)
-- [ ] T069 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
+- [X] T069 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for `get_property_info`, including
       the listings and co-host structure that FR-013 depends on.
       (FR-027)
-- [ ] T070 [US2] In `tests/actions/test_lookups.py`, add xfail tests
+- [X] T070 [US2] In `tests/actions/test_lookups.py`, add xfail tests
       (`raises=ModuleNotFoundError`) that not-found is a RETURN VALUE
       for every lookup service — an explicit empty or `found: false`
       result — and never an exception. (FR-028)
-- [ ] T071 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
+- [X] T071 [P] [US2] In `tests/actions/test_lookups.py`, add xfail tests
       (`raises=ModuleNotFoundError`) that every lookup service accepts
       the optional `config_entry_id` and applies the same disambiguation
       rules proven in T029. (FR-029)
-- [ ] T072 [P] [US2] In `tests/actions/test_registration.py`, extend the
+- [X] T072 [P] [US2] In `tests/actions/test_registration.py`, extend the
       xfail registration-table tests (`raises=AssertionError`) to expect
       all five services present in the table, each with its declared
       `SupportsResponse` value. (FR-005, FR-020)
-- [ ] T072a [P] [US2] Create `tests/actions/test_response_privacy.py`
+- [X] T072a [P] [US2] Create `tests/actions/test_response_privacy.py`
       and add an xfail test (`raises=ModuleNotFoundError`) that
       `profile_picture` is ABSENT from the response of EVERY registered
       service, under EVERY combination of the guest-contact-details and
@@ -722,7 +722,7 @@ assert a return value rather than an exception.
       through. Enumerate services from the registration table rather
       than a hard-coded list, so a sixth service added later is covered
       automatically. (FR-046, FR-047, FR-048, SC-003a)
-- [ ] T072b [US2] In `tests/actions/test_response_privacy.py`, add xfail
+- [X] T072b [US2] In `tests/actions/test_response_privacy.py`, add xfail
       tests (`raises=ModuleNotFoundError`) that `email` and
       `phone_numbers` are ABSENT from `find_reservation` and
       `get_reservations` responses when the guest-contact-details option
@@ -730,19 +730,19 @@ assert a return value rather than an exception.
       `first_name`, `last_name`, `location`, and `language` are returned
       in both cases. This is the service-response half of the control
       whose entity-attribute half is FR-039c. (FR-047, SC-003a)
-- [ ] T072c [US2] In `tests/actions/test_response_privacy.py`, add an
+- [X] T072c [US2] In `tests/actions/test_response_privacy.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that an UNKNOWN guest
       key injected into the fixture (simulating a new upstream field) is
       DROPPED from the response. The serialiser is an allowlist, not a
       denylist: a denylist would leak the next PII field Hospitable adds
       by default. (FR-047, FR-048)
-- [ ] T072d [US2] In `tests/actions/test_response_privacy.py`, add an
+- [X] T072d [US2] In `tests/actions/test_response_privacy.py`, add an
       xfail test (`raises=ModuleNotFoundError`) that `get_messages`
       never returns the opaque `sender` object, and that `sender_type`
       and `sender_role` ARE returned. `sender` may carry guest identity
       and contact fields; the role discriminators may not. (FR-047a,
       SC-003a)
-- [ ] T072e [US2] In `tests/actions/test_response_privacy.py`, add an
+- [X] T072e [US2] In `tests/actions/test_response_privacy.py`, add an
       xfail test (`raises=AssertionError`) that every service handler
       module routes its return value through the shared serialiser:
       scan the AST of `custom_components/hospitable/actions/*.py` and
@@ -750,7 +750,7 @@ assert a return value rather than an exception.
       `guest` or `sender` key without calling the serialiser. This is
       what stops a future service from silently bypassing the
       chokepoint. (FR-048)
-- [ ] T073 [US2] In `tests/actions/test_localisation.py`, add xfail
+- [X] T073 [US2] In `tests/actions/test_localisation.py`, add xfail
       tests (`raises=AssertionError`) using the T016 helper that every
       service in the registration table has a matching `services.yaml`
       entry AND matching `strings.json` and `translations/en.json` text
@@ -761,21 +761,21 @@ assert a return value rather than an exception.
 
 ### GREEN PHASE COMMIT — US2
 
-- [ ] T074 [US2] Extend `custom_components/hospitable/api/messages.py`
+- [X] T074 [US2] Extend `custom_components/hospitable/api/messages.py`
       with a SINGLE-REQUEST thread-fetch helper. No pagination loop:
       OQ-002 is closed by live probe and the endpoint returns the whole
       thread in one `{data}` envelope. Tolerate an unexpected
       `meta`/`links` block without crashing, and record in a comment
       that non-pagination was observed only up to a 10-message thread.
       (FR-023)
-- [ ] T074a [US2] Apply the per-reservation rate-limit accounting and
+- [X] T074a [US2] Apply the per-reservation rate-limit accounting and
       the `x-ratelimit-*` header feedback from T047b to the messages
       GET, so reads and writes share one tracker. Handle 429 with
       `retry-after` backoff. (FR-017, FR-019, OQ-007)
-- [ ] T075 [US2] Add the `HospitableMessage` model to
+- [X] T075 [US2] Add the `HospitableMessage` model to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-020)
-- [ ] T075a [US2] Create
+- [X] T075a [US2] Create
       `custom_components/hospitable/actions/response.py`: the SINGLE
       response serialiser every handler returns through, per
       `research.md` D-16. It emits an explicit ALLOWLIST — guest
@@ -786,36 +786,36 @@ assert a return value rather than an exception.
       `sender` object unconditionally, and drops any key not on the
       allowlist. It MUST NOT be duplicated per handler and MUST NOT
       rely on callers to filter. (FR-046, FR-047, FR-047a, FR-048)
-- [ ] T076 [US2] Create
+- [X] T076 [US2] Create
       `custom_components/hospitable/actions/get_messages.py` with the
       handler, `SupportsResponse.ONLY`, and no logging of message
       bodies at any level. (FR-020, FR-021, FR-024)
-- [ ] T077 [US2] Create
+- [X] T077 [US2] Create
       `custom_components/hospitable/actions/find_reservation.py`.
       (FR-025, FR-028)
-- [ ] T078 [US2] Create
+- [X] T078 [US2] Create
       `custom_components/hospitable/actions/get_reservations.py`.
       (FR-026, FR-028)
-- [ ] T079 [US2] Create
+- [X] T079 [US2] Create
       `custom_components/hospitable/actions/get_property_info.py`,
       returning listings including co-host identifiers so operators can
       discover the values FR-013 requires. (FR-027, FR-028, FR-013)
-- [ ] T079a [US2] Route `get_messages`, `find_reservation`,
+- [X] T079a [US2] Route `get_messages`, `find_reservation`,
       `get_reservations`, `get_property_info`, and the `send_message`
       acceptance payload through the T075a serialiser. No handler
       serialises an upstream payload itself. (FR-048)
-- [ ] T080 [US2] Extend
+- [X] T080 [US2] Extend
       `custom_components/hospitable/actions/schemas.py` with the four
       new service schemas, each carrying the optional
       `config_entry_id`. (FR-022, FR-029, FR-044)
-- [ ] T081 [US2] Add all four services to the registration table in
+- [X] T081 [US2] Add all four services to the registration table in
       `custom_components/hospitable/actions/__init__.py`. (FR-005)
-- [ ] T082 [US2] Extend `custom_components/hospitable/services.yaml`
+- [X] T082 [US2] Extend `custom_components/hospitable/services.yaml`
       with all four services and every field. (FR-007)
-- [ ] T083 [US2] Extend `custom_components/hospitable/strings.json` and
+- [X] T083 [US2] Extend `custom_components/hospitable/strings.json` and
       `custom_components/hospitable/translations/en.json` with matching
       service and field text for all four. (FR-007)
-- [ ] T084 [US2] Remove every US2 xfail marker and `# type: ignore`
+- [X] T084 [US2] Remove every US2 xfail marker and `# type: ignore`
       comment, then run the full suite, `uv run mypy`, and
       `uv run ruff check`.
 
