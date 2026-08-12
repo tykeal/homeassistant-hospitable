@@ -1,55 +1,176 @@
 {
   "data": [
     {
-      "id": 700001,
+      "id": "11111111-1111-4111-8111-111111111111",
+      "name": "H-SYNTH-001",
+      "note": null,
       "task_type": 1,
       "service_id": 1,
-      "assignment_status": "accepted",
-      "progress_status": "not_started",
-      "scheduled_date": "2025-06-16",
-      "property_id": "prop-example-001",
-      "description": "Synthetic turnover clean"
+      "start_date": "2026-08-14T11:00:00-07:00",
+      "end_date": "2026-08-14T16:00:00-07:00",
+      "timezone": "America/Los_Angeles",
+      "duration_hours": 5,
+      "progress_status": null,
+      "task_assignment": {
+        "status": "accepted",
+        "updated_at": "2026-08-12T18:00:00+00:00"
+      },
+      "property": {
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "name": "Synthetic Ocean Condo"
+      },
+      "reservation": {
+        "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+        "code": "SYN-RES-001"
+      },
+      "teammate": {
+        "id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+        "name": "Synthetic Teammate One"
+      }
     },
     {
-      "id": 700002,
+      "id": "22222222-2222-4222-8222-222222222222",
+      "name": "H-SYNTH-002",
+      "note": "Synthetic note: check placeholder equipment only.",
       "task_type": 5,
       "service_id": 8,
-      "assignment_status": "pending",
-      "progress_status": "not_started",
-      "scheduled_date": "2025-06-17",
-      "property_id": "prop-example-001",
-      "description": "Synthetic maintenance visit"
+      "start_date": "2026-08-15T09:00:00-07:00",
+      "end_date": "2026-08-15T11:00:00-07:00",
+      "timezone": "America/Los_Angeles",
+      "duration_hours": 2,
+      "progress_status": "completed",
+      "task_assignment": {
+        "status": "pending",
+        "updated_at": "2026-08-12T18:30:00+00:00"
+      },
+      "property": {
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "name": "Synthetic Ocean Condo"
+      },
+      "reservation": {
+        "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+        "code": "SYN-RES-002"
+      },
+      "teammate": {
+        "id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+        "name": "Synthetic Teammate Two"
+      }
     }
   ],
   "links": [
-    {"url": "http://public.api.hospitable.com/v2/tasks?page=1", "label": "1", "active": true}
+    {
+      "url": null,
+      "label": "&laquo; Previous",
+      "active": false
+    },
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=1",
+      "label": "1",
+      "active": true
+    },
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=2",
+      "label": "2",
+      "active": false
+    },
+    {
+      "url": "http://public.api.hospitable.com/v2/tasks?page=2",
+      "label": "Next &raquo;",
+      "active": false
+    }
   ],
   "meta": {
     "current_page": 1,
     "from": 1,
     "last_page": 2,
-    "path": "http://public.api.hospitable.com/v2/tasks",
     "per_page": 2,
     "to": 2,
     "total": 3,
+    "path": "http://public.api.hospitable.com/v2/tasks",
     "task_types": {
-      "1": "Cleaning",
-      "2": "Check-in",
-      "3": "Check-out",
-      "4": "Concierge",
-      "5": "Maintenance"
+      "1": {
+        "label": "Cleaning",
+        "service_id": 1
+      },
+      "2": {
+        "label": "Check-in",
+        "service_id": 2
+      },
+      "3": {
+        "label": "Concierge",
+        "service_id": 3
+      },
+      "4": {
+        "label": "Check-out",
+        "service_id": 4
+      },
+      "5": {
+        "label": "Maintenance",
+        "service_id": 8
+      }
     },
     "service_types": {
-      "1": "Turnover clean",
-      "2": "Deep clean",
-      "3": "Linen change",
-      "4": "Check-in greeting",
-      "5": "Check-out inspection",
-      "6": "Concierge request",
-      "7": "Restock",
-      "8": "Maintenance"
+      "1": {
+        "label": "Cleaning"
+      },
+      "2": {
+        "label": "Check-in"
+      },
+      "3": {
+        "label": "Concierge"
+      },
+      "4": {
+        "label": "Check-out"
+      },
+      "5": {
+        "label": "Owner"
+      },
+      "6": {
+        "label": "Manager"
+      },
+      "7": {
+        "label": "Laundry"
+      },
+      "8": {
+        "label": "Maintenance"
+      }
     },
-    "assignment_statuses": ["pending", "accepted", "rejected", "cancelled", "unassigned"],
-    "progress_statuses": ["not_started", "on_the_way", "arrived", "in_progress", "completed", "cancelled"]
+    "assignment_statuses": {
+      "pending": {
+        "label": "Pending"
+      },
+      "accepted": {
+        "label": "Accepted"
+      },
+      "rejected": {
+        "label": "Rejected"
+      },
+      "cancelled": {
+        "label": "Cancelled"
+      },
+      "unassigned": {
+        "label": "Unassigned"
+      }
+    },
+    "progress_statuses": {
+      "not_started": {
+        "label": "Not Started"
+      },
+      "on_the_way": {
+        "label": "On the Way"
+      },
+      "arrived": {
+        "label": "Arrived"
+      },
+      "in_progress": {
+        "label": "In Progress"
+      },
+      "completed": {
+        "label": "Completed"
+      },
+      "cancelled": {
+        "label": "Cancelled"
+      }
+    }
   }
 }

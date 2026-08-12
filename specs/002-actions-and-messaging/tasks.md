@@ -980,9 +980,10 @@ task-type table rather than the service-type table.
       fan-out that makes per-property failure isolation possible.
       (FR-030, FR-034)
 - [ ] T110 [US4] In `tests/api/test_tasks.py`, add an xfail test
-      (`raises=ModuleNotFoundError`) that date parameters are OPTIONAL
-      and are omitted by default, and that a dates-only request is never
-      constructed because it too is a 400. (FR-030)
+      (`raises=ModuleNotFoundError`) that date parameters are omitted
+      by default, documenting that Hospitable then applies its own
+      roughly 14-day forward window. Also assert a dates-only request
+      is never constructed because it too is a 400. (FR-030)
 - [ ] T111 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a 400 response parsed with the
       shared Laravel envelope parser from T043 surfaces as a clear
@@ -1006,21 +1007,24 @@ task-type table rather than the service-type table.
 - [ ] T114 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the task-type and service-type
       maps are SEPARATE and NOT interchangeable, asserting the concrete
-      trap: Maintenance is task_type 5 but service_id 8. A task with
-      task_type 5 must never be labelled by looking up 5 in the
-      service-type table. (FR-033)
+      meta-vocabulary trap: Maintenance is task_type 5 with service_id
+      8, while service_type 5 is Owner. A synthetic task with task_type
+      5 must never be labelled by looking up 5 in the service-type
+      table. (FR-033)
 - [ ] T115 [P] [US4] In `tests/api/test_tasks.py`, add xfail tests
       (`raises=ModuleNotFoundError`) that the `HospitableTask` model
-      parses every field named in `data-model.md`, including assignment
-      status and assignee. (FR-035)
+      parses every field named in `data-model.md`, including nested
+      `task_assignment.status`, nullable `progress_status`, ISO
+      `start_date` / `end_date`, `timezone`, `duration_hours`, nested
+      `reservation`, and allowed teammate fields. Assert
+      `teammate.name` is not parsed into the model. (FR-035)
 - [ ] T115a [US4] In `tests/api/test_tasks.py`, add an xfail test
-      (`raises=ModuleNotFoundError`) pinning the property association
-      key. `data-model.md` records it as UNRESOLVED between
-      `property_id` and a nested `property.id`. Read the recorded
-      `/tasks` fixture, assert the ONE shape it actually contains, and
-      update `data-model.md` to that single answer in the green phase.
-      The parser MUST NOT accept both shapes — a permissive reader
-      would hide the answer permanently. (FR-032, FR-035)
+      (`raises=ModuleNotFoundError`) asserting the parser reads the
+      property association from nested `property.id` and rejects a flat
+      `property_id`. The recorded `/tasks` fixture must contain only the
+      live-confirmed nested shape. The parser MUST NOT accept both
+      shapes — a permissive reader would hide future drift permanently.
+      (FR-032, FR-035)
 - [ ] T116 [US4] In `tests/test_coordinator.py`, add xfail tests
       (`raises=AttributeError`) for the tasks coordinator: it exists,
       polls on its own cadence, and holds a BASE client — the
@@ -1045,9 +1049,12 @@ task-type table rather than the service-type table.
       sensor whose value equals the number of tasks for that property
       across ALL pages. (FR-031, FR-032)
 - [ ] T120 [P] [US4] In `tests/sensor/test_tasks.py`, add an xfail test
-      (`raises=ModuleNotFoundError`) that assignment status and assignee
-      are exposed as attributes, and that any assignee personal data is
-      unrecorded and redacted from diagnostics. (FR-035, FR-042)
+      (`raises=ModuleNotFoundError`) that assignment status is exposed
+      as an attribute, teammate identifiers may be exposed, and
+      teammate personal names are never parsed into the model or
+      surfaced in diagnostics. Treat `note` and `reservation.code` as
+      protected unless a later requirement explicitly exposes them.
+      (FR-035, FR-042)
 - [ ] T121 [P] [US4] In `tests/test_config_flow.py`, add an xfail test
       (`raises=AssertionError`) that the options flow exposes the task
       interval with the correct default and floor. (FR-034)

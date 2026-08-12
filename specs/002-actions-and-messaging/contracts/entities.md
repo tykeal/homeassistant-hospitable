@@ -30,7 +30,7 @@ The reservation status sensor gains new attributes:
 
 | Attribute | Type | Unrecorded | Default-exposed | Opt-in |
 | --- | --- | --- | --- | --- |
-| `reservation_uuid` | `str` | No | Yes | — |
+| `reservation_id` | `str` | No | Yes | — |
 | `guest_first_name` | `str \| None` | Yes | Yes | — |
 | `guest_last_name` | `str \| None` | Yes | Yes | — |
 | `guest_location` | `str \| None` | Yes | Yes | — |
@@ -42,7 +42,7 @@ All guest attributes are **unrecorded** — they exist in entity state
 memory only and are never written to the recorder database or
 captured in backups (FR-039e).
 
-`reservation_uuid` is NOT unrecorded — it is operational data needed
+`reservation_id` is NOT unrecorded — it is operational data needed
 for the service target pattern and is safe to persist.
 
 **Backward compatibility**: All new attributes are additive. Existing
@@ -96,7 +96,7 @@ receipt — it cannot detect messages read in other clients."
 | Entity key | `next_task` |
 | Platform | `sensor` |
 | State | Task type label of soonest upcoming task, or `None` |
-| Attributes | `task_type` (int), `service_type` (str), `assignment_status`, `progress_status`, `scheduled_date`, `task_id` |
+| Attributes | `task_type` (int), `service_type` (str), `assignment_status`, `assignment_updated_at`, `progress_status`, `start_date`, `end_date`, `timezone`, `duration_hours`, `task_id`, `reservation_id`, `teammate_id` |
 | Phase | US4 |
 
 ### `task_count` sensor
