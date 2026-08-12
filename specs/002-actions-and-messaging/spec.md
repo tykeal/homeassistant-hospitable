@@ -13,8 +13,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Input**: User description: "Actions (services) for lookup and guest
 messaging — send message, read thread, lookup reservations, get
-property info, task/cleaning sensors, unread indicators, and guest
-name exposure on reservation entities."
+property info, task/cleaning sensors, awaiting-host-reply
+indicators, and guest name exposure on reservation entities."
 
 ## Overview
 
@@ -206,16 +206,19 @@ endpoint, and that pagination is handled correctly.
 ### User Story 5 — Message presence indicators (Priority: P5)
 
 As a property manager, I want per-property sensors showing the last
-message timestamp and whether there are unread messages, so that I can
-build dashboard indicators and trigger notification automations.
+message timestamp and whether a guest message is awaiting a host
+reply, so that I can build dashboard indicators and trigger
+notification automations.
 
-**Why this priority**: These sensors are lightweight additions that
-derive from data already available on the reservation payload
-(`last_message_at`), requiring no new endpoint calls during polling.
+**Why this priority**: `last_message_at` derives from polled data at
+zero extra cost. The awaiting-host-reply indicator requires a per-
+property message fetch and is therefore opt-in, defaulting to OFF.
 
 **Independent Test**: Confirm each property with an active reservation
-exposes a `last_message_at` timestamp sensor, and that an unread
-indicator is derivable from the message data.
+exposes a `last_message_at` timestamp sensor. When the
+awaiting-host-reply option is enabled, confirm the indicator sensor
+correctly reflects whether the most recent message came from the
+guest.
 
 **Acceptance Scenarios**:
 
@@ -223,8 +226,15 @@ indicator is derivable from the message data.
    set, **When** the reservation coordinator polls, **Then** the
    property's last-message-at sensor reports that timestamp.
 2. **Given** a property with no active reservation or no messages,
-   **When** the coordinator polls, **Then** the sensor reports no
-   value rather than becoming unavailable.
+   **When** the coordinator polls, **Then** the last-message-at
+   sensor reports no value rather than becoming unavailable.
+3. **Given** the awaiting-host-reply option is enabled, **When** the
+   most recent message in a reservation thread has `sender_type`
+   indicating a guest, **Then** the awaiting-host-reply sensor reports
+   true.
+4. **Given** the awaiting-host-reply option is disabled (the default),
+   **When** the coordinator polls, **Then** no message-fetch API calls
+   are made and the awaiting-host-reply sensor is not created.
 
 ---
 
@@ -459,15 +469,38 @@ diagnostics never contain the guest name unredacted.
   present on the reservation payload and requires no additional API
   call. (CONFIRMED-BY-TEST: `last_message_at` is one of 21 top-level
   reservation keys)
-- **FR-037**: The integration MUST expose an unread-message indicator
-  sensor per property. The mechanism for determining "unread" is
-  UNVERIFIED — the reservation payload carries `last_message_at` and
-  the message objects carry `sender_type`, but no explicit "read" flag
-  has been observed. The implementation MUST document its heuristic
-  (e.g., last message has `sender_type: "guest"` more recently than
-  any host message).
-- **FR-038**: These sensors MUST derive from existing polled data and
-  MUST NOT issue additional API calls during the polling lifecycle.
+- **FR-037**: The integration MUST expose an awaiting-host-reply
+  indicator sensor per property, gated behind an opt-in configuration
+  option that defaults to OFF. When enabled, the indicator is derived
+  from `GET /reservations/{uuid}/messages`: if the most recent message
+  in the thread has `sender_type` indicating a guest (with no
+  subsequent host message), the sensor reports true; otherwise false.
+  This is NOT a read receipt and MUST NOT be described as "unread" —
+  it cannot detect messages read in the Hospitable UI, the mobile app,
+  or any other client. The limitation MUST be stated in the sensor's
+  description and documentation. (CONFIRMED-BY-TEST: `sender_type` is
+  present on message objects from the messages endpoint)
+- **FR-038**: `last_message_at` (FR-036) MUST derive from existing
+  polled reservation data and MUST NOT issue additional API calls.
+  The awaiting-host-reply indicator (FR-037), when its option is
+  disabled (the default), MUST NOT issue any additional API calls. When
+  enabled, the indicator MUST issue at most one
+  `GET /reservations/{uuid}/messages` call per property per poll cycle,
+  bounded to the operationally relevant reservation only. On the
+  reference account this adds approximately 13 calls per cycle for 13
+  properties. (CONFIRMED-BY-TEST: 29 reservations in a 30-day window,
+  22 accepted, across 13 properties)
+
+#### Configuration options for spec 002
+
+- **FR-038a**: The options flow MUST expose an awaiting-host-reply
+  toggle that defaults to OFF. When enabled, the integration polls
+  `GET /reservations/{uuid}/messages` for the operationally relevant
+  reservation of each property during each reservation poll cycle.
+  When disabled, no message-fetch calls are made and no
+  awaiting-host-reply sensor is created. The option MUST appear in
+  `strings.json` and `translations/en.json` with a description that
+  explains the additional API cost.
 
 #### Guest identity on reservation entities
 
@@ -612,11 +645,14 @@ diagnostics never contain the guest name unredacted.
   messages were observed in a single `{data}` envelope with no
   `meta`/`links`. Long conversations may paginate. The implementation
   must handle both cases.
-- **OQ-003 — Unread detection heuristic.** No explicit "read" or
-  "unread" flag has been observed on message objects or the reservation
-  payload. The unread indicator must use a heuristic (e.g., last
-  message sender_type is "guest" with no subsequent host message).
-  The chosen heuristic must be documented and may need user feedback.
+- **OQ-003 — Awaiting-host-reply derivation (RESOLVED).** The base
+  reservation payload has no read-state field; `sender_type` exists
+  only on message objects from `GET /reservations/{uuid}/messages`.
+  **Answer:** the indicator is reframed as "awaiting host reply"
+  (not "unread"), derived from the most recent message's
+  `sender_type`, gated behind an opt-in option defaulting to OFF, and
+  permitted to issue one message-fetch call per property per cycle
+  when enabled. This is explicitly not a read receipt.
 - **OQ-004 — Task polling cadence.** The appropriate default and floor
   for task polling is not yet determined. Tasks change less frequently
   than reservations but more frequently than properties. A default of
