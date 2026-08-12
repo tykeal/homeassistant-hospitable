@@ -26,7 +26,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.hospitable.actions import rate_limit, response
+from custom_components.hospitable import rate_limit
+from custom_components.hospitable.actions import response
 from custom_components.hospitable.actions.helpers import (
     guest_contact_enabled,
     read_client,

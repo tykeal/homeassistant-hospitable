@@ -85,17 +85,21 @@ def model_factory() -> Callable[[str, dict[str, Any]], Any]:
 
 @pytest.fixture(autouse=True)
 def reset_write_rate_limits() -> Iterator[None]:
-    """Give every test a fresh write rate-limit budget.
+    """Give every test a fresh upstream rate-limit budget.
 
     The tracker is a module-level singleton because the upstream budget
     is per token, not per config entry. Without this reset the budget
-    would leak between tests and one test's sends would refuse the next
-    test's.
+    would leak between tests and one test's traffic would refuse the
+    next test's. US5 routes the opt-in message poll through the same
+    tracker, so this now resets a read budget as well as a write one.
 
     Yields:
         Control to the test.
     """
-    from custom_components.hospitable.actions import rate_limit
+    # The CANONICAL module, not the ``actions.rate_limit`` compatibility
+    # re-export. Rebinding the re-export would leave the real singleton
+    # untouched and this fixture would silently stop working.
+    from custom_components.hospitable import rate_limit
 
     original = rate_limit.TRACKER
     rate_limit.TRACKER = rate_limit.RateLimitTracker()

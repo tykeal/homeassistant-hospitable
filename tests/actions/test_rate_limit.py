@@ -64,7 +64,7 @@ def _tracker(clock: FakeClock) -> Any:
     Returns:
         A fresh rate-limit tracker.
     """
-    from custom_components.hospitable.actions.rate_limit import (
+    from custom_components.hospitable.rate_limit import (
         RateLimitTracker,
     )
 
