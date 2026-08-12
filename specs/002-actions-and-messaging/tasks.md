@@ -1005,6 +1005,13 @@ explicitly declared unverifiable without a live account.
 **Ships in**: the US6 pull request. **Principle XII status**: EXEMPT —
 docs-only and test-only.
 
+Phase 8 keeps the name `plan.md` gives the US6 phase ("Integration
+testing and polish"). The division of labour between the two is:
+Phase 8 is the automated evidence — quickstart scenarios, end-to-end
+tests, and success-criteria verification. Phase 9 is the non-test
+cross-cutting work — user documentation, licensing, and coverage
+checks. Both ship in the same pull request.
+
 - [ ] T164 [P] Update `README.md` with the five services, their
       arguments, and a worked automation example. State plainly that
       `send_message` returns acceptance, not delivery confirmation.
@@ -1095,8 +1102,11 @@ GET-only), then US3 (highest user-visible value, isolated to the
 reservation path), then US4 (fully isolated new coordinator), then US5,
 then US6.
 
-One pull request per phase. Each PR is two commits minimum — red then
-green — and more where a phase has several red/green cycles.
+One pull request per USER STORY, six in total. Phases 1, 2, and 9 are
+not separate pull requests: Phases 1 and 2 ship inside the US1 pull
+request and Phase 9 ships inside the US6 pull request, as each of those
+phase headers states. Each pull request is two commits minimum — red
+then green — and more where a story has several red/green cycles.
 
 ---
 
