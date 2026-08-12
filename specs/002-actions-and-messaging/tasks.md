@@ -980,10 +980,12 @@ task-type table rather than the service-type table.
       fan-out that makes per-property failure isolation possible.
       (FR-030, FR-034)
 - [ ] T110 [US4] In `tests/api/test_tasks.py`, add an xfail test
-      (`raises=ModuleNotFoundError`) that date parameters are omitted
-      by default, documenting that Hospitable then applies its own
-      roughly 14-day forward window. Also assert a dates-only request
-      is never constructed because it too is a 400. (FR-030)
+      (`raises=ModuleNotFoundError`) that the request ALWAYS carries
+      explicit `start_date` and `end_date` derived from the
+      `task_window_days` option: `start_date` is today and `end_date`
+      is today plus `task_window_days` (default 14). Also assert a
+      dates-only request (no `properties[]`) is never constructed,
+      because it too is a 400. (FR-030)
 - [ ] T111 [US4] In `tests/api/test_tasks.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a 400 response parsed with the
       shared Laravel envelope parser from T043 surfaces as a clear
@@ -1058,6 +1060,12 @@ task-type table rather than the service-type table.
 - [ ] T121 [P] [US4] In `tests/test_config_flow.py`, add an xfail test
       (`raises=AssertionError`) that the options flow exposes the task
       interval with the correct default and floor. (FR-034)
+- [ ] T121a [P] [US4] In `tests/test_options_bounds.py`, add an xfail
+      test (`raises=AssertionError`) that `task_window_days` defaults
+      to 14 and is bounds-validated in `options_bounds.py` with a
+      named error key, rejecting 0 and any value above the maximum so
+      `end_date` can never breach the upstream three-year ceiling.
+      (FR-030)
 
 **Red-phase gate**: `uv run pytest --runxfail` scoped to the above.
 
@@ -1065,9 +1073,10 @@ task-type table rather than the service-type table.
 
 - [ ] T122 [US4] Create `custom_components/hospitable/api/tasks.py` with
       the request builder — mandatory `properties[]` carrying exactly
-      one property, optional dates omitted by default — and a
-      paginating fetch for that single property that follows its own
-      `meta.last_page`. (FR-030, FR-031)
+      one property, plus explicit `start_date` (today) and `end_date`
+      (today + `task_window_days`) — and a paginating fetch for that
+      single property that follows its own `meta.last_page`.
+      (FR-030, FR-031)
 - [ ] T123 [US4] Add `HospitableTask` to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-035)
@@ -1091,8 +1100,10 @@ task-type table rather than the service-type table.
       with the next-task and task-count sensors. (FR-032)
 - [ ] T127 [US4] Register the new sensors in
       `custom_components/hospitable/sensor/__init__.py`. (FR-032)
-- [ ] T128 [US4] Add the task interval option to the options flow and
-      wire it into the coordinator. (FR-034)
+- [ ] T128 [US4] Add the task interval option and the
+      `task_window_days` option to the options flow, with bounds
+      validation in `options_bounds.py`, and wire both into the
+      coordinator. (FR-034, FR-030)
 - [ ] T129 [US4] Add task sensor names, task interval option text, and
       state translations to `strings.json` and `translations/en.json`.
       (FR-007, FR-034)

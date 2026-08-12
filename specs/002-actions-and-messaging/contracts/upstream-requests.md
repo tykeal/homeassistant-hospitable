@@ -155,9 +155,10 @@ request naming every property.
 | --- | --- |
 | Tier | CONFIRMED-BY-TEST |
 | Auth | Bearer PAT |
-| Required params | `properties[]` — MUST always be sent |
+| Upstream-required params | `properties[]` — a request without it is a 400 |
+| Always-sent by integration | `start_date` and `end_date` — not required upstream; sent by our own choice under FR-030 |
 | Fan-out | One request per property; `properties[]` carries exactly one |
-| Omitted params | Date parameters — MUST NOT be sent by default |
+| Date window | `start_date` = today, `end_date` = today + `task_window_days` (default 14, range 1-730); forward-only |
 | Response | 200 with `{data, links, meta}` envelope |
 | Pagination | Mandatory; followed independently per property |
 | Rate limit | None published; no `x-ratelimit-*`, no `retry-after` |
@@ -170,17 +171,26 @@ isolation FR-034 requires, matching spec 001's calendar coordinator
 and its last-good retention. At reference scale this is 13 requests per
 poll on an endpoint that publishes no rate limit.
 
-**Default window and pagination**: with no date parameters, a live
-probe returned tasks from 2026-08-12 through 2026-08-24, roughly a
-14-day forward window. A wide explicit window returned 153 tasks across
-the five properties with any tasks, instead of 12 tasks across all 13
-properties with no dates. Pagination is real and honoured: `per_page=1`
+**Configured window and pagination**: the integration always sends
+`start_date` (today) and `end_date` (today + `task_window_days`).
+With no date parameters at all, a live probe returned tasks from
+2026-08-12 through 2026-08-24, roughly a 14-day forward window; that
+undocumented default is the reason `task_window_days` defaults to 14,
+but it is no longer relied upon. A wide explicit window returned 153
+tasks across the five properties with any tasks, instead of 12 tasks
+across all 13 properties with no dates. An `end_date` more than three
+years in the future returns HTTP 400 `You cannot fetch tasks more than
+3 years in the future.`, which bounds the option at 730 days.
+Pagination is real and honoured: `per_page=1`
 on a three-task property yielded `last_page: 3`, and `page=2` returned
 the second task. Under fan-out each property returns its own
 `meta.last_page`, which MUST be followed independently.
 
 **Failure mode**: Bare call or dates-only returns HTTP 400
 `{"status_code":400,"reason_phrase":"The properties field is required.","errors":{...}}`.
+(CONFIRMED-BY-TEST) An over-long window returns HTTP 400 with the
+reason phrase `You cannot fetch tasks more than 3 years in the future.`
+and an `errors.end_date` array.
 (CONFIRMED-BY-TEST)
 
 **Meta vocabularies** (CONFIRMED-BY-TEST):

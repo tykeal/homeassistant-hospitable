@@ -49,7 +49,8 @@ The `hashlib` module (standard library) is used for token hashing in
 the rate-limit tracker.
 
 **Storage**: Home Assistant config entry storage only. New options
-(`awaiting_host_reply`, `guest_contact_details`, `task_interval_minutes`)
+(`awaiting_host_reply`, `guest_contact_details`,
+`task_interval_minutes`, `task_window_days`)
 have backward-compatible defaults. No config entry migration needed.
 
 **Testing**: Same stack as spec 001. New test directory `tests/actions/`
@@ -346,7 +347,8 @@ gated behind option. All guest attributes unrecorded.
 
 **Delivers**: `api/tasks.py`; `HospitableTask` model;
 `HospitableTasksCoordinator`; `sensor/tasks.py` with `next_task` and
-`task_count`; `task_interval_minutes` option; new fixtures.
+`task_count`; `task_interval_minutes` and `task_window_days`
+options; new fixtures.
 
 **Requirements**: FR-030 to FR-035, FR-034.
 

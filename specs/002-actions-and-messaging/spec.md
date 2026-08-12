@@ -566,11 +566,31 @@ diagnostics never contain the guest name unredacted.
 #### Task sensors
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
-  `properties[]` parameter and MUST omit date parameters by default.
-  Hospitable then applies its own roughly 14-day forward window,
-  measured on 2026-08-12 as returning tasks through 2026-08-24.
+  `properties[]` parameter, which is mandatory.
   (CONFIRMED-BY-TEST: `properties[]` required; bare call or
   dates-only → 400)
+  The integration MUST ALSO send EXPLICIT `start_date` and `end_date`
+  parameters on every `/tasks` request, derived from a configurable
+  `task_window_days` option that defaults to **14**. `start_date` MUST
+  be today and `end_date` MUST be today plus `task_window_days`. The
+  window is **FORWARD ONLY**; past tasks are deliberately out of scope
+  and no lookback parameter is offered.
+  Omitting the dates is NOT acceptable. Hospitable applies an
+  undocumented default window of roughly 14 days forward when no dates
+  are sent — measured on 2026-08-12 as returning tasks dated
+  2026-08-14 through 2026-08-24 for one property. Because that default
+  is undocumented, relying on it would make the meaning of the
+  `task_count` sensor change silently if Hospitable ever changed it.
+  Sending explicit dates makes the window a property of OUR
+  configuration instead. The default of 14 is chosen to MATCH the
+  measured upstream default so that behaviour is preserved for
+  existing users.
+  `task_window_days` MUST be bounded so `end_date` can never breach
+  the upstream ceiling: an `end_date` more than **three years** in the
+  future returns HTTP 400 `You cannot fetch tasks more than 3 years in
+  the future.` (CONFIRMED-BY-TEST). The bound MUST follow the existing
+  `options_bounds.py` style and named error keys, and its maximum MUST
+  sit comfortably below the 1095-day ceiling.
   The poll MUST FAN OUT: exactly ONE request per selected property,
   each carrying that single property in `properties[]`, rather than one
   batched request naming every selected property. Fan-out is what makes
@@ -899,7 +919,13 @@ rather than implying a test exists.
   that has read permissions. (CONFIRMED-BY-TEST: 200 response
   obtained)
 - `GET /tasks` requires `properties[]` and does NOT require dates.
-  (CONFIRMED-BY-TEST)
+  (CONFIRMED-BY-TEST) The integration nevertheless sends explicit
+  dates by choice under FR-030, so the window is ours rather than an
+  undocumented upstream default.
+- `GET /tasks` rejects an `end_date` more than three years in the
+  future with HTTP 400 `You cannot fetch tasks more than 3 years in
+  the future.` This is a hard upstream ceiling and bounds the
+  `task_window_days` option. (CONFIRMED-BY-TEST)
 - `/tasks` publishes no rate limit and exposes no `x-ratelimit-*` or
   `retry-after` headers, so fanning the poll out to one request per
   property is affordable. (CONFIRMED-BY-TEST)

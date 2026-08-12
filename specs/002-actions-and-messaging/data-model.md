@@ -248,6 +248,7 @@ was never the shipped name. The SERVICE FIELD is still
 | `awaiting_host_reply` | `bool` | `False` | FR-038a |
 | `guest_contact_details` | `bool` | `False` | FR-038b |
 | `task_interval_minutes` | `int` | `15` | FR-034; floor 5 |
+| `task_window_days` | `int` | `14` | FR-030; forward-only lookahead, range 1-730 |
 
 ### Version
 
@@ -265,13 +266,14 @@ needed — the options flow handles absent keys by applying defaults.
 | Data type | `dict[str, tuple[HospitableTask, ...]]` |
 | Key | `property_id` from `property.id` |
 | Interval option | `task_interval_minutes` |
+| Window option | `task_window_days` (default 14, range 1-730) |
 | Default | 15 min |
 | Floor | 5 min |
 | Request shape | Fan-out: ONE request per selected property (FR-030) |
 | Upstream cost | One request per property per refresh, plus one per additional page; 13 at reference scale |
-| Required params | `properties[]` — always sent, carrying exactly one property |
-| Omitted params | Date parameters — not sent by default (FR-030) |
-| Default upstream window | With no dates, live capture returned tasks from 2026-08-12 through 2026-08-24, roughly a 14-day forward window |
+| Required params | `properties[]` — upstream-required, carrying exactly one property |
+| Always-sent params | `start_date` and `end_date` — derived from `task_window_days`; not upstream-required, sent by our choice (FR-030) |
+| Date window | `start_date` = today, `end_date` = today + `task_window_days`; forward-only, no lookback |
 | Pagination | Mandatory from day one (FR-031); each property's own `meta.last_page` is followed independently |
 | Failure isolation | Per-property by deliberate fan-out. A failing property retains its last-good task data and every other property still updates. Spec 001 D-15, applied exactly as the calendar coordinator applies it. |
 
@@ -283,15 +285,22 @@ request has one outcome for all properties, while one request per
 property lets one failing property keep its last-good task data without
 blocking the others.
 
-**Date-window decision**: date parameters remain omitted by default.
-That means `task_count` counts tasks in Hospitable's default window,
-which the 2026-08-12 live probe measured as today through 2026-08-24
-for one property. A wide explicit window (`start_date=2020-01-01` and
+**Date-window decision**: the integration sends an EXPLICIT forward
+window on every request, derived from the `task_window_days` option
+(default 14, range 1-730). `start_date` is today and `end_date` is
+today plus the option; nothing looks backward. The default of 14
+matches the undocumented upstream default measured on 2026-08-12
+(today through 2026-08-24 for one property), so existing behaviour is
+preserved, but the meaning of `task_count` is now fixed by OUR
+configuration rather than by an upstream default that could change
+without notice. A wide explicit window (`start_date=2020-01-01` and
 `end_date=2027-12-31`) returned 153 tasks across the five properties
 that had any tasks, instead of 12 tasks across all 13 properties with
-no dates. Any future configurable window must account for the upstream
-constraint that `end_date` more than three years in the future returns
-HTTP 400.
+no dates — so the window materially changes what the sensor counts.
+The upper bound of 730 days is set by the upstream constraint that an
+`end_date` more than three years (1095 days) in the future returns
+HTTP 400; 730 leaves a comfortable margin and matches the existing
+`LOOKAHEAD_MAX` precedent from spec 001.
 
 **Wired into setup**: from the phase that introduces task sensors
 (US4). Not instantiated until that phase ships.
