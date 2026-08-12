@@ -1015,9 +1015,14 @@ fetch per property per cycle with it on.
       polling cycle. Assert on the recorded request count. (FR-037)
 - [ ] T136a [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the EFFECTIVE per-reservation
-      message-fetch interval is at least 60 seconds, derived from the
-      CONFIRMED upstream limit of 2 requests per 60 seconds per
-      reservation. (FR-037, FR-017)
+      message-fetch interval is at least 60 seconds. The confirmed
+      upstream limit of 2 requests per 60 seconds per reservation would
+      mathematically permit a 30-second interval; 60 seconds is a
+      DELIBERATELY CONSERVATIVE choice that consumes at most one of the
+      two slots, leaving the other free for a user-initiated send. See
+      OQ-007: if reads and writes share one bucket, polling at the
+      mathematical maximum would starve the send path. (FR-037, FR-017,
+      OQ-007)
 - [ ] T136b [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a rapid double refresh — two
       manual coordinator refreshes back to back — does NOT exceed the
@@ -1070,8 +1075,12 @@ fetch per property per cycle with it on.
       seconds in the coordinator, independent of the configured
       reservation poll interval — the reservation interval floor is 1
       minute, so an aggressively configured entry could otherwise reach
-      the upstream limit. Route the fetch through the shared tracker
-      from T047 rather than a second counter. (FR-037, FR-017)
+      the upstream limit. The floor is a conservative budget reservation,
+      not the upstream maximum: 2 per 60 seconds would permit 30
+      seconds, and the second slot is deliberately left unused so a
+      user-initiated send is not starved (OQ-007). Route the fetch
+      through the shared tracker from T047 rather than a second counter.
+      (FR-037, FR-017, OQ-007)
 - [ ] T142b [US5] Handle 429 on the optional message fetch without
       failing the whole reservation update: retain the previous
       indicator value, respect `retry-after`, and do not raise
@@ -1501,7 +1510,7 @@ it; it does not follow that the task fully discharges it.
 | OQ-001 (202 body shape) — OPEN | T007, T032, T049, T170 |
 | OQ-002 (message pagination) — CLOSED | T064, T064a, T064b, T064c, T074 |
 | OQ-005 (PAT send scope) — OPEN | T036, T170 |
-| OQ-007 (shared read/write bucket) — OPEN, NEW | T038d, T047c, T074a, T142a, T142b, T170, T170a |
+| OQ-007 (shared read/write bucket) — OPEN, NEW | T038d, T047c, T074a, T136a, T142a, T142b, T170, T170a |
 
 OQ-001, OQ-005, and OQ-007 are **UNVERIFIED**. No real send has been
 performed, and none of them can be closed without one. The tasks above
