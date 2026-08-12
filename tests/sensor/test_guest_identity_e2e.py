@@ -17,6 +17,9 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntryState
 
 from tests.helpers.guest_entry import (
+    GUEST_FIRST_NAME,
+    GUEST_LANGUAGE,
+    GUEST_LAST_NAME,
     PROFILE_PICTURE,
     mock_endpoints,
     reservation_entity_id,
@@ -36,10 +39,10 @@ async def test_guest_attributes_land_on_a_real_entity(
 
     state = hass.states.get(reservation_entity_id(hass, "prop-example-001"))
     assert state is not None
-    assert state.attributes["guest_first_name"] == "Example"
-    assert state.attributes["guest_last_name"] == "Guest"
+    assert state.attributes["guest_first_name"] == GUEST_FIRST_NAME
+    assert state.attributes["guest_last_name"] == GUEST_LAST_NAME
     assert state.attributes["guest_location"] == "Example City, Example Region"
-    assert state.attributes["guest_language"] == "en"
+    assert state.attributes["guest_language"] == GUEST_LANGUAGE
 
 
 async def test_a_null_guest_entity_reports_no_identity(
@@ -70,7 +73,7 @@ async def test_contact_details_are_absent_by_default_on_a_real_entity(
 
     state = hass.states.get(reservation_entity_id(hass, "prop-example-001"))
     assert state is not None
-    assert state.attributes.get("guest_first_name") == "Example"
+    assert state.attributes.get("guest_first_name") == GUEST_FIRST_NAME
     assert "guest_email" not in state.attributes
     assert "guest_phone_numbers" not in state.attributes
 
@@ -103,7 +106,7 @@ async def test_profile_picture_never_reaches_a_real_entity_state(
 
     reservation_state = hass.states.get(reservation_entity_id(hass, "prop-example-001"))
     assert reservation_state is not None
-    assert reservation_state.attributes.get("guest_first_name") == "Example"
+    assert reservation_state.attributes.get("guest_first_name") == GUEST_FIRST_NAME
 
     states = hass.states.async_all()
     assert len(states) > 1, "no entity state was inspected"

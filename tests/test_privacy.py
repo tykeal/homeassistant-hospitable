@@ -80,6 +80,7 @@ async def test_no_guest_field_appears_in_any_log_record(
     pipeline. Real captured output is asserted, not a mock.
     """
     from tests.helpers.guest_entry import (
+        GUEST_FIRST_NAME,
         GUEST_SECRETS,
         mock_endpoints,
         reservation_entity_id,
@@ -96,7 +97,7 @@ async def test_no_guest_field_appears_in_any_log_record(
 
     state = hass.states.get(reservation_entity_id(hass, "prop-example-001"))
     assert state is not None
-    assert state.attributes.get("guest_first_name") == "Example", (
+    assert state.attributes.get("guest_first_name") == GUEST_FIRST_NAME, (
         "guest data never reached the entity, so this log check proves nothing"
     )
 

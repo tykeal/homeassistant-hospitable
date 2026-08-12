@@ -125,3 +125,19 @@ def test_no_guest_value_survives_anywhere_in_the_payload() -> None:
 
     for value in _LEAKABLE:
         assert value not in rendered, f"{value} survived redaction"
+
+
+def test_the_guest_contact_option_survives_redaction() -> None:
+    """The opt-in setting is not guest data and must stay visible.
+
+    ``guest_contact_details`` shares the ``guest_`` attribute prefix but
+    is a boolean SETTING. Whether the installer enabled it is exactly
+    what a troubleshooter needs in order to explain which attributes an
+    entity is publishing, so redacting it would hide operational state
+    while protecting nothing.
+    """
+    from custom_components.hospitable.diagnostics import redact_diagnostics
+
+    for enabled in (True, False):
+        data = redact_diagnostics({"options": {"guest_contact_details": enabled}})
+        assert data["options"]["guest_contact_details"] is enabled

@@ -20,6 +20,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
 ALLOWED_TOP_LEVEL = {
     "version",
     "minor_version",
@@ -36,6 +38,10 @@ REDACTED = "**REDACTED**"
 GUEST_CONTAINER_KEYS = frozenset({"guest", "sender"})
 # Attribute-style keys, as the reservation entity spells them.
 GUEST_ATTRIBUTE_PREFIX = "guest_"
+# Keys that share the attribute prefix but carry no guest data. The
+# guest-contact option is a BOOLEAN SETTING, and whether the installer
+# turned it on is precisely what a troubleshooter needs to see.
+NON_GUEST_PREFIXED_KEYS = frozenset({CONF_GUEST_CONTACT_DETAILS})
 
 
 def redact_diagnostics(payload: dict[str, Any]) -> dict[str, Any]:
@@ -82,7 +88,7 @@ def _redact_member(key: str, value: Any) -> Any:
     """
     if key in GUEST_CONTAINER_KEYS:
         return _redact_guest_object(value)
-    if key.startswith(GUEST_ATTRIBUTE_PREFIX):
+    if key.startswith(GUEST_ATTRIBUTE_PREFIX) and key not in NON_GUEST_PREFIXED_KEYS:
         return REDACTED
     return _redact_value(value)
 

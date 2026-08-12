@@ -34,9 +34,24 @@ ACCOUNT = "acct-example-0001"
 ZONE = timezone(timedelta(hours=-7))
 PROFILE_PICTURE = "https://example.com/guest-avatar.png"
 
-# Every guest value the fixture carries, so a leak test can name them
-# all rather than sampling.
+# The harness overrides the shared fixture's generic name and language
+# with values distinctive enough for a substring leak check. "Example",
+# "Guest" and "en" all occur throughout unrelated log text, so asserting
+# on them would produce noise rather than proof.
+GUEST_FIRST_NAME = "Zephyrine"
+GUEST_LAST_NAME = "Quillfeather"
+GUEST_LANGUAGE = "qx-ZZ"
+
+# Every guest value the harness carries, so a leak test can name them
+# all rather than sampling. NAMES and LANGUAGE are guest fields too:
+# FR-041 keeps every guest field out of the logs, not just the ones the
+# entity surface hides. Attribute KEY names such as "guest_first_name"
+# are deliberately NOT listed; a key name is not guest data, and the
+# entity publishes it by design.
 GUEST_SECRETS = (
+    GUEST_FIRST_NAME,
+    GUEST_LAST_NAME,
+    GUEST_LANGUAGE,
     "Example City, Example Region",
     "guest@example.com",
     "+15550101001",
@@ -81,9 +96,17 @@ def reservations_payload() -> dict[str, Any]:
         A single-page reservations envelope.
     """
     fixture = load_fixture("reservation_with_guest.json")["data"]
+    guest = dict(fixture[0]["guest"])
+    guest.update(
+        {
+            "first_name": GUEST_FIRST_NAME,
+            "last_name": GUEST_LAST_NAME,
+            "language": GUEST_LANGUAGE,
+        }
+    )
     return {
         "data": [
-            current_stay("res-guest-001", "prop-example-001", fixture[0]["guest"]),
+            current_stay("res-guest-001", "prop-example-001", guest),
             current_stay("res-guest-002", "prop-example-002", None),
         ],
         "meta": {
