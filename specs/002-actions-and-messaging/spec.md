@@ -255,18 +255,26 @@ diagnostics never contain the guest name unredacted.
 
 **Acceptance Scenarios**:
 
-1. **Given** a reservation with guest data available, **When** the
-   reservation coordinator polls, **Then** the reservation status
-   entity attributes include `guest_name`.
-2. **Given** a reservation with guest contact data, **When** the
-   coordinator polls, **Then** contact fields are available as
-   attributes.
-3. **Given** any log level or diagnostics download, **When** the
-   output is audited, **Then** guest names, email addresses, phone
-   numbers, and message bodies are never present unredacted.
-4. **Given** guest data is absent from the reservation payload,
-   **When** the entity updates, **Then** guest attributes report no
-   value rather than raising or becoming unavailable.
+1. **Given** a reservation with `include=guest` returning a non-null
+   guest object, **When** the reservation coordinator polls, **Then**
+   the reservation status entity attributes include
+   `guest_first_name`, `guest_last_name`, `guest_location`, and
+   `guest_language`.
+2. **Given** the guest-contact-details option is enabled, **When** the
+   reservation coordinator polls, **Then** `guest_email` and
+   `guest_phone_numbers` are additionally exposed as attributes.
+3. **Given** a guest whose `last_name` is null, **When** the entity
+   updates, **Then** `guest_last_name` reports no value and any
+   display-name derivation shows only the first name.
+4. **Given** any log level or diagnostics download, **When** the
+   output is audited, **Then** no guest field (first_name, last_name,
+   email, phone_numbers, location, language) is present unredacted.
+5. **Given** the `guest` object is null on a reservation, **When** the
+   entity updates, **Then** guest attributes report no value rather
+   than raising or becoming unavailable.
+6. **Given** any guest attribute, **When** Home Assistant writes state
+   to the recorder database, **Then** the attribute is NOT persisted
+   (marked unrecorded).
 
 ---
 
@@ -501,24 +509,67 @@ diagnostics never contain the guest name unredacted.
   awaiting-host-reply sensor is created. The option MUST appear in
   `strings.json` and `translations/en.json` with a description that
   explains the additional API cost.
+- **FR-038b**: The options flow MUST expose a guest-contact-details
+  toggle that defaults to OFF. When enabled, the reservation status
+  entity additionally exposes `guest_email` and `guest_phone_numbers`
+  as attributes. When disabled, those attributes are not created.
+  The option MUST appear in `strings.json` and `translations/en.json`
+  with a description that explains the privacy implication of
+  exposing contact details as entity attributes.
 
 #### Guest identity on reservation entities
 
-- **FR-039**: The reservation status entity MUST expose `guest_name`
-  as an attribute when guest data is available on the reservation
-  payload. (CONFIRMED-BY-TEST: guest data available via
-  `include=` on reservations — spec 001 assumption table)
-- **FR-040**: The reservation status entity MAY expose additional
-  guest contact fields (email, phone) as attributes, subject to the
-  PII controls of FR-041 through FR-043.
-- **FR-041**: Guest names, email addresses, phone numbers, and message
-  content MUST NEVER appear in logs at any level. This extends spec 001
-  FR-062 and FR-073 to the new fields.
-- **FR-042**: Guest PII fields MUST be redacted from diagnostics
-  output. Diagnostics MUST show the presence of guest data (e.g.,
-  `"guest_name": "**REDACTED**"`) rather than omitting the field
-  entirely, so that troubleshooting can distinguish "field absent from
-  API" from "field present but redacted."
+- **FR-039**: The reservation polling request MUST include
+  `include=guest` (singular) to obtain guest identity data. The
+  `guest` object is NOT present on the base reservation payload; it
+  appears only when this include is specified. Spec 001 recorded
+  `include=guests` (plural) as a no-op — that is an instance of
+  silent-ignore behaviour #4 (an unrecognised parameter name returns
+  HTTP 200 with no added keys). The correct parameter is singular.
+  This include adds no additional API calls; it is a query parameter
+  on a request the integration already makes. (CONFIRMED-BY-TEST:
+  `include=guest` adds exactly one new top-level key `guest`, taking
+  the reservation payload from 21 keys to 22. `include=guests` plural
+  and `include=customer` remain no-ops at 21 keys.)
+- **FR-039a**: The reservation status entity MUST expose these guest
+  attributes BY DEFAULT when `include=guest` returns a non-null
+  `guest` object: `guest_first_name`, `guest_last_name`,
+  `guest_location`, `guest_language`. (CONFIRMED-BY-TEST: measured
+  across 29 upcoming reservations — first_name 29/29, last_name
+  28/29, location 19/29, language observed on all with 3 distinct
+  values.)
+- **FR-039b**: The reservation status entity MUST tolerate a missing
+  `last_name` — it was genuinely absent on 1 of 29 live reservations.
+  Display-name derivation (e.g., concatenating first and last) MUST
+  handle this gracefully, showing only first_name when last_name is
+  null. (CONFIRMED-BY-TEST: 28/29)
+- **FR-039c**: `guest_email` and `guest_phone_numbers` MUST be
+  exposed ONLY when the guest-contact-details option (FR-038b) is
+  enabled. `email` is usually absent (4/29 populated) and MUST NOT be
+  assumed present. `phone_numbers` is an array (22/29 populated).
+  (CONFIRMED-BY-TEST)
+- **FR-039d**: `profile_picture` MUST NOT be exposed as an entity
+  attribute.
+- **FR-039e**: ALL guest attributes (both default and opt-in) MUST be
+  marked as unrecorded attributes so they live in entity state memory
+  only and are NEVER written to the recorder database or captured in
+  backups. This follows the `_unrecorded_attributes` precedent
+  established in spec 001 (used by the availability sensor's
+  `forward_window` attribute).
+- **FR-040**: The `guest` object response MUST be validated: if
+  `include=guest` is requested and the response contains the `guest`
+  key, its value may be an object or null. A null `guest` means no
+  guest data is available for that reservation; guest attributes MUST
+  report no value rather than raising.
+- **FR-041**: Guest names, email addresses, phone numbers, location,
+  language, and message content MUST NEVER appear in logs at any
+  level. This extends spec 001 FR-062 and FR-073 to all guest fields.
+- **FR-042**: ALL guest fields (including those behind the opt-in)
+  MUST be redacted from diagnostics output. Diagnostics MUST show the
+  presence of guest data (e.g., `"guest_first_name": "**REDACTED**"`)
+  rather than omitting the field entirely, so that troubleshooting can
+  distinguish "field absent from API" from "field present but
+  redacted."
 - **FR-043**: Exposing guest PII as entity attributes is acceptable
   because Home Assistant entity state is local to the instance and is
   not transmitted externally by the integration. The spec 001 FR-073
@@ -563,8 +614,9 @@ diagnostics never contain the guest name unredacted.
   options change, reload, and unload — proving that writes remain
   confined to explicit service calls.
 - **SC-003**: An audit of all logs at every level and a full
-  diagnostics download finds zero occurrences of guest names, email
-  addresses, phone numbers, or message bodies unredacted.
+  diagnostics download finds zero occurrences of guest first names,
+  last names, email addresses, phone numbers, locations, languages,
+  profile pictures, or message bodies unredacted.
 - **SC-004**: All `/tasks` pages are fetched without data loss — the
   task count reported by sensors matches the total across all pages
   returned by the API.
@@ -579,9 +631,11 @@ diagnostics never contain the guest name unredacted.
 - **SC-008**: Task sensors correctly label Maintenance tasks as
   Maintenance (not as task_type-5's misleading service_id) in 100% of
   cases.
-- **SC-009**: Guest name is visible as a reservation entity attribute
-  when present in the API response, and absent (not errored) when the
-  API does not include it.
+- **SC-009**: Guest first_name and last_name are visible as
+  reservation entity attributes when present in the API response, and
+  absent (not errored) when the guest object is null or last_name is
+  missing. All guest attributes are unrecorded and never appear in the
+  recorder database.
 
 ## Assumptions
 
@@ -662,13 +716,24 @@ diagnostics never contain the guest name unredacted.
   token was created with read+write but the vendor does not enumerate
   granted scopes. If a scope is required that the current token lacks,
   messaging will fail at runtime with a 403.
-- **OQ-006 — Guest include on reservations.** Spec 001 noted
-  `include=guests` was a "no-op" on `/reservations` (returned 200,
-  no added keys). However, guest count data is on the base payload.
-  Whether guest *identity* (name, contact) requires a different include
-  or is already present without one must be confirmed during
-  implementation. (CONFIRMED-BY-TEST that guest counts are on base
-  payload; identity availability UNVERIFIED without include testing)
+- **OQ-006 — Guest include on reservations (RESOLVED).** Spec 001
+  recorded `include=guests` (plural) as a no-op. That was correct but
+  misleading — it is silent-ignore behaviour #4 (an unrecognised
+  parameter name returns 200 and is ignored). **Answer:** the correct
+  parameter is `include=guest` (singular). Verified live:
+  `include=guest` adds exactly one new top-level key `guest`, taking
+  the payload from 21 keys to 22, on both the collection and single-
+  reservation endpoints. `include=guests` (plural) and
+  `include=customer` remain no-ops at 21 keys. Guest object keys:
+  `id` (string), `first_name` (string), `last_name` (string), `email`
+  (null in most cases), `phone_numbers` (array), `location` (string),
+  `profile_picture` (string URL), `language` (string). Measured
+  population across 29 upcoming reservations: first_name 29/29,
+  last_name 28/29, profile_picture 27/29, phone_numbers 22/29,
+  location 19/29, email 4/29, 3 distinct language values. All 29 had
+  a non-null guest object. This include adds zero extra API calls —
+  it is a query parameter on the existing reservation poll.
+  (CONFIRMED-BY-TEST)
 
 ## Out of Scope
 
