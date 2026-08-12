@@ -18,11 +18,21 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
+import pytest
+
 from tests.actions.conftest import (
     ACCOUNT_NAMESPACE,
     SECOND_ACCOUNT_NAMESPACE,
     SECOND_TOKEN,
 )
+
+EXPECTED_SERVICES = {
+    "send_message",
+    "get_messages",
+    "find_reservation",
+    "get_reservations",
+    "get_property_info",
+}
 
 
 def test_registration_table_is_declarative() -> None:
@@ -41,6 +51,70 @@ def test_registration_table_is_declarative() -> None:
         assert definition.schema is not None, definition.name
         assert definition.handler is not None, definition.name
         assert definition.supports_response is SupportsResponse.ONLY, definition.name
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    reason="T081: the four US2 services are not in the registration table yet",
+    strict=True,
+)
+def test_all_five_services_are_declared_with_their_response_mode() -> None:
+    """All five services sit in the one table, each response-only.
+
+    Every service this integration exposes returns structured data and
+    fires no event, so ``SupportsResponse.ONLY`` is asserted per row
+    rather than assumed for the table as a whole.
+    """
+    from homeassistant.core import SupportsResponse
+
+    from custom_components.hospitable.actions import (
+        SERVICE_DEFINITIONS,
+    )
+
+    by_name = {definition.name: definition for definition in SERVICE_DEFINITIONS}
+
+    assert set(by_name) == EXPECTED_SERVICES
+    for name, definition in by_name.items():
+        assert definition.supports_response is SupportsResponse.ONLY, name
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    reason="T081: the four US2 services are not registered yet",
+    strict=True,
+)
+async def test_setup_registers_all_five_services(hass: Any) -> None:
+    """Setting up services puts all five on the service bus."""
+    from custom_components.hospitable.actions import async_setup_services
+    from custom_components.hospitable.const import DOMAIN
+
+    async_setup_services(hass)
+
+    for name in sorted(EXPECTED_SERVICES):
+        assert hass.services.has_service(DOMAIN, name), name
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    reason="T081: the four US2 services are not registered yet",
+    strict=True,
+)
+async def test_all_five_services_go_with_the_last_entry(
+    hass: Any,
+    loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
+) -> None:
+    """Unloading the last entry removes every service, not just one."""
+    from custom_components.hospitable.const import DOMAIN
+
+    entry = await loaded_config_entry_factory(hass)
+    for name in sorted(EXPECTED_SERVICES):
+        assert hass.services.has_service(DOMAIN, name), name
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    for name in sorted(EXPECTED_SERVICES):
+        assert not hass.services.has_service(DOMAIN, name), name
 
 
 async def test_setup_registers_every_service_in_the_table(hass: Any) -> None:

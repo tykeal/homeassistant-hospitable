@@ -393,3 +393,79 @@ def seed_reservations() -> Callable[..., list[Any]]:
         return reservations
 
     return _factory
+
+
+class LookupRouteBuilder:
+    """Build ``respx`` routes for the READ-ONLY lookup endpoints.
+
+    The lookup services and the polling lifecycle share two endpoints,
+    so the routes here are distinguished by the ``include`` parameter the
+    services send. They MUST be registered BEFORE the config entry is set
+    up: ``respx`` matches routes in registration order, and the polling
+    routes are registered during setup with a broader pattern that would
+    otherwise win.
+    """
+
+    def __init__(self, router: respx.Router, base_url: str) -> None:
+        """Store the router and API base URL used to build routes.
+
+        Args:
+            router: Active respx router.
+            base_url: Hospitable API base URL.
+        """
+        self._router = router
+        self._base_url = base_url
+
+    def reservation(
+        self,
+        reservation_uuid: str,
+        *,
+        status: int = 200,
+        json_body: Any = None,
+    ) -> respx.Route:
+        """Register a single-reservation detail response.
+
+        Args:
+            reservation_uuid: Reservation UUID in the path.
+            status: HTTP status to return.
+            json_body: JSON body to return.
+
+        Returns:
+            The registered respx route.
+        """
+        route = self._router.get(
+            f"{self._base_url}/reservations/{reservation_uuid}",
+        )
+        route.mock(return_value=httpx.Response(status, json=json_body))
+        return route
+
+    def reservations(self, *, status: int = 200, json_body: Any = None) -> respx.Route:
+        """Register the guest-include reservations list response.
+
+        Args:
+            status: HTTP status to return.
+            json_body: JSON body to return.
+
+        Returns:
+            The registered respx route.
+        """
+        route = self._router.get(
+            f"{self._base_url}/reservations",
+            params={"include": "guest,properties"},
+        )
+        route.mock(return_value=httpx.Response(status, json=json_body))
+        return route
+
+
+@pytest.fixture
+def lookup_routes(respx_router: respx.Router) -> LookupRouteBuilder:
+    """Return a lookup-endpoint route builder bound to the router.
+
+    Args:
+        respx_router: Active respx router.
+
+    Returns:
+        Route builder for the read-only lookup endpoints.
+    """
+    const = importlib.import_module("custom_components.hospitable.api.const")
+    return LookupRouteBuilder(respx_router, const.BASE_URL)
