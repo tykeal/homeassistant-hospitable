@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -106,3 +107,86 @@ async def test_full_lifecycle_issues_only_get_requests(
         assert call.request.method == "GET", (
             f"Non-GET request recorded: {call.request.method} {call.request.url}"
         )
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=True,
+    reason="TDD red phase: T025 hospitable.send_message is not registered",
+)
+async def test_service_call_may_post_while_lifecycle_stays_read_only(
+    hass: Any, respx_router: Any
+) -> None:
+    """A service call may POST; the polling lifecycle still may not.
+
+    This is write-isolation gate 4 in its narrowed form. It proves the
+    two halves of FR-001 at once: every request the lifecycle issues is
+    a GET, and the POST that does appear is attributable to an explicit
+    user-invoked service call rather than to any polling path.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_TOKEN: "hp_test_synthetic_token_000000000000000000000000",
+            CONF_ACCOUNT_NAMESPACE: _ACCOUNT,
+            CONF_NAMESPACE_SOURCE: "account",
+        },
+        options={
+            CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
+            CONF_LOOKAHEAD_DAYS: 30,
+        },
+        unique_id=_ACCOUNT,
+    )
+    entry.add_to_hass(hass)
+    _mock_all_endpoints(respx_router)
+    send_route = respx_router.post(
+        f"{BASE_URL}/reservations/res-example-accepted/messages"
+    ).mock(
+        return_value=httpx.Response(
+            202, json=load_fixture("send_message_202_full.json")
+        )
+    )
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    for coordinator in entry.runtime_data["coordinators"].values():
+        await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    lifecycle_calls = list(respx_router.calls)
+    assert lifecycle_calls, "the polling lifecycle issued no requests"
+    for call in lifecycle_calls:
+        assert call.request.method == "GET", (
+            f"Non-GET request from the polling lifecycle: "
+            f"{call.request.method} {call.request.url}"
+        )
+
+    assert hass.services.has_service(DOMAIN, "send_message")
+    response = await hass.services.async_call(
+        DOMAIN,
+        "send_message",
+        {
+            "reservation_uuid": "res-example-accepted",
+            "body": "Synthetic acceptance check.",
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response is not None
+    assert send_route.called
+    posts = [call for call in respx_router.calls if call.request.method == "POST"]
+    assert len(posts) == 1
+    assert posts[0].request.url.path.endswith(
+        "/reservations/res-example-accepted/messages"
+    )
+
+    # Unloading is still write-free once the service call is excluded.
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    after_unload = [
+        call
+        for call in respx_router.calls[len(lifecycle_calls) + 1 :]
+        if call.request.method != "GET"
+    ]
+    assert not after_unload

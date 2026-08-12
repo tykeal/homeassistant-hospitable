@@ -349,3 +349,47 @@ def loaded_config_entry_factory(
         return entry
 
     return _factory
+
+
+@pytest.fixture
+def seed_reservations() -> Callable[..., list[Any]]:
+    """Return a factory seeding a loaded entry's reservation cache.
+
+    The reservation fixtures are dated in the past, so a live coordinator
+    refresh would filter them out of its rolling window. Seeding the
+    cache directly models "this reservation is known to the coordinator"
+    without pinning the tests to a moving date window.
+
+    Returns:
+        Callable seeding the reservations coordinator cache.
+    """
+
+    def _factory(
+        entry: Any,
+        fixture: str = "reservation_with_guest.json",
+        *,
+        seed_only: bool = False,
+    ) -> list[Any]:
+        """Seed the reservations coordinator cache from a fixture.
+
+        Args:
+            entry: A loaded Hospitable config entry.
+            fixture: Fixture file holding a reservations payload.
+            seed_only: Return the models without touching the cache, for
+                callers that push them through the coordinator instead.
+
+        Returns:
+            The seeded reservation models.
+        """
+        from tests.helpers import load_fixture
+
+        models = importlib.import_module("custom_components.hospitable.api.models")
+        payload = load_fixture(fixture)
+        reservations = [
+            models.HospitableReservation.from_api(item) for item in payload["data"]
+        ]
+        if not seed_only:
+            entry.runtime_data["coordinators"]["reservations"].data = reservations
+        return reservations
+
+    return _factory
