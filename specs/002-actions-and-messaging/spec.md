@@ -304,9 +304,22 @@ diagnostics never contain the guest name unredacted.
   The integration must ALWAYS include `properties[]` and MUST NOT
   include date parameters (they are not required and their interaction
   with the response is not verified).
-- **Message pagination unknown.** Only 7 messages observed;
-  `meta`/`links` not present in test response. The implementation
-  must handle both paginated and non-paginated responses defensively.
+- **Message thread arrives unpaginated.** The messages endpoint
+  `GET /reservations/{uuid}/messages` returns a `{data}` envelope
+  with no `meta` and no `links`, and `page`/`per_page` are silently
+  ignored, so a long conversation arrives in full in one response.
+  No code may assume a small list.
+  The observation is bounded: the busiest conversation on the
+  reference account holds only 10 messages, so behaviour above that
+  volume was not observed. A `meta`/`links` block appearing later
+  MUST be tolerated rather than crash, but pagination MUST NOT be
+  treated as expected. (CONFIRMED-BY-TEST — see FR-023 and OQ-002)
+- **The messages endpoint returns HTTP 429.** Unlike every endpoint
+  spec 001 exercised, this one is throttled and advertises its budget
+  in response headers. A 429 on a message fetch is a throttle, not an
+  outage: the indicator sensor retains its last-good value and the
+  reservation update as a whole does not fail. (CONFIRMED-BY-TEST —
+  see FR-017 and FR-019)
 - **Entity_id vs reservation_uuid input.** Services that accept a
   reservation target must accept EITHER an `entity_id` (reading UUID
   from entity attributes) OR an explicit `reservation_uuid`, and must
@@ -396,18 +409,56 @@ diagnostics never contain the guest name unredacted.
 
 #### Rate-limit enforcement for messaging
 
-- **FR-017**: The integration MUST respect the documented messaging
-  rate limits: 2 messages per minute per reservation, and 50 messages
-  per 5 minutes per PAT user (token). (DOCUMENTED)
+- **FR-017**: The integration MUST respect the messaging rate limits:
+  2 messages per minute per reservation, and 50 messages per 5 minutes
+  per PAT user (token). The two limits sit at different confidence
+  tiers and MUST NOT be conflated:
+  - The per-reservation limit of **2 requests per 60 seconds** is
+    CONFIRMED-BY-TEST on `GET /reservations/{uuid}/messages`. The
+    endpoint returns `x-ratelimit-limit: 2` and
+    `x-ratelimit-remaining: <n>` on success, and on HTTP 429 also
+    returns `retry-after` (59–60 observed) and `x-ratelimit-reset`
+    (unix epoch). The buckets are independent per reservation:
+    reservation A burned to `remaining: 0` returned 429 while
+    reservation B immediately returned HTTP 200 with a fresh
+    `remaining: 1`. The identical 2-per-minute-per-reservation figure
+    for the SEND endpoint remains DOCUMENTED only — no POST has ever
+    been executed. See OQ-007 for whether reads and writes share one
+    bucket.
+  - The per-token limit of 50 per 5 minutes is DOCUMENTED only and has
+    never been tested. It MUST NOT be described as confirmed.
+  This throttling is scoped to the messages endpoint. `/properties`,
+  `/reservations`, and `/tasks` were re-checked in the same session
+  and expose no `x-ratelimit-*` and no `retry-after` headers, so spec
+  001's recorded finding remains correct for the endpoints spec 001
+  tested. This is not a spec 001 defect.
+  When the messages endpoint returns rate-limit headers, the
+  integration MUST feed `x-ratelimit-limit`, `x-ratelimit-remaining`,
+  and `x-ratelimit-reset` back into its local accounting rather than
+  relying solely on its own count, and MUST tolerate their absence.
+  The HTTP 429 body is the Laravel envelope with NO `errors` key
+  (`{"status_code": 429, "reason_phrase": "Too Many Attempts."}`), so
+  the shared envelope parser MUST tolerate the missing key.
+  (CONFIRMED-BY-TEST)
 - **FR-018**: Rate-limit accounting MUST key on the TOKEN value, not
   the config entry identifier. Two config entries using the same PAT
   share one budget; entries with different PATs have independent
   budgets. This integration is multi-account, so this distinction
   matters.
-- **FR-019**: When a rate limit would be exceeded, the service MUST
-  reject the call immediately with a ServiceValidationError explaining
-  which limit applies (per-reservation or per-token) and approximately
-  when it will reset. It MUST NOT silently queue or retry.
+- **FR-019**: When the integration's own accounting says a rate limit
+  would be exceeded, the service MUST reject the call immediately with
+  a ServiceValidationError explaining which limit applies
+  (per-reservation or per-token) and approximately when it will reset.
+  It MUST NOT silently queue or retry.
+  An HTTP 429 returned by the upstream messages endpoint is a
+  different case and MUST be handled as a retryable-with-backoff
+  condition driven by `retry-after`, not as a hard failure: a throttle
+  is not an outage. On the user-invoked send path the caller is still
+  told immediately; on the opt-in awaiting-host-reply fetch the
+  previous indicator value is retained, the entity is NOT marked
+  unavailable, and the reservation update as a whole does not fail.
+  (CONFIRMED-BY-TEST for the fetch path; the send path is DOCUMENTED
+  only — see OQ-007)
 
 #### Read messages service
 
@@ -418,9 +469,25 @@ diagnostics never contain the guest name unredacted.
   returns structured data and fires no event.
 - **FR-022**: The service MUST accept a reservation target as either
   `entity_id` or `reservation_uuid` (exactly one required).
-- **FR-023**: If the endpoint paginates, the service MUST page through
-  all results. Whether this endpoint paginates is UNVERIFIED (only
-  `{data}` observed with 7 messages, no `meta`/`links`).
+- **FR-023**: `GET /reservations/{uuid}/messages` is NOT paginated:
+  the envelope carries `data` only, with no `meta` and no `links`,
+  unlike `/reservations` and `/tasks` which carry all three. The
+  service MUST therefore consume the thread in a SINGLE request and
+  MUST NOT implement a pagination loop. It MUST NOT send `page` or
+  `per_page` to this endpoint: both are silently ignored upstream
+  (`per_page=1`, `per_page=2`, `page=1`, `page=2`, and
+  `per_page=1&page=2` all returned the identical full set of 10
+  items), so sending them would create a false impression that the
+  payload is bounded. Because there is no upstream mechanism to bound
+  the payload, no code may assume a small list — a very long
+  conversation arrives in full.
+  **Scope caveat**: the busiest conversation on the reference account
+  holds only 10 messages, so behaviour above that volume was NOT
+  observed and pagination appearing above some threshold cannot be
+  ruled out. The implementation MUST therefore tolerate a `meta` or
+  `links` block appearing later rather than crashing, but MUST NOT be
+  written as though pagination were expected. (CONFIRMED-BY-TEST —
+  OQ-002 is closed to the extent stated here)
 - **FR-024**: Message bodies are personal data and MUST NOT be logged
   at any level. The service returns them to the caller but the
   integration itself never writes them to logs or diagnostics.
@@ -510,6 +577,16 @@ diagnostics never contain the guest name unredacted.
   awaiting-host-reply sensor is created. The option MUST appear in
   `strings.json` and `translations/en.json` with a description that
   explains the additional API cost.
+  The EFFECTIVE per-reservation message-fetch interval MUST be at
+  least 60 seconds, enforced independently of the configured
+  reservation poll interval (whose floor is 1 minute). This floor is a
+  DELIBERATELY CONSERVATIVE CHOICE, not a derivation: the confirmed
+  upstream limit of 2 requests per 60 seconds per reservation would
+  mathematically permit a 30-second interval. The second slot is left
+  deliberately unused so that a user-initiated send is not starved if
+  reads and writes turn out to share one bucket (OQ-007). No artifact
+  may describe the 60-second floor as "derived from" or "required by"
+  the rate limit.
 - **FR-038b**: The options flow MUST expose a guest-contact-details
   toggle that defaults to OFF. When enabled, the reservation status
   entity additionally exposes `guest_email` and `guest_phone_numbers`
@@ -647,8 +724,22 @@ diagnostics never contain the guest name unredacted.
   about send behaviour is DOCUMENTED, never CONFIRMED-BY-TEST.
 - The 202 response body shape (whether it returns `sent_reference_id`)
   is UNVERIFIED.
-- Whether `GET /reservations/{uuid}/messages` paginates is UNVERIFIED
-  (only `{data}` observed with 7 messages; no `meta`/`links`).
+- Whether `GET /reservations/{uuid}/messages` paginates is settled for
+  the observed range: it does not. The envelope is `{data}` only, and
+  `page`/`per_page` are silently ignored. This was measured against a
+  busiest thread of 10 messages, so behaviour above that volume is
+  unobserved. (CONFIRMED-BY-TEST, bounded — see FR-023, OQ-002)
+- `GET /reservations/{uuid}/messages` is rate limited at 2 requests
+  per 60 seconds per reservation, with independent per-reservation
+  buckets, and advertises `x-ratelimit-limit`,
+  `x-ratelimit-remaining`, `x-ratelimit-reset`, and `retry-after`.
+  (CONFIRMED-BY-TEST)
+- No other endpoint this integration calls is throttled or exposes
+  rate-limit headers. `/properties`, `/reservations`, and `/tasks`
+  expose none. (CONFIRMED-BY-TEST)
+- Whether the send endpoint's DOCUMENTED 2-per-minute-per-reservation
+  limit is the SAME bucket as the confirmed GET limit is UNVERIFIED
+  and cannot be tested without a real send. (See OQ-007)
 - Whether messaging requires a particular plan tier or scope beyond
   what the owner's current token provides is UNVERIFIED.
 - The `/tasks` endpoint is reachable with a Personal Access Token
@@ -695,11 +786,24 @@ diagnostics never contain the guest name unredacted.
   delivery confirmation. This must be discovered during
   implementation, ideally via a controlled test send to a test
   reservation.
-- **OQ-002 — Message pagination (UNVERIFIED).** Whether
-  `GET /reservations/{uuid}/messages` paginates is unknown. Only 7
-  messages were observed in a single `{data}` envelope with no
-  `meta`/`links`. Long conversations may paginate. The implementation
-  must handle both cases.
+- **OQ-002 — Message pagination (CLOSED for the observed range,
+  CONFIRMED-BY-TEST).** A read-only probe on 2026-08-12 established
+  that `GET /reservations/{uuid}/messages` returns a `{data}` envelope
+  with no `meta` and no `links`, unlike `/reservations` and `/tasks`
+  which carry all three, and that `per_page=1`, `per_page=2`,
+  `page=1`, `page=2`, and `per_page=1&page=2` ALL returned the
+  identical full set of 10 items. **Answer:** the endpoint is not
+  paginated and both parameters are silently ignored — a further
+  instance of the silent-ignore behaviour class (spec 001 records five
+  distinct instances; this is a new one, and it is endpoint-scoped:
+  `page`/`per_page` remain honoured on `/reservations` and `/tasks`).
+  The thread is consumed in one request and no pagination loop is
+  written (FR-023).
+  **Scope caveat, stated honestly**: the busiest conversation on the
+  reference account holds only 10 messages, so behaviour above that
+  volume was NOT observed. Pagination may appear above some threshold.
+  The code must tolerate a `meta`/`links` block appearing later rather
+  than crash, but must not treat pagination as expected.
 - **OQ-003 — Awaiting-host-reply derivation (RESOLVED).** The base
   reservation payload has no read-state field; `sender_type` exists
   only on message objects from `GET /reservations/{uuid}/messages`.
@@ -735,6 +839,24 @@ diagnostics never contain the guest name unredacted.
   a non-null guest object. This include adds zero extra API calls —
   it is a query parameter on the existing reservation poll.
   (CONFIRMED-BY-TEST)
+- **OQ-007 — Shared read/write rate-limit bucket (UNVERIFIED, and
+  UNCLOSABLE without a real send).** The CONFIRMED GET limit on
+  `GET /reservations/{uuid}/messages` is 2 requests per 60 seconds per
+  reservation. The DOCUMENTED send limit on
+  `POST /reservations/{uuid}/messages` is also 2 per minute per
+  reservation. The identical shape makes it plausible that reads and
+  writes share ONE per-reservation bucket, which would mean an
+  awaiting-host-reply poll could consume budget a user needs for an
+  actual send. It is equally plausible that they are separate buckets.
+  **This project asserts neither.** The question cannot be answered
+  without issuing a real POST to a real guest, which is absolutely
+  prohibited, so it stays open.
+  **Required defensive design in both directions**: the send path MUST
+  treat an upstream 429 as a retryable-with-backoff condition driven
+  by `retry-after` rather than a hard failure (FR-019), and the
+  polling path MUST NOT starve the send path — hence the deliberately
+  conservative 60-second per-reservation message-fetch floor that
+  leaves one of the two slots unused (FR-038a).
 
 ## Out of Scope
 

@@ -17,7 +17,11 @@ the design rests on that the specification does not mark CONFIRMED.
 
 The specification's five-tier evidence legend (CONFIRMED-BY-TEST,
 CONFIRMED-BY-SPEC, DOCUMENTED, LIKELY, UNVERIFIED) is used verbatim.
-Nothing in this document upgrades a tier.
+Nothing in this document upgrades a tier by reasoning. Where a tier
+changed (message pagination and the messages-endpoint rate limit,
+recorded in D-03, D-06, D-07, and the assumption table), it changed
+because a live read-only probe on 2026-08-12 observed the behaviour
+directly, and the exact bound of what was observed is stated with it.
 
 ## Decision index
 
@@ -25,11 +29,11 @@ Nothing in this document upgrades a tier.
 | --- | --- | --- |
 | D-01 | Write isolation via module path: `actions/` package | FR-001, FR-003 |
 | D-02 | Table-driven HA service registration, Hostaway pattern | FR-005, FR-006 |
-| D-03 | Rate-limit accounting keyed on token value | FR-017, FR-018, FR-019 |
+| D-03 | Rate-limit accounting keyed on token value | FR-017, FR-018, FR-019, OQ-007 |
 | D-04 | Task coordinator with 15-minute default, 5-minute floor | FR-030, FR-034, OQ-004 |
 | D-05 | `include=guest` on existing reservation poll | FR-039, FR-040 |
-| D-06 | Awaiting-host-reply as opt-in per-property message fetch | FR-037, FR-038 |
-| D-07 | Defensive pagination on messages endpoint | FR-023, OQ-002 |
+| D-06 | Awaiting-host-reply as opt-in per-property message fetch | FR-037, FR-038, FR-038a, OQ-007 |
+| D-07 | Single-request thread fetch; no pagination loop | FR-023, OQ-002 |
 | D-08 | Defensive 202 response parsing | FR-012, OQ-001 |
 | D-09 | Service text in strings.json and translations | FR-007 |
 | D-10 | Reservation target: entity_id OR reservation_uuid | FR-044 |
@@ -135,13 +139,49 @@ ones skip; the last `async_unload_entry` removes.
 **Decision**: A module-level `RateLimitTracker` class keyed on the
 SHA-256 hash of the token string. Two independent sliding windows:
 
-1. Per-reservation: 2 messages per 60 seconds, keyed on
-   `(token_hash, reservation_uuid)`.
+1. Per-reservation: 2 requests per 60 seconds, keyed on
+   `(token_hash, reservation_uuid)`. Sends and message fetches share
+   this one window (see the header-feedback note below and OQ-007).
 2. Per-token: 50 messages per 300 seconds, keyed on `token_hash`.
 
 The tracker is a singleton (module-level dict) so that two config
 entries sharing the same PAT share one budget without explicit
-cross-entry communication.
+cross-entry communication. Both the send path and the
+awaiting-host-reply message fetch route through this ONE tracker
+rather than keeping separate counters (see D-06 and OQ-007).
+
+**Evidence tiers, which MUST NOT be conflated** (FR-017):
+
+- **2 requests per 60 seconds per reservation: CONFIRMED-BY-TEST** on
+  `GET /reservations/{uuid}/messages` by a read-only probe on
+  2026-08-12. The endpoint returns `x-ratelimit-limit: 2` and
+  `x-ratelimit-remaining: <n>` on success; on HTTP 429 it also returns
+  `retry-after` (59–60 observed) and `x-ratelimit-reset` (unix epoch).
+  The buckets are independent per reservation: reservation A was
+  burned to `remaining: 0` and returned 429, and reservation B
+  immediately returned HTTP 200 with a fresh `remaining: 1`. The 429
+  body is the Laravel envelope with NO `errors` key,
+  `{"status_code": 429, "reason_phrase": "Too Many Attempts."}`, so
+  the shared envelope parser must tolerate the missing key.
+- **50 per 5 minutes per PAT/vendor: DOCUMENTED only**, never tested.
+- The same 2-per-minute-per-reservation figure for the SEND endpoint
+  is **DOCUMENTED only** — no POST has ever been executed.
+
+**Scope of the throttling**: `/properties`, `/reservations`, and
+`/tasks` were re-checked in the same session and expose NO
+`x-ratelimit-*` and NO `retry-after` headers. Spec 001's recorded
+finding (only `x-hospitable-trace`; no `X-RateLimit-*`, no
+`Retry-After`) therefore remains CORRECT for the endpoints spec 001
+tested. The messages endpoint is simply a different, throttled
+endpoint. This is not a spec 001 defect and spec 001 is not edited.
+
+**Header feedback**: where `x-ratelimit-limit`,
+`x-ratelimit-remaining`, and `x-ratelimit-reset` are present on a
+messages-endpoint response, they are fed back into the tracker in
+preference to its own count; their absence is tolerated. An upstream
+429 is handled as retryable-with-backoff driven by `retry-after`, as
+distinct from the local pre-send refusal in FR-019, which is immediate
+and never retried.
 
 **Rationale**: FR-018 requires token-keyed accounting. Hashing avoids
 holding the raw token in a second location. A module-level singleton
@@ -252,18 +292,63 @@ the reservation coordinator's update method (not a separate
 coordinator), because it needs the just-fetched reservation data to
 identify the operationally relevant reservation. The fetch is guarded
 by the option check and is a simple supplementary GET, not a write.
+It routes through the D-03 tracker rather than a second counter.
 
-## D-07: Defensive pagination on messages endpoint {#d-07}
+**The 60-second per-reservation fetch floor is a conservative choice,
+not a derivation.** The effective per-reservation message-fetch
+interval is floored at 60 seconds, enforced independently of the
+configured reservation poll interval (whose floor is 1 minute, so an
+aggressively configured entry could otherwise reach the upstream
+limit). The confirmed upstream limit of 2 requests per 60 seconds per
+reservation would mathematically permit a 30-second interval. The
+floor is set at 60 seconds deliberately so that a poll consumes at
+most ONE of the two slots, leaving the other free for a user-initiated
+send. That is the OQ-007 hedge: if reads and writes share one bucket,
+polling at the mathematical maximum would starve the send path. This
+rationale must not be restated anywhere as the floor being "derived
+from" or "required by" the rate limit.
 
-**Decision**: The `GET /reservations/{uuid}/messages` implementation
-checks for `meta` and `links` in the response envelope. If present,
-it paginates using the standard `meta.last_page` pattern. If absent
-(as observed with 7 messages), it treats `data` as the complete
-result set.
+**429 on the optional fetch**: handled without failing the whole
+reservation update. The previous indicator value is retained,
+`retry-after` is respected, and the entity is NOT marked unavailable —
+a throttle is not an outage. This needs its own handling rather than
+inheriting the existing coordinator path, which logs a 429 and does
+not reschedule.
 
-**Rationale**: OQ-002 is UNVERIFIED. Only 7 messages were observed
-with no pagination metadata. The defensive approach handles both cases
-without failing on either.
+## D-07: Single-request thread fetch on the messages endpoint {#d-07}
+
+**Decision**: `GET /reservations/{uuid}/messages` is consumed in ONE
+request. No pagination loop is written, and `page`/`per_page` are
+never sent. A `meta` or `links` block, if one ever appears, is
+tolerated without crashing.
+
+**Evidence** (CONFIRMED-BY-TEST, read-only probe 2026-08-12):
+
+- The envelope is `{data}` only — no `meta`, no `links` — unlike
+  `/reservations` and `/tasks`, which carry all three.
+- `per_page=1`, `per_page=2`, `page=1`, `page=2`, and
+  `per_page=1&page=2` ALL returned the identical full set of 10 items.
+  Both parameters are therefore silently ignored on this endpoint.
+
+**Rationale**: Sending `page`/`per_page` would create a false
+impression that the payload is bounded. It is not: there is no
+upstream mechanism to bound this response, so a very long conversation
+arrives in full and no code may assume a small list.
+
+**Relationship to spec 001's register**: spec 001 records `page` and
+`per_page` as CONFIRMED honored, with a `meta.current_page`
+post-condition. That entry remains correct for the endpoints spec 001
+tested (`/properties`, `/reservations`, `/tasks`). The silent-ignore
+behaviour is endpoint-scoped to the messages endpoint and is an
+addition to spec 001's set of silent-ignore instances, not a
+correction of it. Spec 001 is not edited.
+
+**Scope caveat, stated honestly**: the busiest conversation on the
+reference account holds only 10 messages, so behaviour above that
+volume was NOT observed. Pagination may appear above some unobserved
+threshold. The forward-compatibility tolerance above exists for that
+reason and must not be written as though pagination were the expected
+behaviour. OQ-002 is closed only to the extent of the observed range.
 
 ## D-08: Defensive 202 response parsing {#d-08}
 
@@ -402,16 +487,21 @@ contract: you call the service, you get the data back, done.
 
 ## Assumptions on UNVERIFIED upstream behavior
 
-Each assumption below rests on a tier below CONFIRMED-BY-TEST. None
-is treated as CONFIRMED anywhere in the design, and each has a
-concrete fallback.
+Every row below carries its own tier and a concrete fallback. Rows
+below CONFIRMED-BY-TEST are never treated as confirmed anywhere in the
+design. Two rows (A-03, A-05) were upgraded to CONFIRMED-BY-TEST by
+the read-only probe of 2026-08-12 and are stated with the exact bound
+of what was observed; their neighbours (A-05a, A-05b) deliberately
+remain DOCUMENTED and UNVERIFIED so the tiers are not blurred.
 
 | ID | Assumption | Tier | Fallback |
 | --- | --- | --- | --- |
 | A-01 | `POST /reservations/{uuid}/messages` returns HTTP 202 on success | DOCUMENTED | If it returns 200 or 201, treat as success equally |
 | A-02 | The 202 body may contain `sent_reference_id` | UNVERIFIED | Return `null` for correlation ID if absent |
-| A-03 | `GET /reservations/{uuid}/messages` may paginate for long threads | UNVERIFIED | Handle both paginated and non-paginated responses |
+| A-03 | `GET /reservations/{uuid}/messages` does not paginate and silently ignores `page`/`per_page` | CONFIRMED-BY-TEST, bounded to a 10-message thread | Single request; tolerate a `meta`/`links` block appearing later rather than crash |
 | A-04 | Messaging may require a scope the current token lacks | UNVERIFIED | Handle 403 as capability limitation per existing classifier |
-| A-05 | Rate limits are 2/min/reservation and 50/5min/token | DOCUMENTED | Enforce locally; if API enforces differently, our local guard is conservative |
+| A-05 | The messages GET is limited to 2 per 60s per reservation, with independent per-reservation buckets and `x-ratelimit-*`/`retry-after` headers | CONFIRMED-BY-TEST | Feed headers back into the tracker; tolerate their absence |
+| A-05a | The SEND limits are 2/min/reservation and 50/5min/token | DOCUMENTED (never tested; no POST has been executed) | Enforce locally; if the API enforces differently, the local guard is conservative |
+| A-05b | Reads and writes may or may not share one per-reservation bucket | UNVERIFIED and untestable without a real send (OQ-007) | Assert neither; 60s fetch floor leaves one slot free, and send treats 429 as retryable-with-backoff |
 | A-06 | `sender_id` is Airbnb-only | DOCUMENTED | Reject client-side for non-Airbnb reservations |
 | A-07 | Task vocabularies in `meta` are stable | CONFIRMED-BY-TEST (structure) | Fall back to hard-coded map if meta absent |
