@@ -136,18 +136,26 @@ requested (existing pagination contract from spec 001).
 query parameters alongside the existing `include=properties`.
 
 Combined include: `include=guest,properties` (comma-separated on a
-single parameter, or repeated `include[]` entries — implementation to
-verify which format the API accepts; both are common in Laravel APIs).
+single parameter). Multi-include stacking is CONFIRMED-BY-TEST:
 
-**Post-condition**: Assert `guest` key present on every reservation
-item. Value may be null (no guest data) or an object. A missing key
-when `include=guest` was requested raises
-`HospitableIncludeMissingError` per the existing FR-075 pattern.
+- baseline (no include) → 21 keys
+- `include=guest` → 22 keys
+- `include=guest,properties` → 23 keys
+- `include=guest,listings` → 23 keys
+- `include=guest,properties,listings` → 24 keys
+- URL-encoding the comma (`%2C`) behaves identically
 
-**Fallback**: If the include assertion fails (API stops honoring
-`include=guest`), log once at WARNING, set guest data to None on all
-reservations, and continue. Guest attributes report no value. This
-matches the existing `include=listings` fallback pattern.
+**Post-condition**: Assert BOTH `guest` AND `properties` keys are
+present on every reservation item. A missing key raises
+`HospitableIncludeMissingError` per FR-075. This is mandatory because
+unrecognised include names are silently ignored (silent-ignore
+behaviour #4) — the assertion is what distinguishes "include honoured"
+from "include silently discarded."
+
+**Fallback**: If the `guest` include assertion fails, log once at
+WARNING, set guest data to None on all reservations, and continue.
+Guest attributes report no value. This matches the existing
+`include=listings` fallback pattern from spec 001.
 
 ## Prohibited requests (reaffirmed)
 

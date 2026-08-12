@@ -180,12 +180,25 @@ The most important architectural decision in this feature.
 
 1. **Type system**: `HospitableClient` has no `_post` method.
    Coordinators type-annotate their client as `HospitableClient`.
-2. **Module path**: Coordinators and sensors never import from
-   `actions/` or `api/write_client`. A static import test enforces this.
-3. **Runtime test**: `test_no_writes.py` asserts zero non-GET requests
-   during the full polling lifecycle.
-4. **Code review**: Any import of `HospitableWriteClient` outside
-   `actions/` is a visible, reviewable violation.
+   Any `coordinator.client._post(...)` call is a mypy error in CI.
+2. **Instance assertion**: Coordinators MUST be constructed with a
+   base `HospitableClient` instance, NOT a `HospitableWriteClient`.
+   A test asserts `not isinstance(coordinator.client,
+   HospitableWriteClient)` for every coordinator class. The write
+   client is a separate instance created per `actions/` handler
+   context.
+3. **Import scan**: A static test scans the AST of `coordinator.py`,
+   `sensor/`, and `config_flow.py` and fails if any imports
+   `HospitableWriteClient`, imports from `actions/`, or references
+   `_post`.
+4. **Lifecycle assertion**: `test_no_writes.py` asserts zero non-GET
+   requests during the full polling lifecycle.
+
+**Honest characterisation**: This guarantee is TEST-ENFORCED (four
+independent gates), not structurally impossible. The tradeoff was
+accepted because the structurally-impossible alternative (a completely
+separate HTTP client) would duplicate connection pooling, auth, and
+retry logic.
 
 ## Rate-Limit Accounting
 

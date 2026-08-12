@@ -70,9 +70,41 @@ import that linters and reviewers can flag.
 
 **Structural enforcement test**: `test_no_writes.py` is narrowed to
 assert that during the polling lifecycle, zero `POST`/`PUT`/`PATCH`/
-`DELETE` requests are captured. Additionally, a static import test
-asserts that no module under `coordinator.py` or `sensor/` imports
-from `actions/` or from `api.write_client`.
+`DELETE` requests are captured.
+
+**Four independent enforcement gates** (compensating for the reduction
+from spec 001's structural impossibility to test-enforced guarantee):
+
+1. **Type-level (mypy, CI-enforced)**: The coordinator's client
+   attribute MUST be annotated as the base `HospitableClient`. Since
+   `HospitableClient` has no `_post` method, any `coordinator.client.
+   _post(...)` call is a mypy error caught in CI.
+2. **Instance-level (runtime test)**: Coordinators MUST be constructed
+   with a base `HospitableClient` instance, NOT a
+   `HospitableWriteClient`. A test asserts
+   `not isinstance(coordinator.client, HospitableWriteClient)` for
+   every coordinator class. The `HospitableWriteClient` is a separate
+   instance created per service call (or once per `actions/` handler
+   context), never shared with coordinators.
+3. **Import-level (static test)**: A test scans the AST of
+   `coordinator.py`, `sensor/`, and `config_flow.py` and fails if any
+   module imports `HospitableWriteClient`, imports from `actions/`, or
+   references `_post`.
+4. **Lifecycle-level (respx assertion)**: The narrowed
+   `test_no_writes.py` asserts zero non-GET requests during the full
+   polling lifecycle (setup → refresh → options change → reload →
+   unload).
+
+**Honest characterisation**: This guarantee is TEST-ENFORCED, not
+structurally impossible. A future contributor CAN violate it — but
+four independent gates (type checker, runtime isinstance, static
+import scan, and lifecycle assertion) must all be defeated
+simultaneously for a write to escape the polling path into production.
+The tradeoff was accepted because the structurally-impossible
+alternative (completely separate HTTP client) would duplicate
+connection pooling, auth header injection, and retry logic across two
+independent client classes, creating a maintenance burden
+disproportionate to the risk.
 
 ## D-02: Table-driven HA service registration {#d-02}
 
@@ -91,8 +123,7 @@ ones skip; the last `async_unload_entry` removes.
 
 **Differences from Hostaway**:
 
-- We use `SupportsResponse.ONLY` everywhere except `send_message`
-  (which uses `SupportsResponse.OPTIONAL` — but see D-15).
+- We use `SupportsResponse.ONLY` on all services (D-14/D-15).
 - We MUST have service text in `strings.json`/`translations/en.json`.
   Hostaway omits this and relies solely on `services.yaml`.
 - We do NOT fire events alongside responses (Hostaway's
@@ -169,14 +200,32 @@ reference scale.
 
 ## D-05: `include=guest` on existing reservation poll {#d-05}
 
-**Decision**: Add `include=guest` (singular) to the existing
-reservation request's query parameters. This adds zero extra API calls
-and enriches the reservation payload from 21 to 22 keys.
+**Decision**: Add `include=guest,properties` (comma-separated) to the
+existing reservation request's query parameters. Multi-include
+stacking is CONFIRMED-BY-TEST: each named include contributes its own
+top-level key independently.
 
-**Rationale**: CONFIRMED-BY-TEST that `include=guest` works on both
-collection and single endpoints. The guest object is needed for
-FR-039/FR-039a attributes. Population is good (29/29 non-null guest
-objects, first_name 29/29). Cost is zero additional requests.
+**Evidence** (CONFIRMED-BY-TEST, live account):
+
+- baseline (no include) → 21 keys
+- `include=guest` → 22 keys (adds `guest`)
+- `include=guest,properties` → 23 keys (adds `guest` AND `properties`)
+- `include=guest,listings` → 23 keys (adds `guest` AND `listings`)
+- `include=guest,properties,listings` → 24 keys (adds all three)
+- URL-encoding the comma (`%2C`) behaves identically
+
+**Rationale**: The existing reservation poll already sends
+`include=properties` (spec 001 D-06). Adding `guest` to the same
+parameter via comma-separation costs zero additional requests and
+enriches the payload with guest data for FR-039/FR-039a attributes.
+Population is good (29/29 non-null guest objects, first_name 29/29).
+
+**Post-condition (FR-075)**: Because unrecognised include names are
+silently ignored (silent-ignore behaviour #4), the implementation
+MUST assert the `guest` key is actually present on every response
+item. A missing key when `include=guest` was requested raises
+`HospitableIncludeMissingError`. This is the same pattern applied to
+`include=listings` and `include=properties` in spec 001.
 
 **Change to spec 001 contract**: This modifies the
 `upstream-requests.md` Honored-Request Verification table. Previously
