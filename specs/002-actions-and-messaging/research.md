@@ -42,6 +42,7 @@ directly, and the exact bound of what was observed is stated with it.
 | D-13 | Task type vs service_id explicit mapping | FR-033, FR-035 |
 | D-14 | `SupportsResponse.ONLY` on all services including send | FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
+| D-16 | Single response-builder chokepoint for guest and sender PII | FR-046, FR-047, FR-047a, FR-048 |
 
 ## D-01: Write isolation via module path {#d-01}
 
@@ -505,3 +506,55 @@ remain DOCUMENTED and UNVERIFIED so the tiers are not blurred.
 | A-05b | Reads and writes may or may not share one per-reservation bucket | UNVERIFIED and untestable without a real send (OQ-007) | Assert neither; 60s fetch floor leaves one slot free, and send treats 429 as retryable-with-backoff |
 | A-06 | `sender_id` is Airbnb-only | DOCUMENTED | Reject client-side for non-Airbnb reservations |
 | A-07 | Task vocabularies in `meta` are stable | CONFIRMED-BY-TEST (structure) | Fall back to hard-coded map if meta absent |
+
+## D-16: Single response-builder chokepoint for PII {#d-16}
+
+**Decision**: One shared serialiser — `actions/response.py` — is the
+only code that converts an upstream reservation, guest, or message
+payload into a service response. It strips `profile_picture`
+unconditionally, strips `email` and `phone_numbers` unless the
+guest-contact-details option is enabled on the config entry serving the
+call, strips the opaque message `sender` object unconditionally, and
+emits an explicit ALLOWLIST of keys so that an unrecognised upstream key
+is dropped rather than passed through. Every handler returns the output
+of this serialiser; no handler serialises a payload itself.
+
+**Why this decision exists**: the analyze gate found that
+`find_reservation` and `get_reservations` were specified to return the
+raw reservation payload "with guest". The guest object carries
+`profile_picture`, `email`, and `phone_numbers`. FR-039c and FR-039d
+appeared to cover this, but both were written in terms of ENTITY
+ATTRIBUTES, so neither reached the service-response surface. No
+requirement and no task constrained what a service returned. The defect
+was not a missing control; it was a control scoped to the wrong
+surface — which is why it looked covered and was not, and why no CI
+gate could have caught it. FR-046 states the general principle so the
+same shape is recognisable next time.
+
+**Why a chokepoint rather than per-handler filtering**: per-handler
+filtering is correct exactly as long as every author remembers it. The
+defect being fixed here is a forgetting defect, so the fix must not
+depend on remembering. A single serialiser means a sixth service added
+in a later specification inherits the filter by construction, and the
+red-phase test enumerates registered services rather than a hard-coded
+list, so a new service that bypasses the serialiser fails the audit.
+
+**Why an allowlist rather than a denylist**: a denylist protects only
+the keys known when it was written. Hospitable adds keys silently — the
+`guest` include itself was discovered late — so a denylist would leak
+the next PII field by default. The allowlist is `first_name`,
+`last_name`, `location`, `language`, plus `email` and `phone_numbers`
+when the option is on.
+
+**Alternatives considered**:
+
+- *Return the raw payload and document the risk*: Rejected. Service
+  responses appear in automation traces and template debug output; the
+  user cannot opt out of a payload they did not ask for.
+- *Gate the whole of `find_reservation` behind the contact-details
+  option*: Rejected. Names and dates are the useful part and carry no
+  contact exposure; gating everything would push users to enable the
+  contact option for unrelated reasons, which is the opposite of the
+  intent.
+- *Filter in the schema layer*: Rejected. Voluptuous schemas validate
+  service INPUT. The response path does not pass through them.

@@ -270,10 +270,15 @@ diagnostics never contain the guest name unredacted.
    output is audited, **Then** no guest field (`first_name`,
    `last_name`, `email`, `phone_numbers`, `location`, `language`,
    `profile_picture`) is present unredacted.
-5. **Given** the `guest` object is null on a reservation, **When** the
+5. **Given** any service call that returns a reservation or a message
+   thread, **When** its response is audited, **Then** `profile_picture`
+   is absent unconditionally, and `email` and `phone_numbers` are
+   absent unless the guest-contact-details option is enabled
+   (FR-046, FR-047).
+6. **Given** the `guest` object is null on a reservation, **When** the
    entity updates, **Then** guest attributes report no value rather
    than raising or becoming unavailable.
-6. **Given** any guest attribute, **When** Home Assistant writes state
+7. **Given** any guest attribute, **When** Home Assistant writes state
    to the recorder database, **Then** the attribute is NOT persisted
    (marked unrecorded).
 
@@ -622,12 +627,16 @@ diagnostics never contain the guest name unredacted.
   handle this gracefully, showing only first_name when last_name is
   null. (CONFIRMED-BY-TEST: 28/29)
 - **FR-039c**: `guest_email` and `guest_phone_numbers` MUST be
-  exposed ONLY when the guest-contact-details option (FR-038b) is
-  enabled. `email` is usually absent (4/29 populated) and MUST NOT be
+  exposed AS ENTITY ATTRIBUTES ONLY when the guest-contact-details
+  option (FR-038b) is enabled. The equivalent control for the service
+  response surface is FR-047; this requirement does not reach that
+  surface (FR-046). `email` is usually absent (4/29 populated) and MUST NOT be
   assumed present. `phone_numbers` is an array (22/29 populated).
   (CONFIRMED-BY-TEST)
 - **FR-039d**: `profile_picture` MUST NOT be exposed as an entity
-  attribute.
+  attribute. It is additionally barred from service responses by
+  FR-047 and from logs and diagnostics by FR-041 and FR-042; it has no
+  permitted exposure surface anywhere (FR-046).
 - **FR-039e**: ALL guest attributes (both default and opt-in) MUST be
   marked as unrecorded attributes so they live in entity state memory
   only and are NEVER written to the recorder database or captured in
@@ -665,6 +674,48 @@ diagnostics never contain the guest name unredacted.
   `HomeAssistantError` MUST be used for API failures (network, server
   error, permanent capability limitation).
 
+#### Service response privacy (exposure surface parity)
+
+- **FR-046**: **A privacy control scoped to one surface does not
+  protect another surface.** Every requirement in this specification
+  that restricts personal data MUST name the surface it governs, and
+  each surface MUST be given its own explicit control. The exposure
+  surfaces recognised by this specification are: entity attributes,
+  the recorder database, logs, diagnostics output, exception text, and
+  **service call responses**. Service responses are user-visible
+  through automation traces, template rendering, script variables, and
+  debug logging, and are therefore an exposure surface of equal
+  standing to entity attributes — not a private internal channel.
+  A future surface added without its own control MUST be treated as
+  unprotected until one is written.
+- **FR-047**: Guest data returned in a SERVICE CALL RESPONSE MUST
+  follow the same policy as guest data exposed as an entity attribute:
+  - `profile_picture` MUST NEVER appear in any service response, under
+    any option, ever. It has no permitted exposure surface at all.
+  - `email` and `phone_numbers` MUST be omitted from service responses
+    UNLESS the guest-contact-details option (FR-038b) is enabled for
+    the config entry serving the call.
+  - `first_name`, `last_name`, `location`, and `language` MAY be
+    returned.
+  - Any guest key not enumerated here MUST be omitted rather than
+    passed through, so that a new upstream key cannot leak by default.
+  This governs `find_reservation` and `get_reservations`, which return
+  reservation payloads fetched with `include=guest`, and any future
+  service that returns a reservation payload.
+- **FR-047a**: The `sender` object on a message MUST NOT be returned
+  raw by `get_messages`. It is an opaque upstream structure that may
+  carry guest identity and contact fields, so it is subject to FR-047
+  on the same terms. Only `sender_type` and `sender_role` — which are
+  role discriminators, not identity — may be returned. Message `body`
+  and `attachments` remain returnable, since retrieving them is the
+  service's purpose (FR-024), but MUST NOT be logged.
+- **FR-048**: The FR-047 and FR-047a filtering MUST be applied inside
+  ONE shared response-builder chokepoint that every service response
+  passes through. It MUST NOT be implemented per handler, and it MUST
+  NOT rely on the caller to filter. A service added later that
+  serialises a guest or sender object MUST inherit the filter by
+  construction rather than by remembering to call it.
+
 ### Key Entities
 
 - **Task**: A scheduled operational activity for a property (cleaning,
@@ -695,6 +746,11 @@ diagnostics never contain the guest name unredacted.
   diagnostics download finds zero occurrences of guest first names,
   last names, email addresses, phone numbers, locations, languages,
   profile pictures, or message bodies unredacted.
+- **SC-003a**: An audit of the response payload of every registered
+  service finds zero occurrences of `profile_picture` and zero
+  occurrences of a raw message `sender` object, under every option
+  combination; and finds `email` and `phone_numbers` absent when the
+  guest-contact-details option is OFF and present when it is ON.
 - **SC-004**: All `/tasks` pages are fetched without data loss — the
   task count reported by sensors matches the total across all pages
   returned by the API.

@@ -97,6 +97,12 @@ exempt on those grounds and are therefore NOT split red/green.
   `sent_reference_id` is a correlation handle, not proof of delivery.
 - **Never "unread".** The upstream API has no read-state field. The
   indicator is "awaiting host reply".
+- **A privacy control scoped to one surface does not protect another
+  surface.** Entity attributes, the recorder, logs, diagnostics,
+  exception text, and SERVICE RESPONSES are six distinct exposure
+  surfaces. A task that cites an entity-attribute control does not
+  thereby cover a service response. `profile_picture` has no permitted
+  surface at all; contact details are gated per surface (FR-046).
 - **`include=guest` is SINGULAR.** Plural `guests` is a silently-ignored
   no-op upstream.
 - **The messages endpoint is NOT paginated** and IS rate limited. See
@@ -688,6 +694,44 @@ assert a return value rather than an exception.
       xfail registration-table tests (`raises=AssertionError`) to expect
       all five services present in the table, each with its declared
       `SupportsResponse` value. (FR-005, FR-020)
+- [ ] T072a [P] [US2] Create `tests/actions/test_response_privacy.py`
+      and add an xfail test (`raises=ModuleNotFoundError`) that
+      `profile_picture` is ABSENT from the response of EVERY registered
+      service, under EVERY combination of the guest-contact-details and
+      awaiting-host-reply options. Drive the fixture from
+      `reservation_with_guest.json`, whose complete guest DOES carry a
+      `profile_picture`, so the assertion fails if the key is passed
+      through. Enumerate services from the registration table rather
+      than a hard-coded list, so a sixth service added later is covered
+      automatically. (FR-046, FR-047, FR-048, SC-003a)
+- [ ] T072b [US2] In `tests/actions/test_response_privacy.py`, add xfail
+      tests (`raises=ModuleNotFoundError`) that `email` and
+      `phone_numbers` are ABSENT from `find_reservation` and
+      `get_reservations` responses when the guest-contact-details option
+      is OFF (the default) and PRESENT when it is ON, while
+      `first_name`, `last_name`, `location`, and `language` are returned
+      in both cases. This is the service-response half of the control
+      whose entity-attribute half is FR-039c. (FR-047, SC-003a)
+- [ ] T072c [US2] In `tests/actions/test_response_privacy.py`, add an
+      xfail test (`raises=ModuleNotFoundError`) that an UNKNOWN guest
+      key injected into the fixture (simulating a new upstream field) is
+      DROPPED from the response. The serialiser is an allowlist, not a
+      denylist: a denylist would leak the next PII field Hospitable adds
+      by default. (FR-047, FR-048)
+- [ ] T072d [US2] In `tests/actions/test_response_privacy.py`, add an
+      xfail test (`raises=ModuleNotFoundError`) that `get_messages`
+      never returns the opaque `sender` object, and that `sender_type`
+      and `sender_role` ARE returned. `sender` may carry guest identity
+      and contact fields; the role discriminators may not. (FR-047a,
+      SC-003a)
+- [ ] T072e [US2] In `tests/actions/test_response_privacy.py`, add an
+      xfail test (`raises=AssertionError`) that every service handler
+      module routes its return value through the shared serialiser:
+      scan the AST of `custom_components/hospitable/actions/*.py` and
+      fail if any handler constructs a response dict containing a
+      `guest` or `sender` key without calling the serialiser. This is
+      what stops a future service from silently bypassing the
+      chokepoint. (FR-048)
 - [ ] T073 [US2] In `tests/actions/test_localisation.py`, add xfail
       tests (`raises=AssertionError`) using the T016 helper that every
       service in the registration table has a matching `services.yaml`
@@ -713,6 +757,17 @@ assert a return value rather than an exception.
 - [ ] T075 [US2] Add the `HospitableMessage` model to
       `custom_components/hospitable/api/models.py` per `data-model.md`.
       (FR-020)
+- [ ] T075a [US2] Create
+      `custom_components/hospitable/actions/response.py`: the SINGLE
+      response serialiser every handler returns through, per
+      `research.md` D-16. It emits an explicit ALLOWLIST — guest
+      `first_name`, `last_name`, `location`, `language`, plus `email`
+      and `phone_numbers` only when the guest-contact-details option is
+      enabled on the config entry serving the call — drops
+      `profile_picture` unconditionally, drops the opaque message
+      `sender` object unconditionally, and drops any key not on the
+      allowlist. It MUST NOT be duplicated per handler and MUST NOT
+      rely on callers to filter. (FR-046, FR-047, FR-047a, FR-048)
 - [ ] T076 [US2] Create
       `custom_components/hospitable/actions/get_messages.py` with the
       handler, `SupportsResponse.ONLY`, and no logging of message
@@ -727,6 +782,10 @@ assert a return value rather than an exception.
       `custom_components/hospitable/actions/get_property_info.py`,
       returning listings including co-host identifiers so operators can
       discover the values FR-013 requires. (FR-027, FR-028, FR-013)
+- [ ] T079a [US2] Route `get_messages`, `find_reservation`,
+      `get_reservations`, `get_property_info`, and the `send_message`
+      acceptance payload through the T075a serialiser. No handler
+      serialises an upstream payload itself. (FR-048)
 - [ ] T080 [US2] Extend
       `custom_components/hospitable/actions/schemas.py` with the four
       new service schemas, each carrying the optional
@@ -743,8 +802,11 @@ assert a return value rather than an exception.
       `uv run ruff check`.
 
 **Exit criteria**: all five services registered, tested, localised, and
-documented; not-found is a return value everywhere; message pagination
-handles both possibilities without asserting either as fact.
+documented; not-found is a return value everywhere; the thread is
+fetched in a single request with no pagination loop while tolerating an
+unexpected `meta`/`links` block; and every service response passes
+through the one serialiser, with `profile_picture` and the raw `sender`
+object absent unconditionally and contact details gated on the opt-in.
 
 ---
 
@@ -1141,6 +1203,14 @@ phase.
 - [ ] T153 [US6] Automate VS-7 (PII audit) from `quickstart.md`,
       covering logs, diagnostics, and recorder exclusion for guest and
       message data in one pass. (FR-024, FR-041, FR-042, FR-043)
+- [ ] T153a [US6] Automate VS-11 (service-response PII audit) from
+      `quickstart.md`: call every registered service under both settings
+      of the guest-contact-details option and assert `profile_picture`
+      and the raw message `sender` object are absent in all cases, and
+      that `email`/`phone_numbers` track the option. This is the
+      service-response surface; T153 covers logs, diagnostics, and the
+      recorder, and does NOT reach this one. (FR-046, FR-047, FR-047a,
+      SC-003a)
 - [ ] T154 [P] [US6] Automate VS-8 (multi-entry disambiguation) from
       `quickstart.md`. (FR-008, FR-029)
 - [ ] T155 [P] [US6] Automate VS-9 (rate-limit enforcement) from

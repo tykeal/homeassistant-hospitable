@@ -21,6 +21,31 @@ Services are removed when the last config entry unloads.
 All service text (names, descriptions, field labels) lives in
 `strings.json` and `translations/en.json` (FR-007).
 
+## Response privacy chokepoint (MANDATORY for every service)
+
+Every service response in this document is produced by the single
+shared serialiser described in [research.md D-16](../research.md#d-16).
+No handler serialises an upstream payload itself. The serialiser
+applies an ALLOWLIST, so an upstream key that is not listed is dropped
+rather than passed through:
+
+| Guest key | In service response? |
+| --- | --- |
+| `first_name`, `last_name`, `location`, `language` | Yes |
+| `email`, `phone_numbers` | ONLY when the guest-contact-details option (FR-038b) is enabled on the config entry serving the call |
+| `profile_picture` | **NEVER, under any option** (FR-047) |
+| `id` and any other guest key | Dropped unless added to the allowlist deliberately |
+
+The opaque message `sender` object is stripped unconditionally
+(FR-047a); only `sender_type` and `sender_role` survive, because they
+are role discriminators rather than identity.
+
+This is required because a privacy control scoped to one surface does
+not protect another surface (FR-046). Service responses are visible in
+automation traces, template rendering, and debug logs, so they rank
+with entity attributes as an exposure surface — the entity-attribute
+controls in FR-039c and FR-039d do not reach them.
+
 ## Common fields
 
 Every service accepts an optional `config_entry_id` field for
@@ -158,6 +183,9 @@ through all results. If absent, treats `data` as complete.
 
 **PII rule**: Message bodies are returned to the caller (they are the
 purpose of the service) but are NEVER logged at any level (FR-024).
+The opaque `sender` object is NOT returned — it may carry guest
+identity and contact fields, so the chokepoint strips it and only
+`sender_type` and `sender_role` survive (FR-047a).
 
 ---
 
@@ -176,14 +204,26 @@ purpose of the service) but are NEVER logged at any level (FR-024).
 
 **API call**: `GET /reservations/{uuid}?include=guest,properties`
 
-**Response shape**:
+**Response shape** (guest object filtered by the chokepoint above):
 
 ```json
 {
   "found": true,
-  "reservation": { /* reservation object with guest */ }
+  "reservation": {
+    "...": "reservation fields",
+    "guest": {
+      "first_name": "<string or null>",
+      "last_name": "<string or null>",
+      "location": "<string or null>",
+      "language": "<string or null>"
+    }
+  }
 }
 ```
+
+`email` and `phone_numbers` join the `guest` object only when the
+guest-contact-details option is enabled. `profile_picture` never
+appears (FR-047).
 
 **Not-found**:
 
@@ -218,7 +258,7 @@ window.
 {
   "found": true,
   "property_id": "<target>",
-  "reservations": [ /* array */ ]
+  "reservations": [ /* array; each guest object filtered per FR-047 */ ]
 }
 ```
 

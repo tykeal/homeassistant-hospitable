@@ -32,7 +32,7 @@ Built from an item of `GET /reservations/{uuid}/messages` response
 | `content_type` | `str` | `content_type` | CONFIRMED-BY-TEST | |
 | `sender_type` | `str` | `sender_type` | CONFIRMED-BY-TEST | Key for awaiting-host-reply derivation |
 | `sender_role` | `str \| None` | `sender_role` | CONFIRMED-BY-TEST | |
-| `sender` | `dict[str, Any] \| None` | `sender` | CONFIRMED-BY-TEST | Opaque; contains PII — never logged |
+| `sender` | `dict[str, Any] \| None` | `sender` | CONFIRMED-BY-TEST | Opaque; may carry guest identity and contact fields. Never logged, and never returned in a service response — the response chokepoint strips it and keeps only `sender_type`/`sender_role` (FR-047a) |
 | `created_at` | `str` | `created_at` | CONFIRMED-BY-TEST | ISO 8601 timestamp |
 | `attachments` | `list[dict[str, Any]]` | `attachments` | CONFIRMED-BY-TEST | |
 | `source` | `str \| None` | `source` | CONFIRMED-BY-TEST | |
@@ -59,8 +59,14 @@ Built from the `guest` key on a reservation response when
 | `profile_picture` | `str \| None` | `profile_picture` | CONFIRMED-BY-TEST | 27/29; NEVER exposed as entity attribute |
 
 All fields are PII. `profile_picture` is parsed into the model for
-validation completeness but is never surfaced anywhere — not as an
-attribute, not in logs, not in diagnostics (FR-039d).
+validation completeness but is never surfaced on ANY exposure surface
+— not as an entity attribute (FR-039d), not in a service response
+(FR-047), not in logs or diagnostics (FR-041, FR-042). `email` and
+`phone_numbers` are surfaced only where the guest-contact-details
+option is enabled, on both the attribute surface (FR-039c) and the
+service-response surface (FR-047). Surface-by-surface enumeration is
+deliberate: a control scoped to one surface does not protect another
+(FR-046).
 
 ### `HospitableTask`
 
