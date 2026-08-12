@@ -27,10 +27,14 @@ from custom_components.hospitable.const import (
     CONF_PROPERTY_INTERVAL,
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
+    CONF_TASK_INTERVAL,
+    CONF_TASK_WINDOW_DAYS,
     CONF_TIMEZONE_OVERRIDES,
     DEFAULT_GUEST_CONTACT_DETAILS,
     DEFAULT_PROPERTY_INTERVAL,
     DEFAULT_RESERVATION_INTERVAL,
+    DEFAULT_TASK_INTERVAL,
+    DEFAULT_TASK_WINDOW_DAYS,
 )
 from custom_components.hospitable.options_bounds import _validate_bounds
 from custom_components.hospitable.services.estimator import estimate_requests_per_day
@@ -50,6 +54,8 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_PROPERTY_INTERVAL: DEFAULT_PROPERTY_INTERVAL,
     CONF_LOOKBACK_DAYS: LOOKBACK_DEFAULT,
     CONF_LOOKAHEAD_DAYS: LOOKAHEAD_DEFAULT,
+    CONF_TASK_INTERVAL: DEFAULT_TASK_INTERVAL,
+    CONF_TASK_WINDOW_DAYS: DEFAULT_TASK_WINDOW_DAYS,
     CONF_TIMEZONE_OVERRIDES: {},
 }
 
@@ -88,6 +94,8 @@ class HospitableOptionsFlow(OptionsFlow):
                 CONF_PROPERTY_INTERVAL,
                 CONF_LOOKBACK_DAYS,
                 CONF_LOOKAHEAD_DAYS,
+                CONF_TASK_INTERVAL,
+                CONF_TASK_WINDOW_DAYS,
             ):
                 if field in user_input:
                     options[field] = user_input[field]
@@ -114,6 +122,8 @@ class HospitableOptionsFlow(OptionsFlow):
                         CONF_PROPERTY_INTERVAL: user_input[CONF_PROPERTY_INTERVAL],
                         CONF_LOOKBACK_DAYS: user_input[CONF_LOOKBACK_DAYS],
                         CONF_LOOKAHEAD_DAYS: user_input[CONF_LOOKAHEAD_DAYS],
+                        CONF_TASK_INTERVAL: user_input[CONF_TASK_INTERVAL],
+                        CONF_TASK_WINDOW_DAYS: user_input[CONF_TASK_WINDOW_DAYS],
                         CONF_TIMEZONE_OVERRIDES: resolved_overrides,
                         CONF_GUEST_CONTACT_DETAILS: bool(
                             user_input.get(
@@ -226,6 +236,12 @@ class HospitableOptionsFlow(OptionsFlow):
             ): vol.Coerce(int),
             vol.Optional(
                 CONF_LOOKAHEAD_DAYS, default=options[CONF_LOOKAHEAD_DAYS]
+            ): vol.Coerce(int),
+            vol.Optional(
+                CONF_TASK_INTERVAL, default=options[CONF_TASK_INTERVAL]
+            ): vol.Coerce(int),
+            vol.Optional(
+                CONF_TASK_WINDOW_DAYS, default=options[CONF_TASK_WINDOW_DAYS]
             ): vol.Coerce(int),
             vol.Optional(
                 CONF_GUEST_CONTACT_DETAILS,

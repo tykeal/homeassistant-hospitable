@@ -11,6 +11,11 @@ from typing import Any
 
 from custom_components.hospitable.api.exceptions import HospitableResponseError
 from custom_components.hospitable.api.guest import GuestBreakdown, HospitableGuest
+from custom_components.hospitable.api.task_model import (
+    HospitableTask,
+    TaskTypeEntry,
+    TaskVocabularies,
+)
 
 
 @dataclass(frozen=True)
@@ -414,7 +419,14 @@ def _optional_str(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
+# ``HospitableTask`` and its vocabularies live in ``api.task_model``
+# rather than here because this module is already at the project's
+# file-size limit. They are re-exported so the documented
+# ``api.models`` import path resolves for every model alike.
 __all__ = [
     "GuestBreakdown",
     "HospitableGuest",
+    "HospitableTask",
+    "TaskTypeEntry",
+    "TaskVocabularies",
 ]

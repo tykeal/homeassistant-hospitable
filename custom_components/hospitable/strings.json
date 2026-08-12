@@ -49,10 +49,13 @@
           "lookback_days": "Lookback days",
           "lookahead_days": "Lookahead days",
           "timezone_overrides": "Property timezone overrides",
-          "guest_contact_details": "Expose guest contact details as entity attributes"
+          "guest_contact_details": "Expose guest contact details as entity attributes",
+          "task_interval_minutes": "Task polling interval (minutes)",
+          "task_window_days": "Task lookahead window (days)"
         },
         "data_description": {
-          "guest_contact_details": "Off by default. When enabled, the reservation status entity gains guest_email and guest_phone_numbers attributes, placing the guest's email address and phone number into entity attributes that anyone with access to this Home Assistant instance can read on a dashboard or in a template. Guest names, location, and language are always exposed as attributes; no guest attribute is ever written to the recorder database."
+          "guest_contact_details": "Off by default. When enabled, the reservation status entity gains guest_email and guest_phone_numbers attributes, placing the guest's email address and phone number into entity attributes that anyone with access to this Home Assistant instance can read on a dashboard or in a template. Guest names, location, and language are always exposed as attributes; no guest attribute is ever written to the recorder database.",
+          "task_window_days": "How many days ahead tasks are fetched, counting from today. Tasks are never fetched backwards. The integration always sends this window explicitly rather than relying on Hospitable's undocumented default, so the task count means the same thing every poll. Hospitable rejects a window ending more than three years ahead."
         }
       }
     },
@@ -62,7 +65,9 @@
       "property_interval_min": "The property polling interval must be at least 15 minutes. Increase the value and try again.",
       "lookback_range": "The lookback must be between 7 and 365 days. Adjust the value and try again.",
       "lookahead_range": "The lookahead must be between 1 and 730 days. Adjust the value and try again.",
-      "invalid_timezone": "Timezone overrides must be IANA names such as America/Los_Angeles. Correct the value and try again."
+      "invalid_timezone": "Timezone overrides must be IANA names such as America/Los_Angeles. Correct the value and try again.",
+      "task_interval_min": "The task polling interval must be at least 5 minutes. Increase the value and try again.",
+      "task_window_range": "The task lookahead window must be between 1 and 730 days. Adjust the value and try again."
     }
   },
   "entity": {
@@ -100,6 +105,12 @@
           "booked": "Booked",
           "unknown": "Unknown"
         }
+      },
+      "next_task": {
+        "name": "Next task"
+      },
+      "task_count": {
+        "name": "Task count"
       }
     }
   },

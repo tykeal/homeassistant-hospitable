@@ -16,12 +16,12 @@ from datetime import date
 from typing import Any
 
 import httpx
-import pytest
 
 from tests.helpers import load_fixture
 from tests.helpers.task_entry import (
     PROPERTY_A,
     TEAMMATE_NAME_A,
+    as_single_page,
     tasks_page,
 )
 
@@ -37,8 +37,7 @@ def _single_page(**overrides: Any) -> Any:
     Returns:
         The rewritten envelope.
     """
-    payload = tasks_page("tasks_page1.json", PROPERTY_A)
-    payload["meta"]["last_page"] = 1
+    payload = as_single_page(tasks_page("tasks_page1.json", PROPERTY_A))
     payload["data"][0].update(overrides)
     return payload
 
@@ -60,11 +59,6 @@ async def _fetch(client: Any, router: Any, payload: Any) -> Any:
     return await client.get_tasks(PROPERTY_A, *WINDOW)
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T115 the client has no get_tasks method",
-)
 async def test_the_model_parses_every_scheduling_field(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -94,11 +88,6 @@ async def test_the_model_parses_every_scheduling_field(
     assert task.teammate_id == "cccccccc-cccc-4ccc-8ccc-ccccccccccc1"
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T115 the client has no get_tasks method",
-)
 async def test_a_null_progress_status_is_preserved(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -118,11 +107,6 @@ async def test_a_null_progress_status_is_preserved(
     assert by_name["H-SYNTH-002"].progress_status == "completed"
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T115a the client has no get_tasks method",
-)
 async def test_the_property_association_is_read_from_nested_property_id(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -159,11 +143,6 @@ async def test_the_property_association_is_read_from_nested_property_id(
     )
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T115 the client has no get_tasks method",
-)
 async def test_the_teammate_personal_name_is_never_a_model_field(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -195,11 +174,6 @@ async def test_the_teammate_personal_name_is_never_a_model_field(
         assert value != TEAMMATE_NAME_A, "a teammate personal name reached the model"
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T115 the client has no get_tasks method",
-)
 async def test_free_text_and_guest_adjacent_fields_are_not_model_fields(
     api_client_factory: Any,
     mock_httpx_client: Any,

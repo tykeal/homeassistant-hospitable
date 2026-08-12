@@ -23,6 +23,7 @@ _SPEC_002_FIXTURES = (
     "messages_empty.json",
     "tasks_page1.json",
     "tasks_page2.json",
+    "tasks_empty.json",
     "reservation_with_guest.json",
     "send_message_202_full.json",
     "send_message_202_empty.json",

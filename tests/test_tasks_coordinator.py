@@ -14,11 +14,11 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 
 from tests.helpers.task_entry import (
     PROPERTY_A,
     PROPERTY_B,
+    as_single_page,
     build_entry,
     empty_tasks_page,
     mock_base_endpoints,
@@ -28,11 +28,6 @@ from tests.helpers.task_entry import (
 )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T116 no tasks coordinator is wired into setup",
-)
 async def test_the_tasks_coordinator_exists_and_holds_a_base_client(
     hass: Any, respx_router: Any
 ) -> None:
@@ -54,11 +49,6 @@ async def test_the_tasks_coordinator_exists_and_holds_a_base_client(
     assert not isinstance(coordinator.client, HospitableWriteClient)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T116 no tasks coordinator is wired into setup",
-)
 async def test_the_tasks_coordinator_polls_on_its_own_cadence(
     hass: Any, respx_router: Any
 ) -> None:
@@ -75,11 +65,6 @@ async def test_the_tasks_coordinator_polls_on_its_own_cadence(
     assert tasks is not coordinators["calendar"]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T117 no tasks coordinator applies a default or floor",
-)
 async def test_the_task_interval_defaults_to_fifteen_minutes(
     hass: Any, respx_router: Any
 ) -> None:
@@ -93,11 +78,6 @@ async def test_the_task_interval_defaults_to_fifteen_minutes(
     assert coordinators["tasks"].update_interval == timedelta(minutes=15)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T117 no tasks coordinator applies a default or floor",
-)
 async def test_the_task_interval_is_clamped_to_a_five_minute_floor(
     hass: Any, respx_router: Any
 ) -> None:
@@ -115,11 +95,6 @@ async def test_the_task_interval_is_clamped_to_a_five_minute_floor(
     assert coordinators["tasks"].update_interval == timedelta(minutes=5)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T117a no tasks coordinator isolates per-property failures",
-)
 async def test_one_failing_property_keeps_its_last_good_task_data(
     hass: Any, respx_router: Any
 ) -> None:
@@ -131,10 +106,8 @@ async def test_one_failing_property_keeps_its_last_good_task_data(
     properties still update, and the refresh as a whole still succeeds.
     """
     mock_base_endpoints(respx_router)
-    first_a = tasks_page("tasks_page1.json", PROPERTY_A)
-    first_a["meta"]["last_page"] = 1
-    second_b = tasks_page("tasks_page2.json", PROPERTY_B)
-    second_b["meta"]["last_page"] = 1
+    first_a = as_single_page(tasks_page("tasks_page1.json", PROPERTY_A))
+    second_b = as_single_page(tasks_page("tasks_page2.json", PROPERTY_B))
     mock_tasks(
         respx_router,
         responses={
@@ -172,11 +145,6 @@ async def test_one_failing_property_keeps_its_last_good_task_data(
     assert len(coordinator.data[PROPERTY_B]) == 1
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T117a no tasks coordinator raises when all fail",
-)
 async def test_a_refresh_fails_only_when_every_property_fails(
     hass: Any, respx_router: Any
 ) -> None:

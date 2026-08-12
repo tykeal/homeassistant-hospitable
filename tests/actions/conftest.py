@@ -289,6 +289,11 @@ def mock_polling_endpoints(router: respx.Router, base_url: str) -> None:
         router.get(f"{base_url}/properties/{property_id}/calendar").mock(
             return_value=httpx.Response(200, json=load_fixture(fixture))
         )
+    # US4 adds a tasks coordinator to the lifecycle, so the shared route
+    # set has to cover /tasks or an unmocked call would abort setup.
+    router.get(f"{base_url}/tasks").mock(
+        return_value=httpx.Response(200, json=load_fixture("tasks_empty.json"))
+    )
 
 
 @pytest.fixture

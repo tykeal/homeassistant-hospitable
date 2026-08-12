@@ -17,8 +17,6 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-import pytest
-
 from tests.helpers.task_entry import (
     PROPERTY_A,
     PROPERTY_B,
@@ -61,11 +59,6 @@ def _state(hass: Any, property_id: str, key: str) -> Any:
     return state
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T118 no next_task sensor is registered",
-)
 async def test_a_next_task_sensor_exists_per_property(
     hass: Any, respx_router: Any
 ) -> None:
@@ -78,11 +71,6 @@ async def test_a_next_task_sensor_exists_per_property(
         )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T118 no next_task sensor is registered",
-)
 async def test_the_next_task_state_is_the_soonest_task_type_label(
     hass: Any, respx_router: Any
 ) -> None:
@@ -107,11 +95,6 @@ async def test_the_next_task_state_is_the_soonest_task_type_label(
     assert state.attributes["teammate_id"]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T118 no next_task sensor is registered",
-)
 async def test_a_property_with_no_tasks_reports_no_next_task(
     hass: Any, respx_router: Any
 ) -> None:
@@ -126,11 +109,6 @@ async def test_a_property_with_no_tasks_reports_no_next_task(
     assert state.state in ("unknown", "None", ""), state.state
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T119 no task_count sensor is registered",
-)
 async def test_the_task_count_spans_every_page(hass: Any, respx_router: Any) -> None:
     """The count equals the combined total across ALL pages (T119, FR-031).
 
@@ -147,11 +125,6 @@ async def test_the_task_count_spans_every_page(hass: Any, respx_router: Any) -> 
     assert empty.state == "0"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T119 no task_count sensor is registered",
-)
 async def test_the_task_count_breaks_down_by_progress(
     hass: Any, respx_router: Any
 ) -> None:
@@ -168,11 +141,6 @@ async def test_the_task_count_breaks_down_by_progress(
     assert state.attributes["completed_count"] == 1
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T120 no task sensor exists to inspect",
-)
 async def test_the_maintenance_task_is_labelled_from_the_task_type_table(
     hass: Any, respx_router: Any
 ) -> None:
@@ -196,11 +164,6 @@ async def test_the_maintenance_task_is_labelled_from_the_task_type_table(
     assert maintenance.service_type_label == "Maintenance"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T120 no task sensor exists to inspect",
-)
 async def test_no_task_attribute_ever_carries_a_teammate_name(
     hass: Any, respx_router: Any
 ) -> None:
@@ -223,11 +186,6 @@ async def test_no_task_attribute_ever_carries_a_teammate_name(
     assert "teammate_name" not in state.attributes
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T120 no task sensor exists to inspect",
-)
 async def test_free_text_never_reaches_a_task_attribute(
     hass: Any, respx_router: Any
 ) -> None:
@@ -257,11 +215,6 @@ async def test_free_text_never_reaches_a_task_attribute(
         assert TASK_NOTE not in repr(task)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T120 no task sensor exists to inspect",
-)
 async def test_task_attributes_are_kept_out_of_the_recorder(
     hass: Any, respx_router: Any
 ) -> None:

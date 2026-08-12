@@ -17,6 +17,7 @@ from custom_components.hospitable.const import (
 from custom_components.hospitable.sensor.availability import build_availability_sensors
 from custom_components.hospitable.sensor.property import build_property_sensors
 from custom_components.hospitable.sensor.reservation import build_reservation_sensors
+from custom_components.hospitable.sensor.tasks import build_task_sensors
 from custom_components.hospitable.services.timezones import resolve_property_timezone
 
 
@@ -31,6 +32,7 @@ async def async_setup_entry(
     reservations_coordinator = coordinators["reservations"]
     properties_coordinator = coordinators["properties"]
     calendar_coordinator = coordinators["calendar"]
+    tasks_coordinator = coordinators["tasks"]
     properties = properties_coordinator.data or {}
 
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
@@ -82,6 +84,12 @@ async def async_setup_entry(
             ),
             *build_availability_sensors(
                 calendar_coordinator,
+                properties_coordinator,
+                account_namespace,
+                property_names,
+            ),
+            *build_task_sensors(
+                tasks_coordinator,
                 properties_coordinator,
                 account_namespace,
                 property_names,

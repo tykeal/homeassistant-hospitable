@@ -29,6 +29,7 @@ from tests.helpers import load_fixture
 from tests.helpers.task_entry import (
     PROPERTY_A,
     PROPERTY_B,
+    as_single_page,
     empty_tasks_page,
     mock_base_endpoints,
     mock_tasks,
@@ -53,12 +54,6 @@ def _task_requests(route: Any) -> list[httpx.Request]:
     return [call.request for call in route.calls]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T109 no tasks poll exists, so no request carries "
-    "properties[]",
-)
 async def test_every_tasks_request_carries_a_single_property(
     hass: Any, respx_router: Any
 ) -> None:
@@ -83,11 +78,6 @@ async def test_every_tasks_request_carries_a_single_property(
         assert values[0], "properties[] must never be empty"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T109a the tasks poll does not fan out yet",
-)
 async def test_the_poll_fans_out_to_one_request_per_property(
     hass: Any, respx_router: Any
 ) -> None:
@@ -119,11 +109,6 @@ async def test_the_poll_fans_out_to_one_request_per_property(
     assert {values[0] for values in named} == {PROPERTY_A, PROPERTY_B}
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T110 no request carries the configured window",
-)
 async def test_the_request_carries_the_configured_forward_window(
     hass: Any, respx_router: Any
 ) -> None:
@@ -161,11 +146,6 @@ async def test_the_request_carries_the_configured_forward_window(
         )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T110 the default window is not applied yet",
-)
 async def test_the_window_defaults_to_fourteen_days(
     hass: Any, respx_router: Any
 ) -> None:
@@ -193,11 +173,6 @@ async def test_the_window_defaults_to_fourteen_days(
     assert date.fromisoformat(end) - date.fromisoformat(start) == timedelta(days=14)
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T111 the client has no get_tasks method",
-)
 async def test_a_tasks_400_is_parsed_by_the_shared_envelope_parser(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -227,11 +202,6 @@ async def test_a_tasks_400_is_parsed_by_the_shared_envelope_parser(
     assert caught.value.field_messages == ["The properties field is required."]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T112 nothing paginates /tasks yet",
-)
 async def test_pagination_is_followed_from_day_one(
     hass: Any, respx_router: Any
 ) -> None:
@@ -250,11 +220,6 @@ async def test_pagination_is_followed_from_day_one(
     assert names == {"H-SYNTH-001", "H-SYNTH-002", "H-SYNTH-003"}
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T112a no per-property page count is followed",
-)
 async def test_pagination_is_followed_per_property(
     hass: Any, respx_router: Any
 ) -> None:
@@ -288,11 +253,6 @@ async def test_pagination_is_followed_per_property(
     )
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T113 the client has no get_tasks method",
-)
 async def test_enum_labels_come_from_the_response_meta_block(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -307,8 +267,7 @@ async def test_enum_labels_come_from_the_response_meta_block(
     """
     from custom_components.hospitable.api.const import BASE_URL
 
-    payload = tasks_page("tasks_page1.json", PROPERTY_A)
-    payload["meta"]["last_page"] = 1
+    payload = as_single_page(tasks_page("tasks_page1.json", PROPERTY_A))
     payload["meta"]["task_types"]["1"]["label"] = "Vocabulary From Meta"
     client = api_client_factory(mock_httpx_client, synthetic_token)
     respx_router.get(f"{BASE_URL}/tasks").mock(
@@ -321,11 +280,6 @@ async def test_enum_labels_come_from_the_response_meta_block(
     assert by_name["H-SYNTH-001"].task_type_label == "Vocabulary From Meta"
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    strict=True,
-    reason="TDD red phase: T114 the client has no get_tasks method",
-)
 async def test_task_types_and_service_types_are_never_interchanged(
     api_client_factory: Any,
     mock_httpx_client: Any,
@@ -346,8 +300,7 @@ async def test_task_types_and_service_types_are_never_interchanged(
     """
     from custom_components.hospitable.api.const import BASE_URL
 
-    payload = tasks_page("tasks_page1.json", PROPERTY_A)
-    payload["meta"]["last_page"] = 1
+    payload = as_single_page(tasks_page("tasks_page1.json", PROPERTY_A))
     assert payload["meta"]["task_types"]["5"]["label"] == "Maintenance"
     assert payload["meta"]["task_types"]["5"]["service_id"] == 8
     assert payload["meta"]["service_types"]["5"]["label"] == "Owner"

@@ -22,7 +22,10 @@ from custom_components.hospitable.const import (
     CONF_PROPERTY_INTERVAL,
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
+    CONF_TASK_INTERVAL,
+    CONF_TASK_WINDOW_DAYS,
     CONF_TOKEN,
+    DEFAULT_TASK_WINDOW_DAYS,
     VERSION,
 )
 from custom_components.hospitable.const import (
@@ -36,6 +39,7 @@ from custom_components.hospitable.coordinator import (
     HospitablePropertiesCoordinator,
     HospitableReservationsCoordinator,
 )
+from custom_components.hospitable.coordinator_tasks import HospitableTasksCoordinator
 from custom_components.hospitable.entity import (
     build_device_identifier,
     parse_device_identifier,
@@ -116,6 +120,19 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     # entities report unavailable until the next successful poll (FR-061).
     await calendar_coordinator.async_refresh()
 
+    tasks_coordinator = HospitableTasksCoordinator(
+        hass,
+        client,
+        property_ids=list(selected),
+        window_days=entry.options.get(CONF_TASK_WINDOW_DAYS, DEFAULT_TASK_WINDOW_DAYS),
+        config_entry=entry,
+        interval_minutes=entry.options.get(CONF_TASK_INTERVAL),
+    )
+    # Task data is supplementary in the same way calendar data is, so a
+    # task outage must not block the whole entry from loading. Its
+    # entities report unavailable until the next successful poll.
+    await tasks_coordinator.async_refresh()
+
     for property_id in known:
         property_model = properties.get(property_id)
         registry.async_get_or_create(
@@ -132,6 +149,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
             "properties": properties_coordinator,
             "reservations": reservations_coordinator,
             "calendar": calendar_coordinator,
+            "tasks": tasks_coordinator,
         },
         "selected_property_ids": selected,
         "known_property_ids": known,

@@ -101,6 +101,26 @@ def tasks_page(fixture: str, property_id: str, *, first_offset: int = 1) -> Any:
     return payload
 
 
+def as_single_page(payload: Any) -> Any:
+    """Mark a page envelope as the only page of its response.
+
+    ``tasks_page2.json`` records ``current_page: 2`` because that is
+    what upstream returned for it. A test that serves it as the ONLY
+    page must say so in the envelope too, or the shared page-envelope
+    validator rightly rejects a response whose page number disagrees
+    with the request.
+
+    Args:
+        payload: A task page envelope to rewrite in place.
+
+    Returns:
+        The same envelope, marked as page one of one.
+    """
+    payload["meta"]["last_page"] = 1
+    payload["meta"]["current_page"] = 1
+    return payload
+
+
 def empty_tasks_page() -> dict[str, Any]:
     """Return a well-formed task envelope carrying no tasks.
 
@@ -110,10 +130,9 @@ def empty_tasks_page() -> dict[str, Any]:
     """
     payload: dict[str, Any] = copy.deepcopy(load_fixture("tasks_page1.json"))
     payload["data"] = []
-    payload["meta"]["last_page"] = 1
-    payload["meta"]["current_page"] = 1
     payload["meta"]["total"] = 0
-    return payload
+    single: dict[str, Any] = as_single_page(payload)
+    return single
 
 
 def _properties_side_effect(request: httpx.Request) -> httpx.Response:

@@ -87,11 +87,9 @@ upstream keys on all 153 captured task objects: `duration_hours`,
 | --- | --- | --- | --- | --- |
 | `task_id` | `str` | `id` | CONFIRMED-BY-TEST | UUID string, not an integer |
 | `name` | `str` | `name` | CONFIRMED-BY-TEST | Short upstream task code |
-| `note` | `str \| None` | `note` | CONFIRMED-BY-TEST | Free text; see privacy note |
 | `property_id` | `str` | `property.id` | CONFIRMED-BY-TEST | Association key resolved by live capture |
 | `property_name` | `str` | `property.name` | CONFIRMED-BY-TEST | Operational label; review exposure before surfacing |
 | `reservation_id` | `str` | `reservation.id` | CONFIRMED-BY-TEST | Opaque reservation identifier |
-| `reservation_code` | `str` | `reservation.code` | CONFIRMED-BY-TEST | Guest-adjacent free text; see privacy note |
 | `teammate_id` | `str` | `teammate.id` | CONFIRMED-BY-TEST | Opaque teammate identifier; teammate name is excluded |
 | `task_type` | `int` | `task_type` | CONFIRMED-BY-TEST | 1-5; maps via `meta.task_types` |
 | `service_id` | `int` | `service_id` | CONFIRMED-BY-TEST | 1-8; NOT interchangeable with task_type |
@@ -124,11 +122,17 @@ precedent in `custom_components/hospitable/api/guest.py`: a field with
 no permitted exposure surface is simply not a model field, so it cannot
 leak onto an entity attribute, service response, diagnostic, log, or
 exception path someone forgets to guard. `teammate.id` is an opaque
-identifier and MAY be retained. `reservation.code` and `note` are also
-free-text or guest-adjacent values. Recommendation: keep them out of
-entity attributes and diagnostics for US4 unless a specific user-facing
-requirement names the surface and protection; if retained internally,
-redact them anywhere payloads are logged or reported.
+identifier and MAY be retained.
+
+`note` and `reservation.code` are dropped from the model on the same
+grounds, superseding an earlier draft of this document that kept both
+as fields "protected" at the entity surface. Scoping a control to one
+surface while the data sits parsed and available on another is the
+exact defect shape this project has hit repeatedly, and neither value
+has a consumer in US4: `note` is free text a host may have typed
+anything into, and `reservation.code` is guest-adjacent. The opaque
+`reservation.id` is retained, because linking a task to a reservation
+is genuinely useful.
 
 **Meta vocabularies**: live `/tasks` responses carry object-valued
 vocabularies in `meta.task_types`, `meta.service_types`,
@@ -208,7 +212,7 @@ thread was sent by the guest.
 | --- | --- |
 | State | Task type label of the soonest upcoming task, or `None` |
 | Attributes | `task_type`, `service_type`, `assignment_status`, `assignment_updated_at`, `progress_status`, `start_date`, `end_date`, `timezone`, `duration_hours`, `task_id`, `reservation_id`, `teammate_id` |
-| Unrecorded attributes | None by default; do not surface `teammate.name`, and treat `note` and `reservation.code` as protected unless a later requirement explicitly exposes them |
+| Unrecorded attributes | Every task detail attribute. Task scheduling detail changes on every poll and has no value as recorder history. `teammate.name`, `note` and `reservation.code` cannot appear at all: none is a model field |
 
 ### `task_count` sensor
 
@@ -216,6 +220,15 @@ thread was sent by the guest.
 | --- | --- |
 | State | Integer count of tasks in the polling window for this property |
 | Attributes | `pending_count`, `in_progress_count`, `completed_count` |
+
+**On the breakdown buckets**: `progress_status` is nullable upstream
+and was null on 54 of 153 live tasks, so a null counts as pending
+rather than being dropped, which would otherwise make the breakdown
+disagree with the state for a third of real tasks. `on_the_way`,
+`arrived` and `in_progress` all count as in progress. A `cancelled`
+task falls in NO bucket, so the three counts deliberately need not sum
+to the state: counting cancelled work as pending would overstate what
+is outstanding.
 
 ## Modified entities
 

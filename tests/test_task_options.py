@@ -124,11 +124,6 @@ def _require_new_fields(result: Any) -> None:
     assert TASK_WINDOW_DAYS in defaults, f"no task window field: {sorted(defaults)}"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121 the options flow has no task interval field",
-)
 async def test_the_options_flow_offers_the_task_interval(hass: Any) -> None:
     """The task cadence is offered with a 15-minute default (T121, FR-034)."""
     entry = _entry()
@@ -141,11 +136,6 @@ async def test_the_options_flow_offers_the_task_interval(hass: Any) -> None:
     assert defaults[TASK_INTERVAL] == 15
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121 the task interval floor is not enforced",
-)
 async def test_a_below_floor_task_interval_names_its_bound(hass: Any) -> None:
     """A below-floor cadence is rejected by name (T121, FR-034)."""
     entry = _entry()
@@ -168,11 +158,6 @@ async def test_a_below_floor_task_interval_names_its_bound(hass: Any) -> None:
     assert messages[error_key].rstrip().endswith(".")
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121a the options flow has no task window field",
-)
 async def test_the_options_flow_offers_the_task_window(hass: Any) -> None:
     """The task window is offered with a 14-day default (T121a, FR-030).
 
@@ -190,11 +175,6 @@ async def test_the_options_flow_offers_the_task_window(hass: Any) -> None:
 
 
 @pytest.mark.parametrize("value", [0, -1, 5000])
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121a the task window bound is not enforced",
-)
 async def test_an_out_of_range_task_window_names_its_bound(
     hass: Any, value: int
 ) -> None:
@@ -224,11 +204,6 @@ async def test_an_out_of_range_task_window_names_its_bound(
     assert messages[error_key].rstrip().endswith(".")
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121a options_bounds has no task window bound",
-)
 def test_the_task_window_bound_sits_below_the_upstream_ceiling() -> None:
     """The permitted maximum can never breach the 3-year ceiling (T121a).
 
@@ -249,11 +224,6 @@ def test_the_task_window_bound_sits_below_the_upstream_ceiling() -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T121/T121a the new options are not persisted",
-)
 async def test_the_new_options_are_persisted(hass: Any) -> None:
     """In-bounds values for both new options are saved (T121, T121a)."""
     entry = _entry()

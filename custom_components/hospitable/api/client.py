@@ -19,6 +19,7 @@ from custom_components.hospitable.api.const import (
     PROPERTIES_PATH,
     RESERVATION_PATH,
     RESERVATIONS_PATH,
+    TASKS_PATH,
     USER_PATH,
 )
 from custom_components.hospitable.api.exceptions import (
@@ -27,6 +28,7 @@ from custom_components.hospitable.api.exceptions import (
     HospitableForbiddenError,
     HospitableNotFoundError,
     HospitableRateLimitError,
+    HospitableRequestValidationError,
     HospitableResponseError,
     HospitableScopeError,
 )
@@ -35,6 +37,8 @@ from custom_components.hospitable.api.models import (
     HospitableProperty,
     HospitablePropertyCalendar,
     HospitableReservation,
+    HospitableTask,
+    TaskVocabularies,
 )
 from custom_components.hospitable.api.properties import build_properties_params
 from custom_components.hospitable.api.reservations import (
@@ -44,9 +48,11 @@ from custom_components.hospitable.api.reservations import (
 )
 from custom_components.hospitable.api.responses import (
     assert_include,
+    parse_error_envelope,
     validate_list_envelope,
 )
 from custom_components.hospitable.api.retry import parse_retry_after
+from custom_components.hospitable.api.tasks import build_tasks_params
 
 QueryValue = str | int | float | bool | None | list[str]
 
@@ -151,6 +157,17 @@ class HospitableApiClient:
         if response.status_code == 404:
             raise HospitableNotFoundError(
                 "Hospitable resource was not found", status=404, endpoint=path
+            )
+        if response.status_code == 400:
+            # A 400 carries the SAME Laravel envelope the message-send
+            # 422 does, so the shared parser serves both rather than a
+            # second, divergent one appearing (FR-045).
+            envelope = parse_error_envelope(body)
+            raise HospitableRequestValidationError(
+                envelope.reason_phrase or "Hospitable rejected the request",
+                field_messages=envelope.field_messages(),
+                status=400,
+                endpoint=path,
             )
         if response.status_code == 429:
             retry_after = parse_retry_after(response.headers.get("Retry-After"))
@@ -342,6 +359,48 @@ class HospitableApiClient:
                     break
                 page += 1
         return reservations
+
+    async def get_tasks(
+        self, property_id: str, start: date, end: date
+    ) -> list[HospitableTask]:
+        """Return one property's tasks in a window, across all pages.
+
+        Exactly ONE property is named per call. ``properties[]`` is
+        mandatory upstream, and the caller fans out one call per
+        property so a single property's failure can be isolated
+        (FR-030).
+
+        Pagination is real on this endpoint, unlike the messages
+        endpoint which silently ignores ``page``. Each response's own
+        ``meta.last_page`` is followed, so a property with more pages
+        than another is not truncated (FR-031).
+
+        Args:
+            property_id: The single property to fetch tasks for.
+            start: Window start date, which is today.
+            end: Window end date, today plus the configured window.
+
+        Returns:
+            Every task in the window, in upstream order.
+        """
+        page = 1
+        tasks: list[HospitableTask] = []
+        while True:
+            payload = await self._get(
+                TASKS_PATH,
+                params=build_tasks_params(property_id, start, end, page=page),
+            )
+            items = validate_list_envelope(payload, expected_page=page)
+            # Vocabularies come from THIS response, never a hardcoded
+            # table, so labels match the account's own configuration.
+            vocabularies = TaskVocabularies.from_meta(payload.get("meta"))
+            tasks.extend(HospitableTask.from_api(item, vocabularies) for item in items)
+            meta = payload.get("meta", {})
+            last_page = meta.get("last_page", page) if isinstance(meta, dict) else page
+            if page >= int(last_page):
+                break
+            page += 1
+        return tasks
 
     async def get_calendar(
         self, property_id: str, start: date, end: date

@@ -28,7 +28,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pytest
 import respx
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -93,7 +92,10 @@ async def test_gate_2_no_coordinator_holds_a_write_client(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     coordinators = entry.runtime_data["coordinators"]
-    assert set(coordinators) == {"properties", "reservations", "calendar"}
+    # Exact rather than a subset: a NEW coordinator cannot join the
+    # lifecycle without being named here and therefore proved to hold
+    # the GET-only client by the assertions below.
+    assert set(coordinators) == {"properties", "reservations", "calendar", "tasks"}
     for name, coordinator in coordinators.items():
         assert hasattr(coordinator, "client"), (
             f"coordinator {name} exposes no public client accessor"
@@ -172,11 +174,6 @@ US4_POLLING_MODULES = [
 ]
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T130 the US4 modules do not exist yet",
-)
 def test_gate_1_covers_the_tasks_coordinator_module() -> None:
     """The tasks coordinator annotates the GET-only base client too.
 
@@ -195,11 +192,6 @@ def test_gate_1_covers_the_tasks_coordinator_module() -> None:
     }, "the tasks coordinator must annotate self._client as the base client"
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: T130 the US4 modules do not exist yet",
-)
 def test_gate_3_covers_the_us4_modules() -> None:
     """No US4 polling module reaches for a write-capable symbol.
 

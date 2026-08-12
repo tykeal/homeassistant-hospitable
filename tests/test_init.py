@@ -63,6 +63,9 @@ async def test_setup_entry_loads_properties_and_devices(
     respx_router.get(f"{BASE_URL}/properties/prop-example-002/calendar").mock(
         return_value=httpx.Response(200, json=load_fixture("calendar_prop2.json"))
     )
+    respx_router.get(f"{BASE_URL}/tasks").mock(
+        return_value=httpx.Response(200, json=load_fixture("tasks_empty.json"))
+    )
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -72,6 +75,7 @@ async def test_setup_entry_loads_properties_and_devices(
         "properties",
         "reservations",
         "calendar",
+        "tasks",
     }
     registry = dr.async_get(hass)
     devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
@@ -88,7 +92,7 @@ async def test_setup_entry_loads_properties_and_devices(
     assert getattr(entry, "runtime_data", None) is None
 
 
-async def test_setup_entry_instantiates_all_three_coordinators(
+async def test_setup_entry_instantiates_all_coordinators(
     hass: Any,
     respx_router: Any,
     synthetic_token: str,
@@ -122,6 +126,9 @@ async def test_setup_entry_instantiates_all_three_coordinators(
     respx_router.get(f"{BASE_URL}/properties/prop-example-002/calendar").mock(
         return_value=httpx.Response(200, json=load_fixture("calendar_prop2.json"))
     )
+    respx_router.get(f"{BASE_URL}/tasks").mock(
+        return_value=httpx.Response(200, json=load_fixture("tasks_empty.json"))
+    )
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -131,6 +138,7 @@ async def test_setup_entry_instantiates_all_three_coordinators(
         "properties",
         "reservations",
         "calendar",
+        "tasks",
     }
 
     assert await hass.config_entries.async_unload(entry.entry_id)
