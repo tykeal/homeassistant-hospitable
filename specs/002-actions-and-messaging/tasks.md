@@ -845,61 +845,61 @@ enabled.
 
 ### RED PHASE COMMIT — US3 (tests only)
 
-- [ ] T085 [US3] In `tests/api/test_guest_model.py`, add xfail tests
+- [X] T085 [US3] In `tests/api/test_guest_model.py`, add xfail tests
       (`raises=AttributeError`) that a `HospitableGuest` model parses
       `first_name`, `last_name`, `location`, and `language` from the
       upstream guest object per `data-model.md`. (FR-039)
-- [ ] T086 [P] [US3] In `tests/api/test_guest_model.py`, add xfail tests
+- [X] T086 [P] [US3] In `tests/api/test_guest_model.py`, add xfail tests
       (`raises=AttributeError`) that a guest object with no `last_name`
       key parses successfully with the surname absent — this genuinely
       occurs upstream — and that a `null` guest yields no guest data
       rather than an error. (FR-039b, FR-040)
-- [ ] T087 [US3] In `tests/api/test_reservations_request.py`, add an
+- [X] T087 [US3] In `tests/api/test_reservations_request.py`, add an
       xfail test (`raises=AssertionError`) that the reservation polling
       request sends `include=guest` — SINGULAR — stacked
       comma-separated with the existing `properties` include. Assert the
       literal parameter value; plural `guests` is a silently-ignored
       upstream no-op. (FR-039)
-- [ ] T088 [US3] In `tests/api/test_reservations_request.py`, add an
+- [X] T088 [US3] In `tests/api/test_reservations_request.py`, add an
       xfail test (`raises=AssertionError`) that the code ASSERTS the
       `guest` key is actually present in each returned item rather than
       assuming the include was honoured, because unrecognised include
       names are silently ignored upstream. Reuse the existing
       include-assertion helper in `api/responses.py`. (FR-040, spec 001
       FR-075)
-- [ ] T089 [P] [US3] In `tests/sensor/test_reservation.py`, add xfail
+- [X] T089 [P] [US3] In `tests/sensor/test_reservation.py`, add xfail
       tests (`raises=AssertionError`) that the reservation status entity
       exposes the four default guest attributes when available and omits
       them when the guest is null. (FR-039a)
-- [ ] T090 [US3] In `tests/sensor/test_reservation.py`, add an xfail
+- [X] T090 [US3] In `tests/sensor/test_reservation.py`, add an xfail
       test (`raises=AssertionError`) that guest email and phone numbers
       are ABSENT by default and present only when the
       guest-contact-details option is enabled. Default OFF is a
       requirement. (FR-039c, FR-038b)
-- [ ] T091 [US3] In `tests/sensor/test_reservation.py`, add an xfail
+- [X] T091 [US3] In `tests/sensor/test_reservation.py`, add an xfail
       test (`raises=AssertionError`) that `profile_picture` is NEVER
       exposed as an entity attribute under ANY option combination.
       (FR-039d)
-- [ ] T092 [US3] In `tests/sensor/test_reservation.py`, add an xfail
+- [X] T092 [US3] In `tests/sensor/test_reservation.py`, add an xfail
       test (`raises=AssertionError`) that EVERY guest attribute — both
       default and opt-in — appears in the entity's
       `_unrecorded_attributes`. Follow the existing precedent in
       `custom_components/hospitable/sensor/availability.py`. (FR-039e,
       FR-042)
-- [ ] T093 [P] [US3] In `tests/sensor/test_reservation.py`, add an xfail
+- [X] T093 [P] [US3] In `tests/sensor/test_reservation.py`, add an xfail
       test (`raises=AssertionError`) that the reservation UUID is
       exposed as an entity attribute so service calls can target the
       entity. (FR-044)
-- [ ] T094 [US3] In `tests/test_privacy.py`, add xfail tests
+- [X] T094 [US3] In `tests/test_privacy.py`, add xfail tests
       (`raises=AssertionError`) that no guest name, email, phone,
       location, or language appears in any log record at any level
       during a full poll cycle. Must fail on real captured output.
       (FR-041)
-- [ ] T095 [US3] In `tests/test_diagnostics.py`, add xfail tests
+- [X] T095 [US3] In `tests/test_diagnostics.py`, add xfail tests
       (`raises=AssertionError`) that every guest field is redacted from
       the diagnostics payload, including the opt-in fields and
       `profile_picture`. (FR-042, FR-043)
-- [ ] T096 [P] [US3] In `tests/test_config_flow.py`, add xfail tests
+- [X] T096 [P] [US3] In `tests/test_config_flow.py`, add xfail tests
       (`raises=AssertionError`) that the options flow exposes the
       guest-contact-details toggle, that it defaults to disabled, and
       that its description states the privacy implication. (FR-038b)
@@ -910,38 +910,38 @@ that most of these MUST fail with `AssertionError`, not an import error
 
 ### GREEN PHASE COMMIT — US3
 
-- [ ] T097 [US3] Add `HospitableGuest` to
+- [X] T097 [US3] Add `HospitableGuest` to
       `custom_components/hospitable/api/models.py` with tolerant parsing
       for a missing surname and a null guest. (FR-039, FR-039b, FR-040)
-- [ ] T098 [US3] Attach the parsed guest to the reservation model. Take
+- [X] T098 [US3] Attach the parsed guest to the reservation model. Take
       care: `HospitableReservation.guests` already exists and holds
       NUMERIC occupancy counts; the new field is singular `guest` and is
       a different thing. (FR-039)
-- [ ] T099 [US3] Change the reservation request builder in
+- [X] T099 [US3] Change the reservation request builder in
       `custom_components/hospitable/api/reservations.py` to send
       `include=guest,properties`. (FR-039)
-- [ ] T100 [US3] Assert the `guest` key is present on returned items
+- [X] T100 [US3] Assert the `guest` key is present on returned items
       using the existing include-assertion helper, and surface a clear
       error when it is not. (FR-040, spec 001 FR-075)
-- [ ] T101 [US3] Extend
+- [X] T101 [US3] Extend
       `custom_components/hospitable/sensor/reservation.py` with the four
       default guest attributes and the reservation UUID attribute.
       (FR-039a, FR-044)
-- [ ] T102 [US3] Gate email and phone attributes behind the
+- [X] T102 [US3] Gate email and phone attributes behind the
       guest-contact-details option, default OFF. (FR-039c, FR-038b)
-- [ ] T103 [US3] Ensure `profile_picture` is never read into an entity
+- [X] T103 [US3] Ensure `profile_picture` is never read into an entity
       attribute at all. (FR-039d)
-- [ ] T104 [US3] Add every guest attribute name to the entity's
+- [X] T104 [US3] Add every guest attribute name to the entity's
       `_unrecorded_attributes`. (FR-039e, FR-042)
-- [ ] T105 [US3] Extend `custom_components/hospitable/diagnostics.py` to
+- [X] T105 [US3] Extend `custom_components/hospitable/diagnostics.py` to
       redact all guest fields. (FR-042, FR-043)
-- [ ] T106 [US3] Add the guest-contact-details toggle to the options
+- [X] T106 [US3] Add the guest-contact-details toggle to the options
       flow in `custom_components/hospitable/config_flow.py`. (FR-038b)
-- [ ] T107 [US3] Add the option label and description to
+- [X] T107 [US3] Add the option label and description to
       `strings.json` and `translations/en.json`, stating plainly that
       enabling it places guest contact details into entity attributes.
       (FR-038b, FR-043)
-- [ ] T108 [US3] Remove every US3 xfail marker and `# type: ignore`
+- [X] T108 [US3] Remove every US3 xfail marker and `# type: ignore`
       comment, then run the full suite, `uv run mypy`, and
       `uv run ruff check`.
 

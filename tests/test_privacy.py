@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
+
 from tests.helpers import FIXTURES
 
 # ``scan_paths`` enforces a ``tests/fixtures/`` prefix on the path string
@@ -59,3 +63,46 @@ def test_spec_002_fixtures_are_covered_by_the_audit() -> None:
         path = FIXTURES / name
         assert path.exists(), f"missing spec 002 fixture: {name}"
         assert not pii.scan_paths([str(path.relative_to(_REPO_ROOT))])
+
+
+# --- US3 guest fields never reach the logs (T094, FR-041) ---------------
+
+
+async def test_no_guest_field_appears_in_any_log_record(
+    hass: Any, respx_router: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A full poll cycle logs no guest field at any level (FR-041).
+
+    Run with the guest-contact opt-in ON, the most permissive setting.
+    The ``guest_first_name`` assertion is what stops this being a
+    tautology: it proves guest data really flowed through the poll and
+    onto the entity, so a clean log is a clean log rather than an empty
+    pipeline. Real captured output is asserted, not a mock.
+    """
+    from tests.helpers.guest_entry import (
+        GUEST_FIRST_NAME,
+        GUEST_SECRETS,
+        mock_endpoints,
+        reservation_entity_id,
+        setup_guest_entry,
+    )
+
+    caplog.set_level(0)
+    mock_endpoints(respx_router)
+    entry = await setup_guest_entry(hass, guest_contact=True)
+
+    coordinator = entry.runtime_data["coordinators"]["reservations"]
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    state = hass.states.get(reservation_entity_id(hass, "prop-example-001"))
+    assert state is not None
+    assert state.attributes.get("guest_first_name") == GUEST_FIRST_NAME, (
+        "guest data never reached the entity, so this log check proves nothing"
+    )
+
+    captured = "\n".join(record.getMessage() for record in caplog.records)
+    captured += "\n" + caplog.text
+    assert captured.strip(), "no log output was captured at all"
+    for secret in GUEST_SECRETS:
+        assert secret not in captured, f"{secret} leaked into the logs"

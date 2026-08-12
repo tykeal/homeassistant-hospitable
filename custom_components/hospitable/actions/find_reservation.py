@@ -41,9 +41,10 @@ from custom_components.hospitable.api.exceptions import (
     HospitableIncludeMissingError,
     HospitableNotFoundError,
 )
+from custom_components.hospitable.api.reservations import (
+    RESERVATION_INCLUDE,
+)
 
-# SINGULAR guest. Plural `guests` is silently ignored upstream.
-RESERVATION_INCLUDE = "guest,properties"
 # Only `guest` is asserted present. Live probing confirmed 29/29
 # reservations carry a non-null guest; the behaviour of `properties` on
 # the SINGLE-reservation endpoint was never observed, so requiring it

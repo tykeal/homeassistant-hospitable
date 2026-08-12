@@ -288,7 +288,7 @@ class HospitableReservationsCoordinator(
             if not self._logged_include_missing:
                 self._logged_include_missing = True
                 _LOGGER.warning(
-                    "Reservations include=properties was not honored; "
+                    "Reservations include=guest,properties was not honored; "
                     "retaining last-known reservation data"
                 )
             return self.data if self.data is not None else []

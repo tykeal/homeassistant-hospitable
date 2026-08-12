@@ -12,6 +12,7 @@ from tests.helpers import load_fixture
 def test_models_drop_personal_fields_and_timezone() -> None:
     """Assert models parse fixtures and drop prohibited fields."""
     from custom_components.hospitable.api.models import (
+        HospitableGuest,
         HospitableProperty,
         HospitableReservation,
     )
@@ -26,7 +27,17 @@ def test_models_drop_personal_fields_and_timezone() -> None:
     assert prop.capacity is not None
     assert prop.capacity.max == 6
     assert res.arrival_date.isoformat() == "2025-06-14"
-    assert not hasattr(res, "guest")
+    # US3 (FR-039) deliberately reverses the spec 001 claim that the
+    # reservation model carries no ``guest``: guest identity is now
+    # parsed for the entity attribute surface, under its own per-surface
+    # controls.
+    assert res.guest is not None
+    assert res.guest.first_name == "Example"
+    # What is UNCHANGED is that ``profile_picture`` is never read into
+    # the model at all, even though the fixture supplies one (FR-039d).
+    assert not hasattr(res.guest, "profile_picture")
+    assert "avatar" not in repr(res.guest)
+    assert HospitableGuest.from_api(None) is None
 
 
 def test_property_capacity_keys_and_wall_clock_validation() -> None:

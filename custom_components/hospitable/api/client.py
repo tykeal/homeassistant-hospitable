@@ -38,6 +38,7 @@ from custom_components.hospitable.api.models import (
 )
 from custom_components.hospitable.api.properties import build_properties_params
 from custom_components.hospitable.api.reservations import (
+    RESERVATION_INCLUDES,
     build_reservation_params,
     chunk_property_ids,
 )
@@ -319,7 +320,13 @@ class HospitableApiClient:
                 params["page"] = page
                 payload = await self._get(RESERVATIONS_PATH, params=params)
                 items = validate_list_envelope(payload, expected_page=page)
-                assert_include(items, "properties", endpoint=RESERVATIONS_PATH)
+                # Each include is verified rather than assumed: an
+                # unrecognised include NAME returns HTTP 200 with no
+                # added keys (spec 001 FR-075), so a 200 alone never
+                # proves the request was honoured. A present-but-null
+                # ``guest`` IS honoured and is valid data (FR-040).
+                for key in RESERVATION_INCLUDES:
+                    assert_include(items, key, endpoint=RESERVATIONS_PATH)
                 for item in items:
                     model = HospitableReservation.from_api(item)
                     if (

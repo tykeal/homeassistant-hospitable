@@ -16,6 +16,15 @@ def chunk_property_ids(property_ids: list[str]) -> Iterator[list[str]]:
         yield property_ids[index : index + PROPERTY_BATCH_MAX]
 
 
+# Includes stacked comma-separated inside ONE ``include`` parameter.
+# ``guest`` is SINGULAR: plural ``guests`` returns HTTP 200 and is
+# silently ignored, which is how spec 001 came to record the include as
+# unsupported. Stacking costs no additional request — this is a query
+# parameter on a request the integration already makes.
+RESERVATION_INCLUDES = ("guest", "properties")
+RESERVATION_INCLUDE = ",".join(RESERVATION_INCLUDES)
+
+
 def build_reservation_params(
     property_ids: list[str], start: date, end: date
 ) -> dict[str, str | int | list[str]]:
@@ -25,7 +34,7 @@ def build_reservation_params(
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
         "date_query": "checkin",
-        "include": "properties",
+        "include": RESERVATION_INCLUDE,
         "page": 1,
         "per_page": 100,
     }

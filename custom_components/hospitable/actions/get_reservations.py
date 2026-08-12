@@ -36,6 +36,9 @@ from custom_components.hospitable.api.exceptions import (
     HospitableError,
     HospitableIncludeMissingError,
 )
+from custom_components.hospitable.api.reservations import (
+    RESERVATION_INCLUDE,
+)
 from custom_components.hospitable.const import (
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
@@ -44,9 +47,6 @@ from custom_components.hospitable.services.window import (
     LOOKAHEAD_DEFAULT,
     LOOKBACK_DEFAULT,
 )
-
-# SINGULAR guest. Plural `guests` is silently ignored upstream.
-RESERVATION_INCLUDE = "guest,properties"
 
 
 async def async_handle_get_reservations(
