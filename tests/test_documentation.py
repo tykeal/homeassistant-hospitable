@@ -123,9 +123,52 @@ def test_the_readme_no_longer_calls_the_integration_read_only() -> None:
     )
 
     readme = README.read_text()
-    assert "read-only Home Assistant custom integration" not in readme, (
-        "the README calls the integration read-only while send_message "
-        "is registered and issues a POST"
+
+    # A single exact phrase is a denylist of one: the README could
+    # reword the same false claim and still pass. Reject a family of
+    # phrasings, AND require the write capability to be stated
+    # positively, so silence is a failure rather than a pass.
+    for phrasing in (
+        "read-only Home Assistant custom integration",
+        "read-only integration",
+        "integration is read-only",
+        "this integration is read only",
+        "does not write",
+        "makes no write",
+        "never writes to Hospitable",
+    ):
+        assert phrasing.lower() not in readme.lower(), (
+            f"the README says {phrasing!r} while {writes} is registered "
+            "and issues a POST"
+        )
+
+    for name in writes:
+        assert f"`hospitable.{name}`" in readme, (
+            f"{name} issues the only non-GET request and must be named in the README"
+        )
+    assert "POST" in readme, (
+        "the README never mentions that a POST is issued at all; "
+        "dropping the read-only claim is not the same as disclosing "
+        "the write"
+    )
+
+
+def test_the_readme_has_no_inline_code_span_broken_by_a_wrap() -> None:
+    """No backtick span in the README straddles a line break.
+
+    Wrapping inside a code span both renders wrongly and silently
+    misstates whatever it names, as it did for a rate-limit header
+    here. Markdownlint does not catch it.
+    """
+    readme = README.read_text()
+
+    offenders = [
+        line
+        for line in readme.splitlines()
+        if line.count("`") % 2 and not line.lstrip().startswith("```")
+    ]
+    assert not offenders, (
+        f"unbalanced backticks, so a code span wraps across lines: {offenders}"
     )
 
 

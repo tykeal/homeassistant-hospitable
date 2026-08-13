@@ -263,8 +263,9 @@ The per-reservation limit was confirmed by a read-only probe on
 2026-08-12: exhausting one reservation into an HTTP 429 and immediately
 requesting a different reservation returned HTTP 200 with a fresh
 allowance, which proves the bucket is per reservation and not global.
-The messages endpoint returns `x-ratelimit-limit`, `x-ratelimit-
-remaining`, and on a 429 also `retry-after` and `x-ratelimit-reset`.
+The messages endpoint returns the `x-ratelimit-limit` and
+`x-ratelimit-remaining` headers, and on a 429 also `retry-after` and
+`x-ratelimit-reset`.
 
 The per-token 50-per-5-minutes limit is taken from Hospitable's
 documentation and **has never been observed**. The integration enforces
