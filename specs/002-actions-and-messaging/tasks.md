@@ -1630,6 +1630,7 @@ it; it does not follow that the task fully discharges it.
 | FR-009 | T010, T031, T042, T048, T149 |
 | FR-010 | T033, T042, T046, T057 |
 | FR-011 | T018, T031, T048, T056, T160, T164 |
+| FR-011a | T026, T072, T163 |
 | FR-012 | T007, T013, T032, T049 |
 | FR-013 | T034, T048, T050, T051, T069, T079 |
 | FR-014 | T033, T046, T057 |
@@ -1671,6 +1672,10 @@ it; it does not follow that the task fully discharges it.
 | FR-043 | T095, T105, T107, T153, T165 |
 | FR-044 | T030, T045, T063, T080, T093, T101 |
 | FR-045 | T008, T008a, T021, T029, T035, T035a, T040, T043, T111, T171 |
+| FR-046 | T072a, T075a, T153, T153a, T171 |
+| FR-047 | T072a, T072b, T072c, T075a, T153a, T171 |
+| FR-047a | T072d, T075a, T153a, T171 |
+| FR-048 | T072a, T072c, T072e, T075a, T079a, T171 |
 
 ### Success criteria and open questions
 
