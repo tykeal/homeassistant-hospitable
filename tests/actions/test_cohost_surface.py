@@ -208,16 +208,7 @@ async def test_the_co_host_profile_picture_is_dropped(
     assert CO_HOST_PICTURE not in json.dumps(co_host)
 
 
-@pytest.mark.parametrize(
-    "guest_contact",
-    [
-        pytest.param(
-            False,
-            marks=pytest.mark.xfail(raises=AssertionError, strict=True),
-        ),
-        True,
-    ],
-)
+@pytest.mark.parametrize("guest_contact", [False, True])
 async def test_co_host_contact_gated_by_option(
     hass: Any,
     respx_router: respx.Router,
@@ -269,7 +260,6 @@ async def test_co_host_contact_gated_by_option(
         )
 
 
-@pytest.mark.xfail(raises=AssertionError, strict=True)
 async def test_co_host_allowlist_is_fail_closed(
     hass: Any,
     respx_router: respx.Router,
