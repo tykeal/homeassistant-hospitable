@@ -27,10 +27,13 @@ from custom_components.hospitable.api.exceptions import (
 )
 from custom_components.hospitable.api.models import (
     HospitableProperty,
-    HospitablePropertyCalendar,
     HospitableReservation,
 )
 from custom_components.hospitable.const import CONF_ACCOUNT_NAMESPACE, DOMAIN
+from custom_components.hospitable.coordinator_messages import (
+    MessagePresence,
+    MessagePresenceFetcher,
+)
 from custom_components.hospitable.services.lifecycle import note_disappearances
 
 _LOGGER = logging.getLogger(__name__)
@@ -263,6 +266,7 @@ class HospitableReservationsCoordinator(
         lookahead_days: int,
         config_entry: ConfigEntry | None = None,
         interval_minutes: int | None = None,
+        message_fetcher: MessagePresenceFetcher | None = None,
     ) -> None:
         """Initialize the reservations coordinator with its query window."""
         super().__init__(
@@ -276,8 +280,42 @@ class HospitableReservationsCoordinator(
         self._lookback_days = lookback_days
         self._lookahead_days = lookahead_days
         self._logged_include_missing = False
+        # ``None`` when the awaiting-host-reply option is off, which is
+        # the default. The option is not merely hidden then: there is no
+        # fetcher at all, so no message call can be made (FR-038).
+        self._message_fetcher = message_fetcher
+
+    @property
+    def message_presence(self) -> dict[str, MessagePresence]:
+        """Return each property's derived message presence.
+
+        Kept off ``data`` deliberately. ``data`` is the reservation list
+        every existing consumer already types against, and the
+        write-isolation gates compare the coordinator set EXACTLY, so
+        widening either would ripple far beyond US5 for no gain.
+
+        Returns:
+            Presence records keyed by property id, empty when the
+            awaiting-host-reply option is off.
+        """
+        if self._message_fetcher is None:
+            return {}
+        return self._message_fetcher.presence
 
     async def _fetch_data(self) -> list[HospitableReservation]:
+        """Fetch reservations, then optionally their message presence.
+
+        The message step runs AFTER, never instead of, and can never
+        fail this update: it swallows its own errors so reservation data
+        that WAS fetched successfully is not discarded because a
+        throttle answered a secondary call (T142b, FR-019).
+        """
+        reservations = await self._fetch_reservations()
+        if self._message_fetcher is not None:
+            await self._message_fetcher.async_update(reservations)
+        return reservations
+
+    async def _fetch_reservations(self) -> list[HospitableReservation]:
         """Fetch reservations, degrading gracefully on a missing include."""
         today = dt_util.utcnow().date()
         start = today - timedelta(days=self._lookback_days)
@@ -351,86 +389,18 @@ class HospitablePropertiesCoordinator(
         return properties
 
 
-class HospitableCalendarCoordinator(
-    HospitableDataUpdateCoordinator[dict[str, HospitablePropertyCalendar]]
-):
-    """Coordinator for per-property aggregate calendar data.
+# ``HospitableCalendarCoordinator`` lives in ``coordinator_calendar``
+# rather than here because this module is at the project's file-size
+# limit. It is re-exported so the documented ``coordinator`` import path
+# resolves for every coordinator alike, exactly as ``api.models``
+# re-exports ``HospitableTask``.
+from custom_components.hospitable.coordinator_calendar import (  # noqa: E402
+    HospitableCalendarCoordinator as HospitableCalendarCoordinator,
+)
 
-    Each refresh fans out one calendar fetch per selected property. A
-    failure fetching a single property's calendar degrades only that
-    property: its last-good calendar is retained and the surviving
-    properties still deliver fresh data. The refresh raises ``UpdateFailed``
-    only when every property failed (FR-061, FR-071).
-    """
-
-    default_minutes = 60
-    floor_minutes = 15
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        client: HospitableApiClient,
-        *,
-        property_ids: list[str] | None = None,
-        lookahead_days: int = 90,
-        config_entry: ConfigEntry | None = None,
-        interval_minutes: int | None = None,
-    ) -> None:
-        """Initialize the calendar coordinator with its property fan-out."""
-        super().__init__(
-            hass,
-            name=f"{DOMAIN} calendar",
-            config_entry=config_entry,
-            interval_minutes=interval_minutes,
-        )
-        self._client: HospitableApiClient = client
-        self._property_ids = list(property_ids or [])
-        self._lookahead_days = lookahead_days
-        self._property_failures: dict[str, int] = {}
-
-    def property_failure_count(self, property_id: str) -> int:
-        """Return consecutive calendar fetch failures for one property.
-
-        The count resets to zero on any successful fetch of that
-        property. The availability sensor uses it to degrade a single
-        property after ``MAX_CONSECUTIVE_FAILURES`` consecutive strikes
-        while transient blips retain last-good data (FR-057, D-15).
-        """
-        return self._property_failures.get(property_id, 0)
-
-    async def _fetch_data(self) -> dict[str, HospitablePropertyCalendar]:
-        """Fetch each property's calendar with per-property isolation."""
-        today = dt_util.utcnow().date()
-        end = today + timedelta(days=self._lookahead_days)
-        # Seed with the previous cycle so a property that fails this cycle
-        # retains its last-good calendar rather than vanishing.
-        result: dict[str, HospitablePropertyCalendar] = dict(self.data or {})
-        succeeded = False
-        last_error: HospitableError | None = None
-        for property_id in self._property_ids:
-            try:
-                result[property_id] = await self._client.get_calendar(
-                    property_id, today, end
-                )
-                # A success resets this property's strike counter so a
-                # recovered property becomes available again.
-                self._property_failures[property_id] = 0
-                succeeded = True
-            except HospitableError as exc:
-                # Count strikes per property so a persistently failing
-                # property degrades on its own without waiting for every
-                # property to fail (D-15, FR-057).
-                self._property_failures[property_id] = (
-                    self._property_failures.get(property_id, 0) + 1
-                )
-                last_error = exc
-        # Never leak a counter for a property that has left the fan-out.
-        active = set(self._property_ids)
-        self._property_failures = {
-            property_id: count
-            for property_id, count in self._property_failures.items()
-            if property_id in active
-        }
-        if self._property_ids and not succeeded and last_error is not None:
-            self._raise_for_api_error(last_error)
-        return result
+__all__ = [
+    "HospitableCalendarCoordinator",
+    "HospitableDataUpdateCoordinator",
+    "HospitablePropertiesCoordinator",
+    "HospitableReservationsCoordinator",
+]

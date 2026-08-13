@@ -17,6 +17,7 @@ from custom_components.hospitable.api.auth import StaticTokenProvider
 from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
+    CONF_AWAITING_HOST_REPLY,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
     CONF_PROPERTY_INTERVAL,
@@ -25,6 +26,7 @@ from custom_components.hospitable.const import (
     CONF_TASK_INTERVAL,
     CONF_TASK_WINDOW_DAYS,
     CONF_TOKEN,
+    DEFAULT_AWAITING_HOST_REPLY,
     DEFAULT_TASK_WINDOW_DAYS,
     VERSION,
 )
@@ -38,6 +40,9 @@ from custom_components.hospitable.coordinator import (
     HospitableCalendarCoordinator,
     HospitablePropertiesCoordinator,
     HospitableReservationsCoordinator,
+)
+from custom_components.hospitable.coordinator_messages import (
+    MessagePresenceFetcher,
 )
 from custom_components.hospitable.coordinator_tasks import HospitableTasksCoordinator
 from custom_components.hospitable.entity import (
@@ -96,10 +101,23 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
         set(selected) | _known_property_ids(registry, entry.entry_id, account_namespace)
     )
 
+    # Built only when the user opted in. With the option off there is no
+    # fetcher, so the message endpoint cannot be reached at all rather
+    # than merely being unused (FR-038, FR-038a).
+    message_fetcher = (
+        MessagePresenceFetcher(
+            client,
+            token=entry.data[CONF_TOKEN],
+            property_ids=list(selected),
+        )
+        if entry.options.get(CONF_AWAITING_HOST_REPLY, DEFAULT_AWAITING_HOST_REPLY)
+        else None
+    )
     reservations_coordinator = HospitableReservationsCoordinator(
         hass,
         client,
         property_ids=list(selected),
+        message_fetcher=message_fetcher,
         lookback_days=entry.options.get(CONF_LOOKBACK_DAYS, LOOKBACK_DEFAULT),
         lookahead_days=entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT),
         config_entry=entry,

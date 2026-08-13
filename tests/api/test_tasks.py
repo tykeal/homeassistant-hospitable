@@ -19,7 +19,7 @@ No request is ever made to the live host: every route is mocked.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -166,7 +166,13 @@ async def test_the_request_carries_the_configured_forward_window(
 
     requests = _task_requests(route)
     assert requests, "the polling lifecycle issued no /tasks request"
-    today = date.today()
+    # The coordinator builds the window from ``dt_util.utcnow()``, so the
+    # expectation has to be UTC too. ``date.today()`` is the LOCAL date,
+    # which agrees with UTC for most of the day and then silently stops:
+    # this test failed on a machine at UTC-7 for the seven hours after
+    # UTC midnight, and passed again by morning. A test that depends on
+    # the wall clock proves nothing on the hours it is wrong about.
+    today = datetime.now(UTC).date()
     for request in requests:
         params = request.url.params
         start = params.get("start_date")

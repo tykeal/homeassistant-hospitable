@@ -26,7 +26,8 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.httpx_client import get_async_client
 
-from custom_components.hospitable.actions import rate_limit, response
+from custom_components.hospitable import rate_limit
+from custom_components.hospitable.actions import response
 from custom_components.hospitable.actions.helpers import (
     cached_reservation,
     resolve_config_entry,

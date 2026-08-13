@@ -12,9 +12,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
+    CONF_AWAITING_HOST_REPLY,
     CONF_TIMEZONE_OVERRIDES,
+    DEFAULT_AWAITING_HOST_REPLY,
 )
 from custom_components.hospitable.sensor.availability import build_availability_sensors
+from custom_components.hospitable.sensor.messages import build_message_sensors
 from custom_components.hospitable.sensor.property import build_property_sensors
 from custom_components.hospitable.sensor.reservation import build_reservation_sensors
 from custom_components.hospitable.sensor.tasks import build_task_sensors
@@ -87,6 +90,17 @@ async def async_setup_entry(
                 properties_coordinator,
                 account_namespace,
                 property_names,
+            ),
+            *build_message_sensors(
+                reservations_coordinator,
+                properties_coordinator,
+                account_namespace,
+                property_names,
+                awaiting_enabled=bool(
+                    entry.options.get(
+                        CONF_AWAITING_HOST_REPLY, DEFAULT_AWAITING_HOST_REPLY
+                    )
+                ),
             ),
             *build_task_sensors(
                 tasks_coordinator,

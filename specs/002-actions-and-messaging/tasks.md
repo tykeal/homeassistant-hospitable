@@ -1138,26 +1138,26 @@ fetch per property per cycle with it on.
 
 ### RED PHASE COMMIT — US5 (tests only)
 
-- [ ] T132 [P] [US5] In `tests/sensor/test_messages.py`, add xfail tests
+- [X] T132 [P] [US5] In `tests/sensor/test_messages.py`, add xfail tests
       (`raises=ModuleNotFoundError`) for a per-property last-message
       timestamp sensor. (FR-036)
-- [ ] T133 [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T133 [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the last-message sensor is
       derived from data ALREADY held by the reservation coordinator and
       issues ZERO additional HTTP requests. Assert on the recorded
       request count. (FR-036, FR-038)
-- [ ] T134 [P] [US5] In `tests/sensor/test_messages.py`, add an xfail
+- [X] T134 [P] [US5] In `tests/sensor/test_messages.py`, add an xfail
       test (`raises=ModuleNotFoundError`) that the sensor degrades to an
       unknown state, not an error, when no messages exist. (FR-036)
-- [ ] T135 [US5] In `tests/sensor/test_messages.py`, add xfail tests
+- [X] T135 [US5] In `tests/sensor/test_messages.py`, add xfail tests
       (`raises=ModuleNotFoundError`) that the awaiting-host-reply entity
       is ABSENT when the option is off and present when it is on, and
       that the option defaults OFF. (FR-037, FR-038a)
-- [ ] T136 [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T136 [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that with the option enabled the
       integration performs AT MOST ONE message fetch per property per
       polling cycle. Assert on the recorded request count. (FR-037)
-- [ ] T136a [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T136a [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the EFFECTIVE per-reservation
       message-fetch interval is at least 60 seconds. The confirmed
       upstream limit of 2 requests per 60 seconds per reservation would
@@ -1167,33 +1167,33 @@ fetch per property per cycle with it on.
       OQ-007: if reads and writes share one bucket, polling at the
       mathematical maximum would starve the send path. (FR-037, FR-017,
       OQ-007)
-- [ ] T136b [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T136b [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a rapid double refresh — two
       manual coordinator refreshes back to back — does NOT exceed the
       per-reservation budget: the second fetch for the same reservation
       is skipped or deferred rather than issued. (FR-037, FR-017,
       FR-019)
-- [ ] T136c [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T136c [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that fanning out across MANY
       DIFFERENT reservations in one cycle is permitted, because the
       buckets are per-reservation and independent. The constraint is
       per reservation, not global. (FR-037, FR-017)
-- [ ] T136d [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T136d [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that a 429 on the message fetch is
       handled gracefully: `retry-after` is respected, the last-good
       indicator value is retained, and the entity is NOT marked
       unavailable. A throttle is not an outage. (FR-037, FR-019)
-- [ ] T137 [US5] In `tests/sensor/test_messages.py`, add an xfail test
+- [X] T137 [US5] In `tests/sensor/test_messages.py`, add an xfail test
       (`raises=ModuleNotFoundError`) that the indicator computes from
       the sender role of the most recent message, and add an assertion
       over the entity name, `strings.json` text, and `translations`
       text that the word "unread" never appears — the upstream API has
       no read-state field. (FR-037)
-- [ ] T138 [P] [US5] In `tests/sensor/test_messages.py`, add an xfail
+- [X] T138 [P] [US5] In `tests/sensor/test_messages.py`, add an xfail
       test (`raises=AssertionError`) that message bodies are never
       stored as entity attributes and never logged; only the derived
       indicator and timestamp are exposed. (FR-024, FR-041)
-- [ ] T139 [P] [US5] In `tests/test_config_flow.py`, add an xfail test
+- [X] T139 [P] [US5] In `tests/test_config_flow.py`, add an xfail test
       (`raises=AssertionError`) that the options flow exposes the
       awaiting-host-reply toggle, defaulting off, with a description
       stating the additional API cost and the read-state limitation.
@@ -1203,19 +1203,19 @@ fetch per property per cycle with it on.
 
 ### GREEN PHASE COMMIT — US5
 
-- [ ] T140 [US5] Create `custom_components/hospitable/sensor/messages.py`
+- [X] T140 [US5] Create `custom_components/hospitable/sensor/messages.py`
       with the last-message timestamp sensor derived from existing
       coordinator data. (FR-036, FR-038)
-- [ ] T141 [US5] Add the awaiting-host-reply sensor to the same module,
+- [X] T141 [US5] Add the awaiting-host-reply sensor to the same module,
       created only when the option is enabled. Per
       `contracts/entities.md` this is a SENSOR, not a `binary_sensor` —
       spec 002 introduces no new platform. (FR-037, FR-038a)
-- [ ] T142 [US5] Add the bounded optional message fetch to the
+- [X] T142 [US5] Add the bounded optional message fetch to the
       reservation coordinator in
       `custom_components/hospitable/coordinator.py`, capped at one fetch
       per property per cycle and skipped entirely when the option is
       off. (FR-037)
-- [ ] T142a [US5] Enforce a per-reservation message-fetch floor of 60
+- [X] T142a [US5] Enforce a per-reservation message-fetch floor of 60
       seconds in the coordinator, independent of the configured
       reservation poll interval — the reservation interval floor is 1
       minute, so an aggressively configured entry could otherwise reach
@@ -1225,26 +1225,26 @@ fetch per property per cycle with it on.
       user-initiated send is not starved (OQ-007). Route the fetch
       through the shared tracker from T047 rather than a second counter.
       (FR-037, FR-017, OQ-007)
-- [ ] T142b [US5] Handle 429 on the optional message fetch without
+- [X] T142b [US5] Handle 429 on the optional message fetch without
       failing the whole reservation update: retain the previous
       indicator value, respect `retry-after`, and do not raise
       `UpdateFailed` for the reservation data that was fetched
       successfully. Note that the existing coordinator behaviour logs a
       429 and does NOT reschedule; the message fetch needs its own
       handling rather than inheriting that path. (FR-037, FR-019)
-- [ ] T143 [US5] Register the new sensors in
+- [X] T143 [US5] Register the new sensors in
       `custom_components/hospitable/sensor/__init__.py`. (FR-036,
       FR-037)
-- [ ] T144 [US5] Add the awaiting-host-reply toggle to the options flow.
+- [X] T144 [US5] Add the awaiting-host-reply toggle to the options flow.
       (FR-038a)
-- [ ] T145 [US5] Add sensor names, state text, and option text to
+- [X] T145 [US5] Add sensor names, state text, and option text to
       `strings.json` and `translations/en.json`, stating the API cost
       and that the API exposes no read state. Never use "unread".
       (FR-007, FR-037, FR-038a)
-- [ ] T146 [US5] Extend the write-isolation static scan to cover
+- [X] T146 [US5] Extend the write-isolation static scan to cover
       `sensor/messages.py` and the modified reservation coordinator.
       (FR-001)
-- [ ] T147 [US5] Remove every US5 xfail marker and `# type: ignore`
+- [X] T147 [US5] Remove every US5 xfail marker and `# type: ignore`
       comment, then run the full suite, `uv run mypy`, and
       `uv run ruff check`.
 
