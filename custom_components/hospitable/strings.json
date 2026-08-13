@@ -231,6 +231,16 @@
           "description": "The Hospitable property identifier to look up."
         }
       }
+    },
+    "list_properties": {
+      "name": "List properties",
+      "description": "Returns every known property for the account with curated metadata and co-host identifiers. Served from cache; no additional API request is made.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Hospitable account to use. Required only when more than one account is set up."
+        }
+      }
     }
   }
 }

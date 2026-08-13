@@ -10,39 +10,24 @@ import pytest
 from homeassistant.exceptions import ServiceValidationError
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    reason="TDD red phase: T012 handler module does not exist",
-    strict=True,
-)
 def test_handler_can_be_imported() -> None:
     """async_handle_list_properties is importable (FR-003)."""
-    from custom_components.hospitable.actions.list_properties import (  # type: ignore[import-not-found]
+    from custom_components.hospitable.actions.list_properties import (
         async_handle_list_properties,
     )
 
     assert async_handle_list_properties is not None
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    reason="TDD red phase: T013 schema not yet defined",
-    strict=True,
-)
 def test_schema_can_be_imported() -> None:
     """LIST_PROPERTIES_SCHEMA is importable from schemas (FR-004)."""
-    from custom_components.hospitable.actions.schemas import (  # type: ignore[attr-defined]
+    from custom_components.hospitable.actions.schemas import (
         LIST_PROPERTIES_SCHEMA,
     )
 
     assert LIST_PROPERTIES_SCHEMA is not None
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T014 list_properties not in table",
-    strict=True,
-)
 def test_list_properties_is_registered_in_definitions() -> None:
     """list_properties appears in SERVICE_DEFINITIONS (FR-003)."""
     from custom_components.hospitable.actions import SERVICE_DEFINITIONS
@@ -51,11 +36,6 @@ def test_list_properties_is_registered_in_definitions() -> None:
     assert "list_properties" in names
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T015 handler not implemented",
-    strict=True,
-)
 async def test_list_properties_returns_all_known(
     hass: Any,
     respx_router: Any,
@@ -90,6 +70,7 @@ async def test_list_properties_returns_all_known(
         return_response=True,
     )
     assert isinstance(result, dict)
+    assert result["found"] is True
     assert "properties" in result
     props = result["properties"]
     assert len(props) == 3
@@ -106,11 +87,6 @@ async def test_list_properties_returns_all_known(
     assert unselected[0]["selected"] is False
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T016 co-hosts not in response",
-    strict=True,
-)
 async def test_list_properties_includes_filtered_co_hosts(
     hass: Any,
     respx_router: Any,
@@ -177,11 +153,6 @@ async def test_list_properties_includes_filtered_co_hosts(
     assert "phone_numbers" not in co_host
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T017 multi-entry disambiguation",
-    strict=True,
-)
 async def test_list_properties_multi_entry_disambiguation(
     hass: Any,
     respx_router: Any,

@@ -86,3 +86,9 @@ GET_PROPERTY_INFO_SCHEMA = vol.Schema(
         vol.Required(ATTR_PROPERTY_ID): cv.string,
     }
 )
+
+LIST_PROPERTIES_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)

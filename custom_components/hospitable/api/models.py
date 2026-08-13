@@ -78,17 +78,66 @@ def _property_time(value: Any) -> str | None:
 
 
 @dataclass(frozen=True)
+class HospitableCoHost:
+    """Non-contact co-host identity on a listing (FR-006, FR-007).
+
+    All three fields are unconditionally returnable per FR-047b.
+    Today co-host objects carry exactly these three keys
+    (CONFIRMED-BY-TEST 2026-08-13). The response chokepoint handles
+    future additions via the allowlist.
+    """
+
+    user_id: str
+    channel_name: str
+    name: str
+
+    @classmethod
+    def from_api(cls, payload: dict[str, Any]) -> HospitableCoHost:
+        """Build a co-host from one item of a listing's co_hosts array.
+
+        Args:
+            payload: One co-host object.
+
+        Returns:
+            The parsed co-host.
+        """
+        return cls(
+            user_id=str(payload.get("user_id", "")),
+            channel_name=str(payload.get("channel_name", "")),
+            name=str(payload.get("name", "")),
+        )
+
+
+@dataclass(frozen=True)
 class HospitableListing:
     """Non-personal sales-channel listing reference."""
 
     platform: str
     platform_id: str
+    co_hosts: tuple[HospitableCoHost, ...] = ()
 
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> HospitableListing:
-        """Build a listing from API data."""
+        """Build a listing from API data.
+
+        Args:
+            payload: One listing object from the property response.
+
+        Returns:
+            The parsed listing with co-hosts.
+        """
+        raw_co_hosts = payload.get("co_hosts", [])
+        if not isinstance(raw_co_hosts, list):
+            raw_co_hosts = []
+        co_hosts = tuple(
+            HospitableCoHost.from_api(item)
+            for item in raw_co_hosts
+            if isinstance(item, dict)
+        )
         return cls(
-            str(payload.get("platform", "")), str(payload.get("platform_id", ""))
+            str(payload.get("platform", "")),
+            str(payload.get("platform_id", "")),
+            co_hosts,
         )
 
 
@@ -366,6 +415,7 @@ class HospitablePropertyCalendar:
 # the documented ``api.models`` import path resolves for every model.
 __all__ = [
     "GuestBreakdown",
+    "HospitableCoHost",
     "HospitableGuest",
     "HospitableMessage",
     "HospitableTask",

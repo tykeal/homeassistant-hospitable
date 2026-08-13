@@ -37,11 +37,15 @@ from custom_components.hospitable.actions.get_reservations import (
     async_handle_get_reservations,
 )
 from custom_components.hospitable.actions.helpers import loaded_entries
+from custom_components.hospitable.actions.list_properties import (
+    async_handle_list_properties,
+)
 from custom_components.hospitable.actions.schemas import (
     FIND_RESERVATION_SCHEMA,
     GET_MESSAGES_SCHEMA,
     GET_PROPERTY_INFO_SCHEMA,
     GET_RESERVATIONS_SCHEMA,
+    LIST_PROPERTIES_SCHEMA,
     SEND_MESSAGE_SCHEMA,
 )
 from custom_components.hospitable.actions.send_message import (
@@ -99,6 +103,12 @@ SERVICE_DEFINITIONS: tuple[ServiceDefinition, ...] = (
         name=SERVICE_GET_PROPERTY_INFO,
         schema=GET_PROPERTY_INFO_SCHEMA,
         handler=async_handle_get_property_info,
+        supports_response=SupportsResponse.ONLY,
+    ),
+    ServiceDefinition(
+        name=SERVICE_LIST_PROPERTIES,
+        schema=LIST_PROPERTIES_SCHEMA,
+        handler=async_handle_list_properties,
         supports_response=SupportsResponse.ONLY,
     ),
 )

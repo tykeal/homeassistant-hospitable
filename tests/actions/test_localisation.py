@@ -104,6 +104,7 @@ US2_EXPECTED_FIELDS = {
     "find_reservation": {"config_entry_id", "entity_id", "reservation_uuid"},
     "get_reservations": {"config_entry_id", "property_id"},
     "get_property_info": {"config_entry_id", "property_id"},
+    "list_properties": {"config_entry_id"},
 }
 
 
