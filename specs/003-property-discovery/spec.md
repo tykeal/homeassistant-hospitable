@@ -175,17 +175,24 @@ field. Confirm the property is resolved and reservations are returned.
    **When** the user calls `get_reservations` with `target:
    entity_id: [entity]` and no `property_id`,
    **Then** the property ID is resolved from the entity's device.
-3. **Given** a call supplying BOTH a target AND a `property_id`,
+3. **Given** a call supplying BOTH a target AND a `property_id` that
+   resolve to the same property,
    **When** the action executes,
-   **Then** the explicit `property_id` field takes precedence and the
-   target is ignored.
-4. **Given** a call supplying NEITHER a target NOR a `property_id`,
+   **Then** the action proceeds normally.
+4. **Given** a call supplying BOTH a target AND a `property_id` that
+   resolve to different properties,
+   **When** the action executes,
+   **Then** the integration raises a `ServiceValidationError` naming
+   the conflict between the two inputs.
+5. **Given** a call supplying NEITHER a target NOR a `property_id`,
    **When** the action executes,
    **Then** the integration raises a `ServiceValidationError`
    explaining that one targeting method is required.
-5. **Given** existing automations that supply `property_id` directly,
-   **When** the integration is upgraded,
-   **Then** those automations continue to function without change.
+6. **Given** a caller (script, automation, or template) that supplies
+   `property_id` directly,
+   **When** the action executes,
+   **Then** the property ID is used as-is and the call succeeds
+   without requiring a target.
 
 ---
 
@@ -304,14 +311,25 @@ field. Confirm the property is resolved and reservations are returned.
   selectors. The target MUST resolve to a property device from which
   the property ID is extracted via `parse_device_identifier`.
 - **FR-016**: The existing `property_id` text field MUST remain
-  accepted on both actions. Existing automations MUST NOT break.
-- **FR-017**: Precedence rule when multiple targeting fields are
-  supplied: **explicit `property_id` wins**. If the caller provides
-  both a `property_id` text value and a target (entity or device),
-  the `property_id` field is used and the target is silently ignored.
-  This guarantees backwards compatibility: an automation that already
-  supplies `property_id` continues to behave identically regardless
-  of whether a UI-added target accompanies it.
+  accepted on both actions. `list_properties` (FR-005) returns
+  property IDs, so an automation naturally feeds one straight
+  back into `get_reservations` or `get_property_info` without
+  any UI picker involved. A raw-ID path is genuinely useful for
+  scripting ergonomics and MUST be preserved.
+- **FR-017**: Conflict rule when both targeting fields are
+  supplied: if `property_id` and the resolved target identify the
+  **same** property, the action proceeds normally. If they
+  identify **different** properties, the action MUST raise a
+  `ServiceValidationError` naming the conflict. The action MUST
+  NOT pick a winner and MUST NOT silently ignore either input.
+  Rationale: silently ignoring a caller's explicit input is this
+  project's single most-repeated defect shape (a control or input
+  that appears to take effect   but does not). The concrete trap is an
+  operator selecting a property from the UI dropdown while a
+  stale `property_id` sits in the YAML — the action would query
+  a different property than the one visibly selected, with no
+  warning. An explicit error is strictly safer than a silent
+  wrong answer.
 - **FR-018**: When NEITHER `property_id` NOR a resolvable target is
   supplied, the action MUST raise a `ServiceValidationError` with a
   message explaining that at least one targeting method is required.
@@ -321,12 +339,14 @@ field. Confirm the property is resolved and reservations are returned.
   (`resolve_config_entry` and `resolve_reservation_uuid` in
   `actions/helpers.py`). The implementation MUST produce a
   `resolve_property_id` helper (or equivalent) that:
-  1. Checks for an explicit `property_id` field — returns it if
-     present.
-  2. Falls back to the target — resolves entity → device → device
-     identifier → `parse_device_identifier`.
-  3. Raises `ServiceValidationError` if neither path yields a
-     property ID.
+  1. Resolves `property_id` (if supplied) and target (if
+     supplied) independently.
+  2. If both yield a property ID and they differ, raises a
+     `ServiceValidationError` per FR-017.
+  3. If both yield the same property ID, or only one is
+     supplied, returns that property ID.
+  4. If neither path yields a property ID, raises a
+     `ServiceValidationError` per FR-018.
 - **FR-020**: A target that resolves to a device not belonging to the
   `hospitable` domain, or belonging to a different config entry than
   the one resolved for the call, MUST raise a
@@ -357,8 +377,8 @@ field. Confirm the property is resolved and reservations are returned.
   `get_property_info` MUST be expressed as a service `target`
   definition (Home Assistant service schema) with `entity` and
   `device` domains, so that the UI renders a standard picker.
-  `property_id` remains a field (not a target) for backwards
-  compatibility.
+  `property_id` remains a field (not a target) for scripting
+  ergonomics (see FR-016).
 
 ## Key Entities
 
@@ -394,12 +414,19 @@ field. Confirm the property is resolved and reservations are returned.
   eliminating the need to paste raw UUIDs.
 - **SC-005**: All 564 existing tests continue to pass with no
   modification to write-isolation assertions.
-- **SC-006**: Existing automations that supply `property_id` directly
-  to `get_reservations` or `get_property_info` continue to function
-  without change after upgrade.
+- **SC-006**: Callers that supply `property_id` directly to
+  `get_reservations` or `get_property_info` continue to function
+  correctly; the raw-ID path is preserved for scripting
+  ergonomics.
 
 ## Assumptions
 
+- **Release status (as of 2026-08-13):** This integration has never
+  been released. There are no git tags, the sole GitHub release
+  (`v0.0.1`) is a draft that was never published, and
+  `manifest.json` reads version `0.1.0`. There are no known
+  third-party installations; no backwards-compatibility constraint
+  applies at this time.
 - The Hospitable API will continue to return co-host data as part of
   the listings include on the properties endpoint. If this changes,
   the co-host portion of `list_properties` degrades gracefully to
@@ -417,12 +444,11 @@ field. Confirm the property is resolved and reservations are returned.
 
 ## Open Questions
 
-- **OQ-001 — Cache freshness notification.** Should `list_properties`
-  include a timestamp indicating when the coordinator last
-  successfully refreshed? This would let a caller judge staleness.
-  Deferred to planning as it does not affect the requirement set —
-  it is purely additive and can be included or excluded without
-  changing any FR.
+- **OQ-001 — Cache freshness notification (CLOSED — NO).** The
+  user decided on 2026-08-13 that `list_properties` will NOT
+  include a cache-freshness timestamp. The action returns whatever
+  the coordinator currently holds; no freshness indicator will be
+  provided.
 - **OQ-002 — Target on `list_properties` itself.** Should
   `list_properties` accept a device target to filter to a single
   property? This would be unusual (it defeats the "list" purpose) and
