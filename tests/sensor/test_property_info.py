@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, EntityCategory
 from homeassistant.helpers import entity_registry as er
@@ -176,3 +177,35 @@ async def test_property_info_end_to_end(
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+@pytest.mark.xfail(
+    raises=AssertionError, reason="T027: property_id not yet in tuple", strict=True
+)
+def test_property_info_attributes_contain_property_id() -> None:
+    """PROPERTY_INFO_ATTRIBUTES includes property_id (FR-011, FR-012)."""
+    assert "property_id" in PROPERTY_INFO_ATTRIBUTES
+
+
+@pytest.mark.xfail(
+    raises=AssertionError, reason="T028: property_id not yet exposed", strict=True
+)
+def test_property_info_sensor_exposes_property_id() -> None:
+    """The sensor's extra_state_attributes includes property_id (FR-011)."""
+    prop = _property()
+    sensor = _info_sensor(prop)
+    attrs = sensor.extra_state_attributes
+    assert "property_id" in attrs
+    assert isinstance(attrs["property_id"], str)
+    assert attrs["property_id"] == prop.property_id
+
+
+@pytest.mark.xfail(
+    raises=AssertionError, reason="T029: docstring says eight", strict=True
+)
+def test_property_info_docstring_says_nine() -> None:
+    """The extra_state_attributes docstring says nine (FR-013)."""
+    descriptor = HospitablePropertyInfoSensor.__dict__["extra_state_attributes"]
+    doc = getattr(descriptor, "fget", descriptor).__doc__
+    assert doc is not None
+    assert "nine" in doc
