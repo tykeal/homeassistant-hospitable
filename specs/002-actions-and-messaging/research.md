@@ -42,7 +42,7 @@ directly, and the exact bound of what was observed is stated with it.
 | D-13 | Task type vs service_id explicit mapping | FR-033, FR-035 |
 | D-14 | `SupportsResponse.ONLY` on all services including send | FR-011a, FR-021, FR-025 to FR-027 |
 | D-15 | No event firing, no OPTIONAL response mode | FR-021, anti-pattern avoidance |
-| D-16 | Single response-builder chokepoint for guest and sender PII | FR-046, FR-047, FR-047a, FR-048 |
+| D-16 | Single response-builder chokepoint for guest, sender, and co-host PII | FR-046, FR-047, FR-047a, FR-047b, FR-048 |
 | D-17 | `/tasks` live constraints and pagination behaviour | FR-030, FR-031, FR-034 |
 
 ## D-01: Write isolation via module path {#d-01}
