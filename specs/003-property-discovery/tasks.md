@@ -398,7 +398,7 @@ Both tests below fail with `AssertionError` because the module and
 tuple exist — the behaviour is simply wrong (eight attributes instead
 of nine). These are BEHAVIOURAL red-phase tests.
 
-- [ ] T027 [US2] In `tests/sensor/test_property_info.py`, add an xfail
+- [X] T027 [US2] In `tests/sensor/test_property_info.py`, add an xfail
       test (`raises=AssertionError`) asserting that
       `PROPERTY_INFO_ATTRIBUTES` contains `"property_id"`. Import the
       tuple (it exists at `sensor/property.py` line 42) and assert
@@ -407,7 +407,7 @@ of nine). These are BEHAVIOURAL red-phase tests.
       and `"property_id"` is not among them. Verify:
       `uv run pytest --runxfail tests/sensor/test_property_info.py::<node>`.
       (FR-011, FR-012)
-- [ ] T028 [P] [US2] In `tests/sensor/test_property_info.py`, add an
+- [X] T028 [P] [US2] In `tests/sensor/test_property_info.py`, add an
       xfail test (`raises=AssertionError`) asserting that a property
       sensor's `extra_state_attributes` dict includes a `property_id`
       key with a string UUID value. Set up the sensor with a mock
@@ -416,7 +416,7 @@ of nine). These are BEHAVIOURAL red-phase tests.
       Verify:
       `uv run pytest --runxfail tests/sensor/test_property_info.py::<node>`.
       (FR-011, FR-013)
-- [ ] T029 [P] [US2] In `tests/sensor/test_property_info.py`, add an
+- [X] T029 [P] [US2] In `tests/sensor/test_property_info.py`, add an
       xfail test (`raises=AssertionError`) asserting that the docstring
       of `HospitablePropertyInfoSensor.extra_state_attributes` contains
       "nine" (not "eight"). Import the class and read `__doc__` on the
@@ -427,23 +427,23 @@ of nine). These are BEHAVIOURAL red-phase tests.
 
 ### GREEN PHASE COMMIT — Deliverable B (implementation)
 
-- [ ] T030 [US2] Add `"property_id"` to `PROPERTY_INFO_ATTRIBUTES`
+- [X] T030 [US2] Add `"property_id"` to `PROPERTY_INFO_ATTRIBUTES`
       tuple in `custom_components/hospitable/sensor/property.py`
       (currently at line 42). The tuple grows from eight to nine
       entries. (FR-011, FR-012)
-- [ ] T031 [US2] In `HospitablePropertyInfoSensor.extra_state_attributes`
+- [X] T031 [US2] In `HospitablePropertyInfoSensor.extra_state_attributes`
       in `custom_components/hospitable/sensor/property.py`, add
       `"property_id": self._property_id` to the returned dict in BOTH
       code paths (the `property_model is None` fallback and the normal
       path). (FR-011)
-- [ ] T032 [US2] Update the docstring on `extra_state_attributes` from
+- [X] T032 [US2] Update the docstring on `extra_state_attributes` from
       "Return exactly the eight property_info contract attributes" to
       "Return exactly the nine property_info contract attributes."
       (FR-013)
-- [ ] T033 [US2] Update any test docstrings in
+- [X] T033 [US2] Update any test docstrings in
       `tests/sensor/test_property_info.py` that reference "eight
       attributes" to "nine attributes". (FR-013)
-- [ ] T034 [US2] Remove all `xfail` markers and `# type: ignore`
+- [X] T034 [US2] Remove all `xfail` markers and `# type: ignore`
       comments from T027..T029 tests. Run `uv run pytest tests/ -q` and
       confirm all tests pass. (FR-001)
 
@@ -476,7 +476,7 @@ because the function name does not yet exist in `actions/helpers.py`.
 T039, T040, T041 fail with genuine `AssertionError` because the
 existing code does not support targeting.
 
-- [ ] T035 [US3] In `tests/actions/test_property_targeting.py`, add an
+- [X] T035 [US3] In `tests/actions/test_property_targeting.py`, add an
       xfail test (`raises=ImportError`) asserting that
       `resolve_property_id` can be imported from
       `custom_components.hospitable.actions.helpers`. Import inside the
@@ -484,7 +484,7 @@ existing code does not support targeting.
       but the name does not). Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-019)
-- [ ] T036 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T036 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       xfail tests (`raises=AssertionError`) for the conflict rule
       (FR-017): when BOTH `property_id` and a target are supplied and
       they resolve to the SAME property, the call proceeds normally.
@@ -495,14 +495,14 @@ existing code does not support targeting.
       not exist. Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-017, FR-019)
-- [ ] T037 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T037 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for FR-018: when NEITHER
       `property_id` NOR a target is supplied, a
       `ServiceValidationError` is raised explaining that at least one
       targeting method is required. Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-018, FR-019)
-- [ ] T038 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T038 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for FR-016: when only
       `property_id` is supplied (no target), the action proceeds using
       the property_id directly. This tests the direct-ID scripting path
@@ -511,35 +511,35 @@ existing code does not support targeting.
       Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-016, FR-019)
-- [ ] T039 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T039 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for FR-020: when a target
       resolves to a device belonging to a different config entry than the
       one resolved for the call, a `ServiceValidationError` is raised.
       Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-020, FR-022)
-- [ ] T040 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T040 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for the case where a
       target resolves to a device that is NOT a `hospitable` device
       (wrong integration domain). A `ServiceValidationError` is raised.
       Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-020)
-- [ ] T041 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T041 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for entity target
       resolution: when a property sensor entity_id is supplied as
       target, the resolver looks up the entity's device and extracts the
       property_id via `parse_device_identifier`. Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-015, FR-019)
-- [ ] T042 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T042 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for `get_reservations`
       with a device target and no `property_id`: the service call
       succeeds and the reservations for the targeted property are
       returned. Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-015, FR-024)
-- [ ] T043 [P] [US3] In `tests/actions/test_property_targeting.py`, add
+- [X] T043 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for `get_property_info`
       with an entity target and no `property_id`: the service call
       succeeds and the property info for the targeted property is
@@ -549,7 +549,7 @@ existing code does not support targeting.
 
 ### GREEN PHASE COMMIT — Deliverable C (implementation)
 
-- [ ] T044 [US3] Add `resolve_property_id` to
+- [X] T044 [US3] Add `resolve_property_id` to
       `custom_components/hospitable/actions/helpers.py`. The function
       signature follows D-04:
       ```python
@@ -577,23 +577,23 @@ existing code does not support targeting.
       Confirm `wc -l helpers.py` stays under 440 after addition
       (~50 new lines → ~266 total). (FR-015, FR-016, FR-017, FR-018,
       FR-019, FR-020, FR-022)
-- [ ] T045 [US3] Change `property_id` from `vol.Required` to
+- [X] T045 [US3] Change `property_id` from `vol.Required` to
       `vol.Optional` in `GET_RESERVATIONS_SCHEMA` and
       `GET_PROPERTY_INFO_SCHEMA` in
       `custom_components/hospitable/actions/schemas.py`. (FR-015,
       FR-016)
-- [ ] T046 [US3] Modify `async_handle_get_reservations` in
+- [X] T046 [US3] Modify `async_handle_get_reservations` in
       `custom_components/hospitable/actions/get_reservations.py` to
       call `resolve_property_id(hass, entry, property_id=...,
       target=call.data.get("target"))` instead of reading `property_id`
       directly from `call.data`. Import `resolve_property_id` from
       `actions.helpers`. (FR-015, FR-017, FR-018, FR-019)
-- [ ] T047 [US3] Modify `async_handle_get_property_info` in
+- [X] T047 [US3] Modify `async_handle_get_property_info` in
       `custom_components/hospitable/actions/get_property_info.py` to
       call `resolve_property_id` in the same manner as T046. Import
       `resolve_property_id` from `actions.helpers`. (FR-015, FR-017,
       FR-018, FR-019)
-- [ ] T048 [US3] Add a `target` definition to `get_reservations` and
+- [X] T048 [US3] Add a `target` definition to `get_reservations` and
       `get_property_info` in
       `custom_components/hospitable/services.yaml`:
       ```yaml
@@ -605,12 +605,12 @@ existing code does not support targeting.
       ```
       Change the existing `property_id` field from `required: true` to
       `required: false`. (FR-015, FR-024)
-- [ ] T049 [US3] Add target field descriptions to
+- [X] T049 [US3] Add target field descriptions to
       `custom_components/hospitable/strings.json` for
       `get_reservations` and `get_property_info`. Update the
       `property_id` field description to indicate it is now optional
       when a target is supplied. (FR-023, FR-024)
-- [ ] T050 [US3] Fix the CIRCULAR description of `get_property_info` in
+- [X] T050 [US3] Fix the CIRCULAR description of `get_property_info` in
       `custom_components/hospitable/strings.json`. The current
       description says "so the identifiers other actions need can be
       discovered" — but it requires a `property_id` to call. Replace
@@ -618,11 +618,11 @@ existing code does not support targeting.
       discovery action, e.g.: "Returns a property's details together
       with its sales channels and their co-hosts. Use list_properties
       to discover property identifiers." (FR-023)
-- [ ] T051 [US3] Copy the exact same changes from T049 and T050 into
+- [X] T051 [US3] Copy the exact same changes from T049 and T050 into
       `custom_components/hospitable/translations/en.json`. These two
       files MUST remain BYTE-IDENTICAL in their `services` sections.
       (FR-023)
-- [ ] T052 [US3] Remove all `xfail` markers and `# type: ignore`
+- [X] T052 [US3] Remove all `xfail` markers and `# type: ignore`
       comments from T035..T043 tests. Run `uv run pytest tests/ -q` and
       confirm all tests pass. (FR-001)
 
@@ -642,7 +642,7 @@ existing assertion was weakened.
 **Principle XII status**: EXEMPT — test-only assertions of existing
 behaviour. No red/green pair needed.
 
-- [ ] T053 Run the full write-isolation test suite — all three
+- [X] T053 Run the full write-isolation test suite — all three
       files: `test_no_writes.py`, `test_write_isolation.py`, and
       `test_isolation_discovery.py` under `tests/`, with `-v`.
       Confirm all 20 tests pass. In particular confirm that
@@ -652,7 +652,7 @@ behaviour. No red/green pair needed.
       `ACTIONS_PACKAGE`). The new module is on the WRITE side of the
       boundary, which is correct: it lives in `actions/` and that
       package is exempt from the polling-surface scan. (FR-001, FR-002)
-- [ ] T054 In `tests/test_isolation_discovery.py`, add an assertion
+- [X] T054 In `tests/test_isolation_discovery.py`, add an assertion
       confirming that `actions/list_properties.py` is NOT in
       `discovered_polling_modules()` — i.e., it is correctly classified
       as part of the write path (actions package). This is an ADDITIVE
@@ -660,7 +660,7 @@ behaviour. No red/green pair needed.
       prevents a future refactor from accidentally moving the module
       out of the actions package and into the polling surface without
       gate coverage. (FR-001, FR-002)
-- [ ] T055 Verify that `test_the_write_surface_is_exactly_two_consumers`
+- [X] T055 Verify that `test_the_write_surface_is_exactly_two_consumers`
       in `tests/test_isolation_discovery.py` still passes. The new
       `list_properties.py` module does NOT import
       `HospitableWriteClient` or `api/write_client.py` (it reads from
@@ -679,21 +679,21 @@ verification.
 **Principle XII status**: EXEMPT — documentation-only and
 verification-only tasks.
 
-- [ ] T056 Verify `strings.json` and `translations/en.json` are
+- [X] T056 Verify `strings.json` and `translations/en.json` are
       BYTE-IDENTICAL by running
       `diff <(python3 -c "...") <(python3 -c "...")`
       on the normalised JSON, or `cmp` on the raw files if they are
       already identical. If they differ, fix the divergence. Both files
       MUST carry the same service names, descriptions, and field
       descriptions for all six services. (FR-023)
-- [ ] T057 Verify that `tests/test_documentation.py` passes with the
+- [X] T057 Verify that `tests/test_documentation.py` passes with the
       new service. In particular:
       - `test_every_registered_service_is_documented` will fail if
         `list_properties` is not documented in `README.md` and `info.md`.
       - Add a `### \`hospitable.list_properties\`` section to
         `README.md` and a mention in `info.md`.
       (FR-023)
-- [ ] T058 Update the traceability test in `tests/test_documentation.py`
+- [X] T058 Update the traceability test in `tests/test_documentation.py`
       to ALSO validate spec 003's requirements. Currently it hardcodes
       paths to spec 002's `spec.md` and `tasks.md`. Either:
       (a) Parametrise it to also check spec 003's files, or
@@ -701,10 +701,10 @@ verification-only tasks.
       The test must confirm that every FR-001..FR-024 in spec 003's
       `spec.md` appears in spec 003's `tasks.md` traceability table.
       (FR-001..FR-024)
-- [ ] T059 Run `uv run pytest tests/ -q` — expect all tests pass
+- [X] T059 Run `uv run pytest tests/ -q` — expect all tests pass
       (564 + new). Run `uv run reuse lint`. Run `markdownlint` over
       `specs/003-property-discovery/`.
-- [ ] T060 **Mutation verification.** This MUST be its own task and
+- [X] T060 **Mutation verification.** This MUST be its own task and
       its own commit. Mutations catch defects that CI cannot; four of
       this project's defects were caught ONLY by mutation. Procedure:
 

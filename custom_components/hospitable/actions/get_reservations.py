@@ -27,6 +27,7 @@ from custom_components.hospitable.actions.helpers import (
     known_property_ids,
     read_client,
     resolve_config_entry,
+    resolve_property_id,
 )
 from custom_components.hospitable.actions.schemas import (
     ATTR_CONFIG_ENTRY_ID,
@@ -70,7 +71,12 @@ async def async_handle_get_reservations(
             include was not honoured.
     """
     entry = resolve_config_entry(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
-    property_id = str(call.data[ATTR_PROPERTY_ID])
+    property_id = resolve_property_id(
+        hass,
+        entry,
+        property_id=call.data.get(ATTR_PROPERTY_ID),
+        target=call.data,
+    )
     guest_contact = guest_contact_enabled(entry)
     if property_id not in known_property_ids(entry):
         return _not_found(property_id, guest_contact=guest_contact)

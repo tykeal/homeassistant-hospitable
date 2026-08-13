@@ -48,6 +48,7 @@ PROPERTY_INFO_ATTRIBUTES = (
     "timezone_source",
     "listings",
     "listings_available",
+    "property_id",
 )
 
 
@@ -217,7 +218,7 @@ class HospitablePropertyInfoSensor(HospitableEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return exactly the eight property_info contract attributes."""
+        """Return exactly the nine property_info contract attributes."""
         property_model = self._property()
         if property_model is None:
             return {
@@ -229,6 +230,7 @@ class HospitablePropertyInfoSensor(HospitableEntity, SensorEntity):
                 "timezone_source": self._timezone_source,
                 "listings": [],
                 "listings_available": False,
+                "property_id": self._property_id,
             }
         capacity = property_model.capacity
         return {
@@ -243,6 +245,7 @@ class HospitablePropertyInfoSensor(HospitableEntity, SensorEntity):
                 for listing in property_model.listings
             ],
             "listings_available": property_model.listings_available,
+            "property_id": self._property_id,
         }
 
 

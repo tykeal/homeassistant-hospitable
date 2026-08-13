@@ -27,6 +27,7 @@ from custom_components.hospitable.actions.helpers import (
     guest_contact_enabled,
     read_client,
     resolve_config_entry,
+    resolve_property_id,
 )
 from custom_components.hospitable.actions.schemas import (
     ATTR_CONFIG_ENTRY_ID,
@@ -55,7 +56,12 @@ async def async_handle_get_property_info(
             listings include was not honoured.
     """
     entry = resolve_config_entry(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
-    property_id = str(call.data[ATTR_PROPERTY_ID])
+    property_id = resolve_property_id(
+        hass,
+        entry,
+        property_id=call.data.get(ATTR_PROPERTY_ID),
+        target=call.data,
+    )
     client = read_client(hass, entry)
     try:
         payloads = await client.get_property_payloads()

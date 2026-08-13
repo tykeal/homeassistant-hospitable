@@ -102,6 +102,11 @@ def test_the_discovery_walk_actually_finds_the_integration() -> None:
     assert not any(ACTIONS_PACKAGE in path.parents for path in discovered), (
         "the actions package is the write path and must not be swept in"
     )
+    list_props = ACTIONS_PACKAGE / "list_properties.py"
+    assert list_props not in discovered, (
+        "list_properties.py is an action module and must not appear "
+        "in the polling surface; it reads from coordinator cache only"
+    )
 
 
 def test_every_client_holding_module_is_listed_by_gate_1() -> None:

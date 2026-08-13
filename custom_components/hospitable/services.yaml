@@ -79,6 +79,11 @@ find_reservation:
       selector:
         text:
 get_reservations:
+  target:
+    entity:
+      integration: hospitable
+    device:
+      integration: hospitable
   fields:
     config_entry_id:
       required: false
@@ -87,11 +92,16 @@ get_reservations:
         config_entry:
           integration: hospitable
     property_id:
-      required: true
+      required: false
       example: 66666666-7777-8888-9999-000000000000
       selector:
         text:
 get_property_info:
+  target:
+    entity:
+      integration: hospitable
+    device:
+      integration: hospitable
   fields:
     config_entry_id:
       required: false
@@ -100,7 +110,7 @@ get_property_info:
         config_entry:
           integration: hospitable
     property_id:
-      required: true
+      required: false
       example: 66666666-7777-8888-9999-000000000000
       selector:
         text:

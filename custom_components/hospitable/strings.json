@@ -214,13 +214,13 @@
         },
         "property_id": {
           "name": "Property",
-          "description": "The Hospitable property identifier to look up."
+          "description": "The Hospitable property identifier. Optional when a target device or entity is selected."
         }
       }
     },
     "get_property_info": {
       "name": "Get property info",
-      "description": "Returns a property's details together with its sales channels and their co-hosts, so the identifiers other actions need can be discovered.",
+      "description": "Returns a property's details together with its sales channels and their co-hosts. Use list_properties to discover property identifiers.",
       "fields": {
         "config_entry_id": {
           "name": "Account",
@@ -228,7 +228,7 @@
         },
         "property_id": {
           "name": "Property",
-          "description": "The Hospitable property identifier to look up."
+          "description": "The Hospitable property identifier. Optional when a target device or entity is selected."
         }
       }
     },

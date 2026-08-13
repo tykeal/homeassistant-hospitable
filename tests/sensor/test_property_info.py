@@ -3,7 +3,7 @@
 """Tests for the property-information diagnostic sensor.
 
 Covers T091 (FR-053, FR-062): the ``property_info`` sensor's state is the
-display name and it exposes exactly the eight contract attributes with no
+display name and it exposes exactly the nine contract attributes with no
 coordinates, street number, postcode, or owner contact details.
 """
 
@@ -136,7 +136,7 @@ async def test_property_info_end_to_end(
     respx_router: Any,
     synthetic_token: str,
 ) -> None:
-    """A full setup creates a property_info sensor exposing eight attributes."""
+    """A full setup creates a property_info sensor exposing nine attributes."""
     from custom_components.hospitable.api.const import BASE_URL
 
     entry = MockConfigEntry(
@@ -176,3 +176,26 @@ async def test_property_info_end_to_end(
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+def test_property_info_attributes_contain_property_id() -> None:
+    """PROPERTY_INFO_ATTRIBUTES includes property_id (FR-011, FR-012)."""
+    assert "property_id" in PROPERTY_INFO_ATTRIBUTES
+
+
+def test_property_info_sensor_exposes_property_id() -> None:
+    """The sensor's extra_state_attributes includes property_id (FR-011)."""
+    prop = _property()
+    sensor = _info_sensor(prop)
+    attrs = sensor.extra_state_attributes
+    assert "property_id" in attrs
+    assert isinstance(attrs["property_id"], str)
+    assert attrs["property_id"] == prop.property_id
+
+
+def test_property_info_docstring_says_nine() -> None:
+    """The extra_state_attributes docstring says nine (FR-013)."""
+    descriptor = HospitablePropertyInfoSensor.__dict__["extra_state_attributes"]
+    doc = getattr(descriptor, "fget", descriptor).__doc__
+    assert doc is not None
+    assert "nine" in doc

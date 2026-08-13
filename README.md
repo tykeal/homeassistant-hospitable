@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 Hospitable is a Home Assistant custom integration for the Hospitable
 Public API v2. It lets you select properties, then creates sensor
 entities for reservation state, property details, tasks, messaging
-state, and aggregate calendar availability. It also exposes five
+state, and aggregate calendar availability. It also exposes six
 services for looking up data on demand and for sending a guest message.
 
 **Polling is strictly read-only.** The only request this integration
@@ -153,8 +153,8 @@ concurrently.
 
 ## Services
 
-Five services are registered. All five return a response, so every call
-needs `response_variable` in an automation. All five accept an optional
+Six services are registered. All six return a response, so every call
+needs `response_variable` in an automation. All six accept an optional
 `config_entry_id`; it is required only when more than one Hospitable
 account is configured, and is auto-selected when exactly one is.
 
@@ -200,15 +200,16 @@ Returns one reservation's detail. Takes `entity_id` or
 
 ### `hospitable.get_reservations`
 
-Returns the reservations for one property. **Requires `property_id`**,
-because Hospitable rejects a reservations request without a property
-filter (see [OQ-004](#known-upstream-limitation-oq-004)).
+Returns the reservations for one property. Requires a `property_id`
+or an entity/device target identifying the property, because
+Hospitable rejects a reservations request without a property filter
+(see [OQ-004](#known-upstream-limitation-oq-004)).
 
 ### `hospitable.get_property_info`
 
 Returns one property's raw detail including `listings` and their
-`co_hosts`. **Requires `property_id`.** This is where you find a
-co-host `user_id` for `send_message`'s `sender_id`.
+`co_hosts`. Requires a `property_id` or an entity/device target.
+Use `list_properties` to discover available property IDs.
 
 Note that co-host entries may include that co-host's own contact
 details. Those are third-party details belonging to your team rather

@@ -84,6 +84,7 @@ ALLOWED_ATTRIBUTES: dict[str, frozenset[str]] = {
             "listings",
             "listings_available",
             "max_guests",
+            "property_id",
             "timezone_source",
         }
     ),

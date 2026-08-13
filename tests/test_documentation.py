@@ -40,6 +40,8 @@ README = REPO_ROOT / "README.md"
 INFO = REPO_ROOT / "info.md"
 SPEC = REPO_ROOT / "specs/002-actions-and-messaging/spec.md"
 TASKS = REPO_ROOT / "specs/002-actions-and-messaging/tasks.md"
+SPEC_003 = REPO_ROOT / "specs/003-property-discovery/spec.md"
+TASKS_003 = REPO_ROOT / "specs/003-property-discovery/tasks.md"
 
 USER_FACING_DOCS = (README, INFO)
 
@@ -72,15 +74,25 @@ def _traced_fr_ids(text: str) -> set[str]:
     return set(re.findall(r"^\| (FR-\d+[a-z]?) \|", text, re.MULTILINE))
 
 
-def test_every_requirement_is_traceable() -> None:
-    """No FR in the spec is missing from the traceability table (T171).
+@pytest.mark.parametrize(
+    ("spec_path", "tasks_path"),
+    [
+        pytest.param(SPEC, TASKS, id="spec-002"),
+        pytest.param(SPEC_003, TASKS_003, id="spec-003"),
+    ],
+)
+def test_every_requirement_is_traceable(
+    spec_path: Path,
+    tasks_path: Path,
+) -> None:
+    """No FR in the spec is missing from the traceability table.
 
     This is the check that found the five omissions. It compares the
     two documents rather than trusting either, so adding a requirement
     without tracing it fails immediately instead of at the next audit.
     """
-    defined = _fr_ids(SPEC.read_text())
-    traced = _traced_fr_ids(TASKS.read_text())
+    defined = _fr_ids(spec_path.read_text())
+    traced = _traced_fr_ids(tasks_path.read_text())
 
     assert defined, "no requirements were parsed from spec.md at all"
     untraced = sorted(defined - traced)
@@ -90,14 +102,24 @@ def test_every_requirement_is_traceable() -> None:
     )
 
 
-def test_the_table_invents_no_requirements() -> None:
+@pytest.mark.parametrize(
+    ("spec_path", "tasks_path"),
+    [
+        pytest.param(SPEC, TASKS, id="spec-002"),
+        pytest.param(SPEC_003, TASKS_003, id="spec-003"),
+    ],
+)
+def test_the_table_invents_no_requirements(
+    spec_path: Path,
+    tasks_path: Path,
+) -> None:
     """The table traces only requirements that really exist.
 
     The reverse direction matters too: a row for a deleted requirement
     makes the table look more complete than it is.
     """
-    defined = _fr_ids(SPEC.read_text())
-    traced = _traced_fr_ids(TASKS.read_text())
+    defined = _fr_ids(spec_path.read_text())
+    traced = _traced_fr_ids(tasks_path.read_text())
 
     invented = sorted(traced - defined)
     assert not invented, f"{invented} are traced but are not defined in spec.md"
