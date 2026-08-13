@@ -28,12 +28,11 @@ uv run pytest tests/test_no_writes.py tests/test_write_isolation.py \
 ```
 
 **Expected**: All 20 tests pass. Zero POST/PUT/PATCH/DELETE requests
-captured. The new `list_properties` module is covered by the
-import-isolation scan. `actions/list_properties.py` must appear in the
-`US5_POLLING_MODULES` or equivalent discovery set in
-`test_isolation_discovery.py` — or more precisely, it must be
-excluded from the polling surface because it IS an action module and
-the discovery test already scopes actions out.
+captured. The new `actions/list_properties.py` module is NOT in the
+polling surface — `test_isolation_discovery.py` already excludes the
+entire `actions/` package from its filesystem walk, so no list
+update is needed. The module must remain excluded (it is an action,
+not a polling module).
 
 ### VS-2: `list_properties` service (mocked)
 

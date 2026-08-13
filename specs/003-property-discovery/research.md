@@ -74,9 +74,11 @@ them per-entry.
 
 **Where the new dataclass lives**: In `api/models.py`. The
 `HospitableListing.from_api` method gains co-host parsing.
-`api/models.py` is currently 439 lines — adding a ~15-line frozen
-dataclass and ~5 lines of parsing keeps it well within the 440-line
-aislop threshold.
+`api/models.py` is currently 439 lines — already at the aislop
+threshold (~440 effective). Adding ~20 lines pushes it to ~459,
+which is OVER the limit. The plan records this as Deviation 1 and
+the implementation stage must resolve it (extract, trim, or
+consolidate).
 
 **Alternatives considered**:
 

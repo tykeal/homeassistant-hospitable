@@ -166,7 +166,7 @@ Current line counts for files this feature modifies:
 
 | File | Current lines | Change | Projected |
 | --- | --- | --- | --- |
-| `api/models.py` | 439 | +20 (CoHost + parsing) | ~459 |
+| `api/models.py` | 439 | +20 (CoHost + parsing) | ~459 (**OVER**) |
 | `actions/helpers.py` | 216 | +50 (resolve_property_id) | ~266 |
 | `actions/__init__.py` | 167 | +8 (table entry + import) | ~175 |
 | `actions/schemas.py` | 88 | +10 (new schema + Optional) | ~98 |
@@ -174,10 +174,9 @@ Current line counts for files this feature modifies:
 | `actions/get_reservations.py` | 126 | +10 (resolver call) | ~136 |
 | `actions/get_property_info.py` | 82 | +10 (resolver call) | ~92 |
 
-**`api/models.py` at 459 is OVER the ~440 threshold.** The
-implementation stage MUST extract `HospitableCoHost` and the listing
-parser extension into a minimal approach that keeps the file within
-bounds. Options:
+**`api/models.py` at 439 is ALREADY at the ~440 aislop threshold.**
+Adding ~20 lines puts it at ~459, which is OVER. The implementation
+stage MUST resolve this. Options:
 
 1. Extract the co-host dataclass to a separate `api/co_host.py` — but
    this was rejected in D-01 as over-engineering for three fields.
