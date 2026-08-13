@@ -58,6 +58,7 @@ SERVICE_GET_MESSAGES = "get_messages"
 SERVICE_FIND_RESERVATION = "find_reservation"
 SERVICE_GET_RESERVATIONS = "get_reservations"
 SERVICE_GET_PROPERTY_INFO = "get_property_info"
+SERVICE_LIST_PROPERTIES = "list_properties"
 
 
 class ServiceDefinition(NamedTuple):
