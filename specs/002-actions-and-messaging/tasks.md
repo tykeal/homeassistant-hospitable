@@ -1366,33 +1366,33 @@ tests, and success-criteria verification. Phase 9 is the non-test
 cross-cutting work — user documentation, licensing, and coverage
 checks. Both ship in the same pull request.
 
-- [ ] T164 [P] Update `README.md` with the five services, their
+- [X] T164 [P] Update `README.md` with the five services, their
       arguments, and a worked automation example. State plainly that
       `send_message` returns acceptance, not delivery confirmation.
       (FR-007, FR-011)
-- [ ] T165 [P] Document the two new options and the task interval in
+- [X] T165 [P] Document the two new options and the task interval in
       `README.md`, including the privacy implication of the
       guest-contact-details opt-in and the API cost of the
       awaiting-host-reply opt-in. (FR-038a, FR-038b, FR-043)
-- [ ] T166 [P] Document the rate limits in `README.md`: the per-token
+- [X] T166 [P] Document the rate limits in `README.md`: the per-token
       50-per-5-minutes budget shared by every config entry using the
       same token, AND the per-reservation 2-per-60-seconds limit that
       applies to reading and sending messages. State that enabling the
       awaiting-host-reply option consumes per-reservation budget.
       (FR-017, FR-018, FR-037)
-- [ ] T167 [P] Update `info.md` for HACS with a summary of the new
+- [X] T167 [P] Update `info.md` for HACS with a summary of the new
       capabilities.
-- [ ] T168 Confirm `uv run reuse lint` passes over every file added or
+- [X] T168 Confirm `uv run reuse lint` passes over every file added or
       modified across all six phases.
-- [ ] T169 Confirm coverage thresholds are met and that no new module is
+- [X] T169 Confirm coverage thresholds are met and that no new module is
       excluded from coverage or from mypy.
-- [ ] T170 Record the still-open questions in the PR description:
+- [X] T170 Record the still-open questions in the PR description:
       OQ-001 and OQ-005 remain UNVERIFIED and can only be closed by
       performing a real send, which has not been done. OQ-007 (whether
       reads and writes share one per-reservation bucket) is likewise
       unclosable without a real POST. OQ-002 is CLOSED by the
       2026-08-12 read-only probe. (OQ-001, OQ-005, OQ-007)
-- [ ] T170a Raise OQ-007 for the record: the confirmed GET limit is 2
+- [X] T170a Raise OQ-007 for the record: the confirmed GET limit is 2
       per 60 seconds per reservation and the DOCUMENTED send limit is
       also 2 per 60 seconds per reservation, which makes a SHARED
       per-reservation bucket plausible but unproven. If shared, an
@@ -1404,7 +1404,7 @@ checks. Both ship in the same pull request.
       retryable-with-backoff rather than a hard failure (T038d,
       T047c), and the polling path must never starve the send path
       (T142a, T142b). (OQ-007)
-- [ ] T171 Re-read this task list against `spec.md` and confirm every FR
+- [X] T171 Re-read this task list against `spec.md` and confirm every FR
       from FR-001 to FR-045 is still named by at least one task after
       any in-flight edits, using the traceability table below.
 
