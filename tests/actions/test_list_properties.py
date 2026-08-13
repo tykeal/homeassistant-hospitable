@@ -197,3 +197,39 @@ async def test_list_properties_multi_entry_disambiguation(
     )
     assert isinstance(result, dict)
     assert "properties" in result
+
+
+async def test_list_properties_makes_no_api_request(
+    hass: Any,
+    respx_router: Any,
+    loaded_config_entry_factory: Any,
+) -> None:
+    """list_properties serves from coordinator cache (FR-009).
+
+    The action reads from the already-populated coordinator cache
+    and must NOT issue any API request. A future refactor adding
+    async_request_refresh() would blow the account's real request
+    budget; this test catches that.
+    """
+    from custom_components.hospitable.const import DOMAIN
+
+    await loaded_config_entry_factory(hass)
+
+    assert hass.services.has_service(DOMAIN, "list_properties"), (
+        "list_properties is not a registered service"
+    )
+
+    calls_before = respx_router.calls.call_count
+
+    await hass.services.async_call(
+        DOMAIN,
+        "list_properties",
+        {},
+        blocking=True,
+        return_response=True,
+    )
+
+    assert respx_router.calls.call_count == calls_before, (
+        f"list_properties made {respx_router.calls.call_count - calls_before} "
+        "API request(s) but must serve entirely from coordinator cache"
+    )
