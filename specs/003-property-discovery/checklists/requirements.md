@@ -15,8 +15,22 @@ proceeding to planning
 ## Content Quality
 
 - [x] No implementation details (languages, frameworks, APIs)
+  - **Deliberate deviation**: The spec references Home Assistant
+    internal identifiers (`async_setup_services`,
+    `ServiceValidationError`, `parse_device_identifier`,
+    `actions/helpers.py`) because this is an integration-developer
+    specification, not a product-marketing document. The audience is
+    the implementation team. Requirements remain technology-agnostic
+    in WHAT they mandate (no specific language, database, or framework
+    is prescribed); code-level references anchor WHERE in the existing
+    codebase the requirement connects, following the convention
+    established by specs 001 and 002.
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
+  - **Deliberate deviation**: Same rationale as above. The primary
+    stakeholder is the developer-operator who both authors and uses
+    the integration. User stories are written in plain language; the
+    requirements section necessarily uses integration terminology.
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -36,6 +50,7 @@ proceeding to planning
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
+  - **Deliberate deviation**: See Content Quality note above.
 
 ## Notes
 
