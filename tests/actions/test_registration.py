@@ -30,6 +30,7 @@ EXPECTED_SERVICES = {
     "find_reservation",
     "get_reservations",
     "get_property_info",
+    "list_properties",
 }
 
 

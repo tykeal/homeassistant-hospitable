@@ -104,3 +104,11 @@ get_property_info:
       example: 66666666-7777-8888-9999-000000000000
       selector:
         text:
+list_properties:
+  fields:
+    config_entry_id:
+      required: false
+      example: 01JX0000000000000000000000
+      selector:
+        config_entry:
+          integration: hospitable

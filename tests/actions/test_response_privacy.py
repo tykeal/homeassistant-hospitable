@@ -242,6 +242,7 @@ AUDITED_SERVICES = (
     "find_reservation",
     "get_reservations",
     "get_property_info",
+    "list_properties",
 )
 
 
@@ -268,6 +269,7 @@ def _service_call_data(service: str) -> dict[str, Any]:
         "find_reservation": {"reservation_uuid": RESERVATION_WITH_GUEST},
         "get_reservations": {"property_id": PROPERTY_A},
         "get_property_info": {"property_id": PROPERTY_A},
+        "list_properties": {},
     }
     assert service in data, (
         f"service {service!r} has no privacy-audit call data; every "
@@ -601,4 +603,4 @@ def test_the_audited_service_set_matches_the_registration_table() -> None:
 
     assert names == set(AUDITED_SERVICES)
     for name in names:
-        assert _service_call_data(name)
+        assert _service_call_data(name) is not None

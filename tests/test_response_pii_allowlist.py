@@ -151,6 +151,28 @@ PROPERTY_KEYS = frozenset(
     }
 )
 
+# --- List-properties payload (FR-010) -----------------------------------
+#
+# Curated discovery shape. ``selected`` is an integration-level flag,
+# not upstream data. Co-host identity keys (``user_id``,
+# ``channel_name``, ``name``) flow through the existing privacy
+# chokepoint in ``actions/response.py`` (FR-048).
+LIST_PROPERTIES_KEYS = frozenset(
+    {
+        "channel_name",
+        "co_hosts",
+        "listings",
+        "name",
+        "platform",
+        "platform_id",
+        "properties",
+        "property_id",
+        "public_name",
+        "selected",
+        "user_id",
+    }
+)
+
 # Never releasable on this surface, under any option, at any depth.
 FORBIDDEN = frozenset({"profile_picture", "sender"})
 
@@ -170,6 +192,8 @@ def allowlist(service: str, *, guest_contact: bool) -> frozenset[str]:
         return ENVELOPE | MESSAGE_KEYS
     if service == "get_property_info":
         return ENVELOPE | PROPERTY_KEYS
+    if service == "list_properties":
+        return ENVELOPE | LIST_PROPERTIES_KEYS
     reservation = ENVELOPE | RESERVATION_OPERATIONAL | GUEST_DEFAULT | contact
     if service == "find_reservation":
         return reservation | {"reservation"}
@@ -183,6 +207,7 @@ LOOKUP_CALLS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("find_reservation", {"reservation_uuid": "res-guest-001"}),
     ("get_reservations", {"property_id": "prop-example-001"}),
     ("get_property_info", {"property_id": "prop-example-001"}),
+    ("list_properties", {}),
 )
 
 

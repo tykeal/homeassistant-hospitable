@@ -70,3 +70,47 @@ def test_property_capacity_keys_and_wall_clock_validation() -> None:
     assert degraded.capacity.max is None
     assert degraded.checkin is None
     assert degraded.checkout is None
+
+
+def test_co_host_can_be_imported() -> None:
+    """HospitableCoHost is importable from api.models (FR-006)."""
+    from custom_components.hospitable.api.models import (
+        HospitableCoHost,
+    )
+
+    assert HospitableCoHost is not None
+
+
+def test_listing_has_co_hosts_field() -> None:
+    """HospitableListing carries a co_hosts field (FR-006)."""
+    from custom_components.hospitable.api.models import HospitableListing
+
+    listing = HospitableListing(platform="airbnb", platform_id="X")
+    assert hasattr(listing, "co_hosts")
+
+
+def test_listing_from_api_parses_co_hosts() -> None:
+    """HospitableListing.from_api parses co-host objects (FR-006)."""
+    from custom_components.hospitable.api.models import HospitableListing
+
+    payload = {
+        "platform": "airbnb",
+        "platform_id": "AIR-1",
+        "co_hosts": [
+            {"user_id": "u1", "channel_name": "c1", "name": "n1"},
+        ],
+    }
+    listing = HospitableListing.from_api(payload)
+    assert hasattr(listing, "co_hosts"), "listing lacks co_hosts field"
+    assert len(listing.co_hosts) == 1
+    assert listing.co_hosts[0].user_id == "u1"
+
+
+def test_listing_from_api_missing_co_hosts_defaults_empty() -> None:
+    """Listing with no co_hosts key gets co_hosts == () (FR-006)."""
+    from custom_components.hospitable.api.models import HospitableListing
+
+    payload = {"platform": "vrbo", "platform_id": "V-1"}
+    listing = HospitableListing.from_api(payload)
+    assert hasattr(listing, "co_hosts"), "listing lacks co_hosts field"
+    assert listing.co_hosts == ()

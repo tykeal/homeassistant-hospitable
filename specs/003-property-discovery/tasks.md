@@ -107,16 +107,16 @@ later phase depends on. **Ships in**: the single pull request.
 that assert no new production behaviour. Do not force these into a
 red/green pair.
 
-- [ ] T001 Create `tests/actions/test_list_properties.py` as an empty
+- [x] T001 Create `tests/actions/test_list_properties.py` as an empty
       test module with an SPDX header and a module docstring stating it
       covers Deliverable A (`list_properties`). The file MUST NOT import
       any `custom_components.hospitable` module at module level.
-- [ ] T002 [P] Create `tests/actions/test_property_targeting.py` as an
+- [x] T002 [P] Create `tests/actions/test_property_targeting.py` as an
       empty test module with an SPDX header and a module docstring
       stating it covers Deliverable C (entity/device targeting on
       property-scoped actions). The file MUST NOT import any
       `custom_components.hospitable` module at module level.
-- [ ] T003 [P] Create `tests/fixtures/properties_with_listings.json`:
+- [x] T003 [P] Create `tests/fixtures/properties_with_listings.json`:
       a synthetic properties endpoint response with at least 3
       properties. One property must have 2 listings each with co-hosts
       (each co-host carrying exactly `{channel_name, name, user_id}`);
@@ -124,7 +124,7 @@ red/green pair.
       listing with an empty co-hosts array. All values MUST be obviously
       synthetic (UUIDs like `11111111-...`, names like `Test Property`).
       No real personal data. (FR-005, FR-006, FR-007, FR-008, FR-010)
-- [ ] T004 [P] Add SPDX headers or `REUSE.toml` coverage for every file
+- [x] T004 [P] Add SPDX headers or `REUSE.toml` coverage for every file
       created in T001..T003 and run `uv run reuse lint` to confirm the
       tree is compliant. JSON fixtures cannot carry comments, so they
       MUST be covered by a `REUSE.toml` annotation.
@@ -150,11 +150,11 @@ the commit WILL be rejected by the pre-commit hook. This phase extracts
 existing code to make room. The extraction MUST be committed and pass
 pre-commit BEFORE any model change.
 
-- [ ] T005 Measure the current line count of
+- [x] T005 Measure the current line count of
       `custom_components/hospitable/api/models.py` (expected: 439).
       Record it in the commit message. Confirm the `aislop` threshold
       by inspecting the pre-commit config. (FR-021)
-- [ ] T006 Extract `HospitableMessage`, `_optional_str`, and their
+- [x] T006 Extract `HospitableMessage`, `_optional_str`, and their
       imports from `custom_components/hospitable/api/models.py` into a
       new `custom_components/hospitable/api/message_model.py`. The
       existing `__all__` block at the bottom of `models.py` already
@@ -168,7 +168,7 @@ pre-commit BEFORE any model change.
       to confirm zero behaviour change. Run `wc -l` on `models.py`
       after the extraction and confirm it is comfortably below 440.
       (FR-021)
-- [ ] T007 [P] Add a `SERVICE_LIST_PROPERTIES` constant string
+- [x] T007 [P] Add a `SERVICE_LIST_PROPERTIES` constant string
       `"list_properties"` to
       `custom_components/hospitable/actions/__init__.py`, below the
       existing five `SERVICE_*` constants. Do NOT add it to the
@@ -214,14 +214,14 @@ These are constitutionally valid (the constitution's canonical example
 uses `raises=ImportError`) but are NOT the only red-phase tests for
 this deliverable.
 
-- [ ] T008 [P] [US1] In `tests/api/test_models.py`, add an xfail test
+- [x] T008 [P] [US1] In `tests/api/test_models.py`, add an xfail test
       (`raises=ImportError`) asserting that `HospitableCoHost` can be
       imported from `custom_components.hospitable.api.models`. Import
       inside the test body with `# type: ignore[attr-defined]` (the
       module exists but the name does not). Verify the import fails:
       `uv run pytest --runxfail tests/api/test_models.py::<node>`.
       (FR-006, FR-007, FR-021)
-- [ ] T009 [P] [US1] In `tests/api/test_models.py`, add an xfail test
+- [x] T009 [P] [US1] In `tests/api/test_models.py`, add an xfail test
       (`raises=AssertionError`) asserting that `HospitableListing` has
       a `co_hosts` field. Import `HospitableListing` (it exists) and
       assert `hasattr(HospitableListing(...), "co_hosts")` or
@@ -229,7 +229,7 @@ this deliverable.
       field does not exist on the current two-field dataclass. Verify:
       `uv run pytest --runxfail tests/api/test_models.py::<node>`.
       (FR-006, FR-021)
-- [ ] T010 [US1] In `tests/api/test_models.py`, add an xfail test
+- [x] T010 [US1] In `tests/api/test_models.py`, add an xfail test
       (`raises=AssertionError`) asserting that
       `HospitableListing.from_api` parses co-hosts from a payload
       containing `co_hosts: [{user_id: "u1", channel_name: "c1",
@@ -239,13 +239,13 @@ this deliverable.
       co-host data. Verify:
       `uv run pytest --runxfail tests/api/test_models.py::<node>`.
       (FR-006, FR-007, FR-021)
-- [ ] T011 [P] [US1] In `tests/api/test_models.py`, add an xfail test
+- [x] T011 [P] [US1] In `tests/api/test_models.py`, add an xfail test
       (`raises=AssertionError`) asserting that
       `HospitableListing.from_api` with a payload that has NO
       `co_hosts` key produces a listing with `co_hosts == ()`. Verify:
       `uv run pytest --runxfail tests/api/test_models.py::<node>`.
       (FR-006, FR-021)
-- [ ] T012 [P] [US1] In `tests/actions/test_list_properties.py`, add
+- [x] T012 [P] [US1] In `tests/actions/test_list_properties.py`, add
       an xfail test (`raises=ImportError`) asserting that
       `async_handle_list_properties` can be imported from
       `custom_components.hospitable.actions.list_properties`. Import
@@ -253,14 +253,14 @@ this deliverable.
       `# type: ignore[import-not-found]`. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-003)
-- [ ] T013 [P] [US1] In `tests/actions/test_list_properties.py`, add
+- [x] T013 [P] [US1] In `tests/actions/test_list_properties.py`, add
       an xfail test (`raises=ImportError`) asserting that
       `LIST_PROPERTIES_SCHEMA` can be imported from
       `custom_components.hospitable.actions.schemas`. Import inside the
       test body with `# type: ignore[attr-defined]`. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-004)
-- [ ] T014 [US1] In `tests/actions/test_list_properties.py`, add an
+- [x] T014 [US1] In `tests/actions/test_list_properties.py`, add an
       xfail test (`raises=AssertionError`) asserting that
       `"list_properties"` appears as a `name` in the
       `SERVICE_DEFINITIONS` tuple in `actions/__init__.py`. Import
@@ -272,7 +272,7 @@ this deliverable.
       needed — the module and the name both exist. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-003, FR-005)
-- [ ] T015 [US1] In `tests/actions/test_list_properties.py`, add an
+- [x] T015 [US1] In `tests/actions/test_list_properties.py`, add an
       xfail test (`raises=AssertionError`) that sets up a mock
       coordinator cache with 2 properties (one selected, one not) and
       calls the `list_properties` handler. Assert the response is a
@@ -285,7 +285,7 @@ this deliverable.
       fixture or inline mock setup. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-005, FR-008, FR-009, FR-010)
-- [ ] T016 [P] [US1] In `tests/actions/test_list_properties.py`, add
+- [x] T016 [P] [US1] In `tests/actions/test_list_properties.py`, add
       an xfail test (`raises=AssertionError`) that sets up a mock
       coordinator with a property whose listing has co-hosts, calls
       `list_properties`, and asserts the response includes co-host
@@ -295,7 +295,7 @@ this deliverable.
       disabled. This is a BEHAVIOURAL red-phase test. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-006, FR-007, FR-010)
-- [ ] T017 [P] [US1] In `tests/actions/test_list_properties.py`, add
+- [x] T017 [P] [US1] In `tests/actions/test_list_properties.py`, add
       an xfail test (`raises=AssertionError`) for the multi-entry
       disambiguation: with two loaded entries and no `config_entry_id`,
       the call raises `ServiceValidationError`. With a specific
@@ -306,23 +306,23 @@ this deliverable.
 
 ### GREEN PHASE COMMIT — Deliverable A (implementation)
 
-- [ ] T018 [US1] Add the `HospitableCoHost` frozen dataclass to
+- [x] T018 [US1] Add the `HospitableCoHost` frozen dataclass to
       `custom_components/hospitable/api/models.py` with fields
       `user_id: str`, `channel_name: str`, `name: str`. Add a
       `from_api` classmethod. Confirm `wc -l` stays under 440 (the
       extraction in T006 made room). (FR-006, FR-007, FR-021,
       data-model.md)
-- [ ] T019 [US1] Extend `HospitableListing` in
+- [x] T019 [US1] Extend `HospitableListing` in
       `custom_components/hospitable/api/models.py`: add a `co_hosts`
       field of type `tuple[HospitableCoHost, ...]` with
       `field(default=())`. Update `HospitableListing.from_api` to parse
       `payload.get("co_hosts", [])` into `HospitableCoHost` objects.
       (FR-006, FR-021)
-- [ ] T020 [US1] Add `LIST_PROPERTIES_SCHEMA` to
+- [x] T020 [US1] Add `LIST_PROPERTIES_SCHEMA` to
       `custom_components/hospitable/actions/schemas.py`: a
       `vol.Schema` with one `vol.Optional(ATTR_CONFIG_ENTRY_ID):
       cv.string` field. (FR-004)
-- [ ] T021 [US1] Create
+- [x] T021 [US1] Create
       `custom_components/hospitable/actions/list_properties.py` with
       `async_handle_list_properties(hass, call) -> ServiceResponse`.
       The handler MUST:
@@ -344,31 +344,31 @@ this deliverable.
       7. Return `{"properties": [...]}` (FR-005).
       The file MUST carry an SPDX header. (FR-003, FR-005, FR-006,
       FR-007, FR-008, FR-009, FR-010, FR-022, FR-048)
-- [ ] T022 [US1] Register `list_properties` in the
+- [x] T022 [US1] Register `list_properties` in the
       `SERVICE_DEFINITIONS` tuple in
       `custom_components/hospitable/actions/__init__.py` as the sixth
       entry. Import `async_handle_list_properties` from
       `actions.list_properties` and `LIST_PROPERTIES_SCHEMA` from
       `actions.schemas`. Set `supports_response=SupportsResponse.ONLY`.
       (FR-003, FR-005)
-- [ ] T023 [US1] Add the `list_properties` service definition to
+- [x] T023 [US1] Add the `list_properties` service definition to
       `custom_components/hospitable/services.yaml`. The service has one
       optional field `config_entry_id` with a `config_entry` selector
       for `integration: hospitable`. It has NO `target` definition
       (spec OQ-002 — filtering to one property defeats the list
       purpose). (FR-023, FR-024)
-- [ ] T024 [US1] Add `list_properties` service name, description, and
+- [x] T024 [US1] Add `list_properties` service name, description, and
       field descriptions to
       `custom_components/hospitable/strings.json` under the `services`
       key, following the pattern of the existing five services.
       Description: "Returns every known property for the account with
       curated metadata including listing co-host identifiers. Served
       from cache; no additional API request is made." (FR-023)
-- [ ] T025 [US1] Copy the exact same `list_properties` block into
+- [x] T025 [US1] Copy the exact same `list_properties` block into
       `custom_components/hospitable/translations/en.json`. These two
       files MUST be BYTE-IDENTICAL in their `services` sections.
       (FR-023)
-- [ ] T026 [US1] Run `uv run pytest tests/ -q` and confirm all tests
+- [x] T026 [US1] Run `uv run pytest tests/ -q` and confirm all tests
       pass (expected: 564 + new tests). Remove all `xfail` markers and
       `# type: ignore` comments from T008..T017 tests. Run again to
       confirm the tests genuinely pass. (FR-001)

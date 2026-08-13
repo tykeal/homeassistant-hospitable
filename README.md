@@ -215,6 +215,14 @@ details. Those are third-party details belonging to your team rather
 than to a guest, and the `guest_contact_details` option does not govern
 them.
 
+### `hospitable.list_properties`
+
+Returns every known property for the account with curated metadata
+including listing co-host identifiers. Served entirely from the
+coordinator cache — no additional API request is made. Use this to
+discover the `property_id` values that `get_reservations` and
+`get_property_info` require.
+
 ### Worked example
 
 ```yaml

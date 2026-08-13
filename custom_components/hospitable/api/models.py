@@ -11,6 +11,10 @@ from typing import Any
 
 from custom_components.hospitable.api.exceptions import HospitableResponseError
 from custom_components.hospitable.api.guest import GuestBreakdown, HospitableGuest
+from custom_components.hospitable.api.message_model import (
+    HospitableMessage,
+    _optional_str,
+)
 from custom_components.hospitable.api.task_model import (
     HospitableTask,
     TaskTypeEntry,
@@ -74,17 +78,66 @@ def _property_time(value: Any) -> str | None:
 
 
 @dataclass(frozen=True)
+class HospitableCoHost:
+    """Non-contact co-host identity on a listing (FR-006, FR-007).
+
+    All three fields are unconditionally returnable per FR-047b.
+    Today co-host objects carry exactly these three keys
+    (CONFIRMED-BY-TEST 2026-08-13). The response chokepoint handles
+    future additions via the allowlist.
+    """
+
+    user_id: str
+    channel_name: str
+    name: str
+
+    @classmethod
+    def from_api(cls, payload: dict[str, Any]) -> HospitableCoHost:
+        """Build a co-host from one item of a listing's co_hosts array.
+
+        Args:
+            payload: One co-host object.
+
+        Returns:
+            The parsed co-host.
+        """
+        return cls(
+            user_id=str(payload.get("user_id", "")),
+            channel_name=str(payload.get("channel_name", "")),
+            name=str(payload.get("name", "")),
+        )
+
+
+@dataclass(frozen=True)
 class HospitableListing:
     """Non-personal sales-channel listing reference."""
 
     platform: str
     platform_id: str
+    co_hosts: tuple[HospitableCoHost, ...] = ()
 
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> HospitableListing:
-        """Build a listing from API data."""
+        """Build a listing from API data.
+
+        Args:
+            payload: One listing object from the property response.
+
+        Returns:
+            The parsed listing with co-hosts.
+        """
+        raw_co_hosts = payload.get("co_hosts", [])
+        if not isinstance(raw_co_hosts, list):
+            raw_co_hosts = []
+        co_hosts = tuple(
+            HospitableCoHost.from_api(item)
+            for item in raw_co_hosts
+            if isinstance(item, dict)
+        )
         return cls(
-            str(payload.get("platform", "")), str(payload.get("platform_id", ""))
+            str(payload.get("platform", "")),
+            str(payload.get("platform_id", "")),
+            co_hosts,
         )
 
 
@@ -355,84 +408,16 @@ class HospitablePropertyCalendar:
         )
 
 
-@dataclass(frozen=True)
-class HospitableMessage:
-    """One message in a reservation's conversation thread.
-
-    ``sender`` is retained as the OPAQUE upstream object because the
-    reply-state derivation needs to see whatever upstream sends. It is
-    never logged, never written to diagnostics, and never returned in a
-    service response: the response chokepoint in
-    ``actions/response.py`` drops it and keeps only ``sender_type`` and
-    ``sender_role`` (FR-047a).
-    """
-
-    message_id: int | None
-    platform: str | None
-    conversation_id: str | None
-    body: str | None
-    content_type: str | None
-    sender_type: str | None
-    sender_role: str | None
-    sender: dict[str, Any] | None
-    created_at: str | None
-    attachments: tuple[dict[str, Any], ...]
-    source: str | None
-
-    @classmethod
-    def from_api(cls, payload: dict[str, Any]) -> HospitableMessage:
-        """Build a message from one item of the thread ``data`` array.
-
-        Nothing here is required. A thread is read-only reference data,
-        so a single odd item must not turn the whole call into an error.
-
-        Args:
-            payload: One message object.
-
-        Returns:
-            The parsed message.
-        """
-        raw_id = payload.get("id")
-        raw_sender = payload.get("sender")
-        raw_attachments = payload.get("attachments")
-        return cls(
-            message_id=raw_id if isinstance(raw_id, int) else None,
-            platform=_optional_str(payload.get("platform")),
-            conversation_id=_optional_str(payload.get("conversation_id")),
-            body=_optional_str(payload.get("body")),
-            content_type=_optional_str(payload.get("content_type")),
-            sender_type=_optional_str(payload.get("sender_type")),
-            sender_role=_optional_str(payload.get("sender_role")),
-            sender=raw_sender if isinstance(raw_sender, dict) else None,
-            created_at=_optional_str(payload.get("created_at")),
-            attachments=tuple(
-                item for item in raw_attachments or () if isinstance(item, dict)
-            )
-            if isinstance(raw_attachments, list)
-            else (),
-            source=_optional_str(payload.get("source")),
-        )
-
-
-def _optional_str(value: Any) -> str | None:
-    """Return a string value, or None when absent.
-
-    Args:
-        value: Raw value of any type.
-
-    Returns:
-        The value as a string, or None when it is None.
-    """
-    return None if value is None else str(value)
-
-
 # ``HospitableTask`` and its vocabularies live in ``api.task_model``
 # rather than here because this module is already at the project's
-# file-size limit. They are re-exported so the documented
-# ``api.models`` import path resolves for every model alike.
+# file-size limit. ``HospitableMessage`` and ``_optional_str`` live in
+# ``api.message_model`` for the same reason. They are re-exported so
+# the documented ``api.models`` import path resolves for every model.
 __all__ = [
     "GuestBreakdown",
+    "HospitableCoHost",
     "HospitableGuest",
+    "HospitableMessage",
     "HospitableTask",
     "TaskTypeEntry",
     "TaskVocabularies",

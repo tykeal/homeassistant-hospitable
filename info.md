@@ -27,8 +27,10 @@ a last-message timestamp and an awaiting-host-reply indicator.
 - `hospitable.get_reservations` — list a property's reservations.
 - `hospitable.get_property_info` — property detail, listings, and
   co-host identifiers.
+- `hospitable.list_properties` — discover every known property with
+  curated metadata. Served from cache; no extra API call.
 
-All five return a response. A lookup that finds nothing returns
+All six return a response. A lookup that finds nothing returns
 `found: false` instead of raising, so automations can branch on it.
 
 ## Privacy and cost opt-ins
