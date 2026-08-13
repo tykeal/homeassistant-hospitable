@@ -45,8 +45,8 @@ captured in backups (FR-039e).
 `reservation_id` is NOT unrecorded — it is operational data needed
 for the service target pattern and is safe to persist.
 
-**Backward compatibility**: All new attributes are additive. Existing
-automations that do not reference these attributes are unaffected.
+**Additive change**: All new attributes extend the entity contract
+without removing or renaming any existing attributes.
 Guest attributes report `None` when no guest data is available.
 
 ## New entities

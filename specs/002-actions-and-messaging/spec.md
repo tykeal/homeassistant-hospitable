@@ -582,9 +582,9 @@ diagnostics never contain the guest name unredacted.
   is undocumented, relying on it would make the meaning of the
   `task_count` sensor change silently if Hospitable ever changed it.
   Sending explicit dates makes the window a property of OUR
-  configuration instead. The default of 14 is chosen to MATCH the
-  measured upstream default so that behaviour is preserved for
-  existing users.
+  configuration instead. The default of 14 is chosen to match the
+  measured upstream default so that introducing the option does not
+  silently change what `task_count` measures.
   `task_window_days` MUST be bounded so `end_date` can never breach
   the upstream ceiling: an `end_date` more than **three years** in the
   future returns HTTP 400 `You cannot fetch tasks more than 3 years in
