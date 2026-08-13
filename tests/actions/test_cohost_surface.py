@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Andrew Grimberg <tykeal@bardicgrove.org>
 # SPDX-License-Identifier: Apache-2.0
-"""Co-host discovery and co-host privacy surface (FR-013, FR-047).
+"""Co-host discovery and co-host privacy surface (FR-013, FR-047b).
 
 Two things are covered here, and they are separate.
 
@@ -12,24 +12,17 @@ purpose was never exercised with actual content. A populated co-host
 is served here so the discovery path is proven to carry data through,
 not merely to carry a key.
 
-The second is a CHARACTERIZATION of an open design question, not an
-assertion that current behaviour is correct. The privacy chokepoint in
-``actions/response.py`` filters the ``guest`` container. A co-host is
-not a guest, so a co-host's contact fields pass through untouched even
-when the ``guest_contact_details`` option is OFF, while that same
-co-host's ``profile_picture`` IS dropped, because ``profile_picture``
-is stripped at any depth. The result is internally inconsistent: the
-picture of a third party is considered sensitive and their email
-address and phone number are not.
+The second is FR-047b's PRIVACY CONTROL. The chokepoint in
+``actions/response.py`` filters co-host objects through an allowlist:
+``user_id``, ``channel_name``, and ``name`` are unconditionally
+returned; ``email`` and ``phone_numbers`` are gated behind the
+``guest_contact_details`` option; ``profile_picture`` is dropped at
+any depth; and any other key is dropped (fail-closed).
 
-FR-047 governs GUEST data by its terms, so this is not a violation of
-any written requirement, and it is deliberately NOT "fixed" here.
-Filtering it would change a documented service contract, and
-``get_property_info`` exists precisely to return co-host detail.
-Whether the contact routes of a third party should be part of that
-detail is a decision for the spec owner. These tests pin the behaviour
-so the decision is made knowingly rather than discovered later, and
-they will fail loudly if the behaviour changes either way.
+The realistic ``CO_HOST`` fixture matches the live API shape observed
+on 2026-08-13: exactly ``{channel_name, name, user_id}``. The
+hypothetical ``CO_HOST_WITH_CONTACT`` fixture adds contact fields
+that do NOT exist upstream today but exercise the preventive control.
 """
 
 from __future__ import annotations
@@ -40,7 +33,6 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 import httpx
-import pytest
 import respx
 
 from tests.helpers import load_fixture
@@ -48,42 +40,62 @@ from tests.helpers import load_fixture
 PROPERTY_A = "prop-example-001"
 
 CO_HOST_USER_ID = "user-cohost-001"
+CO_HOST_CHANNEL = "airbnb"
+CO_HOST_NAME = "Cohost Example"
+
+#: The realistic co-host shape as observed on the live Hospitable API
+#: (``GET /properties?include=listings&per_page=100``, 2026-08-13,
+#: 13 properties, 8 populated co-hosts). Every entry carried exactly
+#: ``{channel_name, name, user_id}``, all strings. No ``email``,
+#: ``phone_numbers``, or ``profile_picture`` key was present.
+CO_HOST = {
+    "user_id": CO_HOST_USER_ID,
+    "channel_name": CO_HOST_CHANNEL,
+    "name": CO_HOST_NAME,
+}
+
 CO_HOST_EMAIL = "cohost@example.com"
 CO_HOST_PHONE = "+15550100"
 CO_HOST_PICTURE = "https://example.com/cohost.png"
 
-#: A co-host entry carrying the identifier FR-013 needs alongside the
-#: contact fields whose handling is the open question. The shape mirrors
-#: the platform-user shape the listing itself uses; the upstream co-host
-#: shape is not documented in ``contracts/services.md``, so this is a
-#: superset chosen to make the privacy question visible rather than a
-#: claim about what Hospitable always returns.
-CO_HOST = {
+#: HYPOTHETICAL co-host shape that does NOT match upstream today.
+#: This exists solely to exercise the preventive privacy control
+#: (FR-047b): if the upstream API ever adds contact fields to a
+#: co-host object, the allowlist must gate them behind the
+#: guest-contact-details opt-in rather than passing them through.
+#: Do NOT treat this as observed API behaviour.
+CO_HOST_WITH_CONTACT = {
     "user_id": CO_HOST_USER_ID,
-    "first_name": "Cohost",
-    "last_name": "Example",
+    "channel_name": CO_HOST_CHANNEL,
+    "name": CO_HOST_NAME,
     "email": CO_HOST_EMAIL,
     "phone_numbers": [CO_HOST_PHONE],
     "profile_picture": CO_HOST_PICTURE,
 }
 
 
-def _properties_payload_with_cohost() -> dict[str, Any]:
+def _properties_payload_with_cohost(
+    cohost: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Return the single-property fixture with a populated co-host.
+
+    Args:
+        cohost: Co-host dict to inject. Defaults to ``CO_HOST``.
 
     Returns:
         The properties payload, deep-copied and mutated.
     """
-    # Loaded through the shared helper, which anchors on its own
-    # __file__ rather than on the process working directory. A
-    # hard-coded relative path works only when pytest is invoked from
-    # the repository root.
+    if cohost is None:
+        cohost = CO_HOST
     data: dict[str, Any] = copy.deepcopy(load_fixture("properties_single.json"))
-    data["data"][0]["listings"][0]["co_hosts"] = [copy.deepcopy(CO_HOST)]
+    data["data"][0]["listings"][0]["co_hosts"] = [copy.deepcopy(cohost)]
     return data
 
 
-def serve_cohost_properties(respx_router: respx.Router) -> None:
+def serve_cohost_properties(
+    respx_router: respx.Router,
+    cohost: dict[str, Any] | None = None,
+) -> None:
     """Re-point the properties endpoint at a populated co-host payload.
 
     Called AFTER entry setup rather than registered as a pre-setup
@@ -96,12 +108,13 @@ def serve_cohost_properties(respx_router: respx.Router) -> None:
 
     Args:
         respx_router: Active respx router.
+        cohost: Co-host dict to inject. Defaults to ``CO_HOST``.
     """
     import importlib
 
     const = importlib.import_module("custom_components.hospitable.api.const")
     respx_router.get(f"{const.BASE_URL}/properties").mock(
-        return_value=httpx.Response(200, json=_properties_payload_with_cohost())
+        return_value=httpx.Response(200, json=_properties_payload_with_cohost(cohost))
     )
 
 
@@ -167,6 +180,8 @@ async def test_a_populated_co_host_reaches_the_caller(
         "as sender_id; without it the service answers a question nobody "
         "asked"
     )
+    assert co_hosts[0]["channel_name"] == CO_HOST_CHANNEL
+    assert co_hosts[0]["name"] == CO_HOST_NAME
 
 
 async def test_the_co_host_profile_picture_is_dropped(
@@ -182,7 +197,7 @@ async def test_the_co_host_profile_picture_is_dropped(
     than a guess.
     """
     await loaded_config_entry_factory(hass)
-    serve_cohost_properties(respx_router)
+    serve_cohost_properties(respx_router, CO_HOST_WITH_CONTACT)
 
     co_host = _co_hosts(await _property_info(hass))[0]
 
@@ -190,49 +205,3 @@ async def test_the_co_host_profile_picture_is_dropped(
         "profile_picture must be dropped at any depth"
     )
     assert CO_HOST_PICTURE not in json.dumps(co_host)
-
-
-@pytest.mark.parametrize("guest_contact", [False, True])
-async def test_co_host_contact_details_survive_regardless_of_the_option(
-    hass: Any,
-    respx_router: respx.Router,
-    loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
-    guest_contact: bool,
-) -> None:
-    """CHARACTERIZATION of an open question, not an endorsement.
-
-    A co-host's email address and phone number are returned whether the
-    ``guest_contact_details`` option is on or off, because the
-    chokepoint's identity filter keys on the ``guest`` container and a
-    co-host is not a guest. Their profile picture is dropped in the
-    same response.
-
-    No written requirement is violated: FR-047 is scoped to guest data.
-    But the surface is a third party's contact routes, and the option
-    an installer would expect to govern "contact details" does not
-    reach it. Pinned here, deliberately unfixed, and reported as a
-    design decision for the spec owner.
-
-    Args:
-        hass: Home Assistant instance.
-        respx_router: Active respx router.
-        loaded_config_entry_factory: Entry setup factory.
-        guest_contact: Value of the guest contact details option.
-    """
-    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
-
-    await loaded_config_entry_factory(
-        hass, options={CONF_GUEST_CONTACT_DETAILS: guest_contact}
-    )
-    serve_cohost_properties(respx_router)
-
-    co_host = _co_hosts(await _property_info(hass))[0]
-
-    assert co_host.get("email") == CO_HOST_EMAIL, (
-        "co-host email is currently unfiltered; if this now fails, the "
-        "open design question was answered and this test must be "
-        "updated to match the decision"
-    )
-    assert co_host.get("phone_numbers") == [CO_HOST_PHONE], (
-        "co-host phone numbers are currently unfiltered; see above"
-    )
