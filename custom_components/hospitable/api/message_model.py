@@ -3,9 +3,11 @@
 """Message model extracted from ``api/models.py`` for file-size budget.
 
 ``HospitableMessage`` and ``_optional_str`` lived in ``models.py`` until
-that file reached the ~440-line ``aislop`` threshold. They are
-re-exported from ``models.py`` via the ``__all__`` pattern so the
-documented import path ``api.models.HospitableMessage`` still resolves.
+that file reached the ~440-line ``aislop`` threshold.
+``HospitableMessage`` is re-exported from ``models.py`` via the
+``__all__`` pattern so the documented import path
+``api.models.HospitableMessage`` still resolves. ``_optional_str`` is a
+private helper and is not re-exported.
 """
 
 from __future__ import annotations

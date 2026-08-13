@@ -41,12 +41,15 @@ async def async_handle_list_properties(
     entry = resolve_config_entry(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
     guest_contact = guest_contact_enabled(entry)
 
-    runtime = getattr(entry, "runtime_data", None) or {}
+    runtime = getattr(entry, "runtime_data", None)
+    if not isinstance(runtime, dict):
+        runtime = {}
     coordinators = runtime.get("coordinators", {})
+    if not isinstance(coordinators, dict):
+        coordinators = {}
     properties_coordinator = coordinators.get("properties")
-    cache: dict[str, HospitableProperty] = (
-        getattr(properties_coordinator, "data", None) or {}
-    )
+    data = getattr(properties_coordinator, "data", None)
+    cache: dict[str, HospitableProperty] = data if isinstance(data, dict) else {}
 
     known: set[str] = {str(pid) for pid in runtime.get("known_property_ids", [])}
     selected: set[str] = {str(pid) for pid in runtime.get("selected_property_ids", [])}
@@ -54,21 +57,21 @@ async def async_handle_list_properties(
     properties_out: list[dict[str, Any]] = []
     for property_id in sorted(known):
         prop = cache.get(property_id)
-        entry_out = _curate_property(prop, property_id, selected, guest_contact)
-        properties_out.append(entry_out)
+        properties_out.append(
+            _curate_property(prop, property_id, selected),
+        )
 
-    result: ServiceResponse = {
-        "found": True,
-        "properties": properties_out,  # type: ignore[dict-item]
-    }
-    return result
+    filtered: ServiceResponse = response.serialize_response(
+        {"found": True, "properties": properties_out},
+        guest_contact=guest_contact,
+    )
+    return filtered
 
 
 def _curate_property(
     prop: HospitableProperty | None,
     property_id: str,
     selected: set[str],
-    guest_contact: bool,
 ) -> dict[str, Any]:
     """Build the curated shape for one property (FR-005, FR-010).
 
@@ -77,7 +80,6 @@ def _curate_property(
             property with no cached data.
         property_id: The property's identifier.
         selected: The set of selected property IDs.
-        guest_contact: Whether the guest-contact opt-in is enabled.
 
     Returns:
         A curated property dictionary.
@@ -91,10 +93,7 @@ def _curate_property(
             "listings": [],
         }
 
-    listings = [
-        _curate_listing(listing, guest_contact=guest_contact)
-        for listing in prop.listings
-    ]
+    listings = [_curate_listing(listing) for listing in prop.listings]
     return {
         "property_id": prop.property_id,
         "name": prop.name,
@@ -104,36 +103,30 @@ def _curate_property(
     }
 
 
-def _curate_listing(
-    listing: Any,
-    *,
-    guest_contact: bool,
-) -> dict[str, Any]:
+def _curate_listing(listing: Any) -> dict[str, Any]:
     """Build the curated shape for one listing (FR-006).
 
-    Co-hosts are passed through the EXISTING response privacy
-    chokepoint (FR-007, FR-048). This is NOT a second filtering
-    path: the co-host dicts flow through ``serialize_response``
-    which delegates to ``_filter_co_hosts``.
+    Co-host dicts are included unfiltered here. The caller
+    passes the entire response through ``serialize_response``,
+    which walks recursively and delegates co-host filtering
+    to ``_filter_co_hosts`` (FR-007, FR-048).
 
     Args:
         listing: A ``HospitableListing`` model instance.
-        guest_contact: Whether the guest-contact opt-in is enabled.
 
     Returns:
         A curated listing dictionary.
     """
     co_host_dicts = [
-        {"user_id": ch.user_id, "channel_name": ch.channel_name, "name": ch.name}
+        {
+            "user_id": ch.user_id,
+            "channel_name": ch.channel_name,
+            "name": ch.name,
+        }
         for ch in getattr(listing, "co_hosts", ())
     ]
-    # Pass through the ONE privacy chokepoint (FR-048).
-    filtered = response.serialize_response(
-        {"co_hosts": co_host_dicts},
-        guest_contact=guest_contact,
-    )
     return {
         "platform": listing.platform,
         "platform_id": listing.platform_id,
-        "co_hosts": filtered.get("co_hosts", []),
+        "co_hosts": co_host_dicts,
     }
