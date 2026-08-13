@@ -210,15 +210,6 @@ def test_every_quickstart_target_exists(target: Target) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "RED PHASE (Principle XII): VS-10 names a node id that does "
-        "not exist. strict=False because this is a parametrised test "
-        "whose other cases pass; the marker is removed in the fix "
-        "commit, at which point every case must pass."
-    ),
-)
 @pytest.mark.parametrize("target", TARGETS, ids=repr)
 def test_every_quickstart_target_selects_tests(target: Target) -> None:
     """Each documented node id and ``-k`` filter still matches a test.
