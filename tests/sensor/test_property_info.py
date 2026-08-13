@@ -3,7 +3,7 @@
 """Tests for the property-information diagnostic sensor.
 
 Covers T091 (FR-053, FR-062): the ``property_info`` sensor's state is the
-display name and it exposes exactly the eight contract attributes with no
+display name and it exposes exactly the nine contract attributes with no
 coordinates, street number, postcode, or owner contact details.
 """
 
@@ -13,7 +13,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN, EntityCategory
 from homeassistant.helpers import entity_registry as er
@@ -137,7 +136,7 @@ async def test_property_info_end_to_end(
     respx_router: Any,
     synthetic_token: str,
 ) -> None:
-    """A full setup creates a property_info sensor exposing eight attributes."""
+    """A full setup creates a property_info sensor exposing nine attributes."""
     from custom_components.hospitable.api.const import BASE_URL
 
     entry = MockConfigEntry(
@@ -179,17 +178,11 @@ async def test_property_info_end_to_end(
     await hass.async_block_till_done()
 
 
-@pytest.mark.xfail(
-    raises=AssertionError, reason="T027: property_id not yet in tuple", strict=True
-)
 def test_property_info_attributes_contain_property_id() -> None:
     """PROPERTY_INFO_ATTRIBUTES includes property_id (FR-011, FR-012)."""
     assert "property_id" in PROPERTY_INFO_ATTRIBUTES
 
 
-@pytest.mark.xfail(
-    raises=AssertionError, reason="T028: property_id not yet exposed", strict=True
-)
 def test_property_info_sensor_exposes_property_id() -> None:
     """The sensor's extra_state_attributes includes property_id (FR-011)."""
     prop = _property()
@@ -200,9 +193,6 @@ def test_property_info_sensor_exposes_property_id() -> None:
     assert attrs["property_id"] == prop.property_id
 
 
-@pytest.mark.xfail(
-    raises=AssertionError, reason="T029: docstring says eight", strict=True
-)
 def test_property_info_docstring_says_nine() -> None:
     """The extra_state_attributes docstring says nine (FR-013)."""
     descriptor = HospitablePropertyInfoSensor.__dict__["extra_state_attributes"]
