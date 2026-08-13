@@ -86,7 +86,7 @@ uv run pytest tests/actions/test_property_targeting.py -v
 - Neither target nor property_id → `ServiceValidationError`
 - Target from wrong integration → `ServiceValidationError`
 - Target from different config entry → `ServiceValidationError`
-- Direct `property_id` without target → works (backward compat)
+- Direct `property_id` without target → works (scripting path)
 
 ### VS-5: Co-host model parsing
 

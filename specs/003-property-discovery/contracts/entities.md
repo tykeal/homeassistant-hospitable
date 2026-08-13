@@ -42,8 +42,8 @@ containing no personal data (FR-014). It is freely recordable,
 displayable, and loggable. No unrecorded-attributes treatment is
 needed.
 
-**Backward compatibility**: Purely additive. Existing automations
-referencing the eight original attributes are unaffected. No state
+**Code-level compatibility**: Purely additive. The eight original
+attributes are unchanged; `property_id` is a ninth entry. No state
 change event beyond the normal attribute-update-on-next-poll is
 expected.
 
