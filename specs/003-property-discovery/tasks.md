@@ -268,8 +268,8 @@ this deliverable.
       added until the green phase T022) and assert any definition has
       `name == "list_properties"`. This MUST fail with
       `AssertionError` because the tuple contains only five entries
-      and none is named `"list_properties"`. Import inside the test
-      body with `# type: ignore[import-not-found]`. Verify:
+      and none is named `"list_properties"`. No `# type: ignore` is
+      needed — the module and the name both exist. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-003, FR-005)
 - [ ] T015 [US1] In `tests/actions/test_list_properties.py`, add an
