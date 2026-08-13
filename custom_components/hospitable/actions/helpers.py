@@ -21,6 +21,7 @@ from homeassistant.helpers.httpx_client import get_async_client
 from custom_components.hospitable.api.auth import StaticTokenProvider
 from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.const import (
+    CONF_ACCOUNT_NAMESPACE,
     CONF_GUEST_CONTACT_DETAILS,
     CONF_TOKEN,
     DEFAULT_GUEST_CONTACT_DETAILS,
@@ -214,3 +215,213 @@ def known_property_ids(entry: ConfigEntry) -> set[str]:
     known = runtime.get("known_property_ids") or []
     selected = runtime.get("selected_property_ids") or []
     return {str(item) for item in [*known, *selected]}
+
+
+def resolve_property_id(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *,
+    property_id: str | None,
+    target: dict[str, Any] | None,
+) -> str:
+    """Resolve the property a service call targets (FR-019).
+
+    Accepts an explicit ``property_id``, a device/entity target, or
+    both. When both are supplied and they agree, the call proceeds.
+    When they disagree, a ``ServiceValidationError`` is raised
+    (FR-017). When neither is supplied, a ``ServiceValidationError``
+    is raised (FR-018).
+
+    Args:
+        hass: Home Assistant instance.
+        entry: The selected config entry.
+        property_id: A directly supplied property ID.
+        target: Target dict with optional ``entity_id`` and
+            ``device_id`` lists, as merged by HA from the service
+            call target.
+
+    Returns:
+        The resolved property ID.
+
+    Raises:
+        ServiceValidationError: The inputs conflict, neither is
+            supplied, or the target cannot be resolved.
+    """
+    from homeassistant.helpers import (
+        device_registry as dr_mod,
+    )
+
+    from custom_components.hospitable.entity import (
+        parse_device_identifier,
+    )
+
+    target_property_id = _resolve_target(
+        hass,
+        entry,
+        target or {},
+        dr_mod,
+        parse_device_identifier,
+    )
+
+    if property_id is not None and target_property_id is not None:
+        if property_id != target_property_id:
+            raise ServiceValidationError(
+                f"The property_id '{property_id}' and the "
+                f"target device resolve to different "
+                f"properties ('{target_property_id}'). "
+                "Remove one or correct the mismatch."
+            )
+        return property_id
+
+    if property_id is not None:
+        return property_id
+
+    if target_property_id is not None:
+        return target_property_id
+
+    raise ServiceValidationError(
+        "Provide a property_id or select a Hospitable device or entity as target."
+    )
+
+
+def _resolve_target(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    target: dict[str, Any],
+    dr_mod: Any,
+    parse_device_identifier: Any,
+) -> str | None:
+    """Extract a property ID from a target dict.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: The selected config entry.
+        target: Target dict with entity_id / device_id.
+        dr_mod: The device_registry module.
+        parse_device_identifier: Identifier parser function.
+
+    Returns:
+        The property ID, or None when no target is supplied.
+
+    Raises:
+        ServiceValidationError: The target is invalid.
+    """
+    entity_ids = target.get("entity_id")
+    device_ids = target.get("device_id")
+    if not entity_ids and not device_ids:
+        return None
+
+    device_reg = dr_mod.async_get(hass)
+
+    if entity_ids:
+        if isinstance(entity_ids, str):
+            entity_ids = [entity_ids]
+        return _resolve_entity_target(
+            hass,
+            entry,
+            entity_ids[0],
+            device_reg,
+            parse_device_identifier,
+        )
+
+    if isinstance(device_ids, str):
+        device_ids = [device_ids]
+    dev_list: list[str] = list(device_ids) if device_ids else []
+    if not dev_list:
+        return None
+    return _resolve_device_target(
+        entry,
+        dev_list[0],
+        device_reg,
+        parse_device_identifier,
+    )
+
+
+def _resolve_entity_target(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    entity_id: str,
+    device_reg: Any,
+    parse_device_identifier: Any,
+) -> str:
+    """Resolve a property ID from an entity target.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: The selected config entry.
+        entity_id: The target entity ID.
+        device_reg: Device registry instance.
+        parse_device_identifier: Identifier parser.
+
+    Returns:
+        The resolved property ID.
+
+    Raises:
+        ServiceValidationError: The entity cannot be resolved.
+    """
+    ent_registry = er.async_get(hass)
+    ent_entry = ent_registry.async_get(entity_id)
+    if ent_entry is None or ent_entry.platform != DOMAIN:
+        raise ServiceValidationError(
+            f"Entity {entity_id} is not a Hospitable "
+            "entity, so it cannot identify a property."
+        )
+    if ent_entry.config_entry_id != entry.entry_id:
+        raise ServiceValidationError(
+            f"Entity {entity_id} belongs to a different "
+            "Hospitable account than the one selected."
+        )
+    if ent_entry.device_id is None:
+        raise ServiceValidationError(
+            f"Entity {entity_id} has no device and cannot identify a property."
+        )
+    return _resolve_device_target(
+        entry,
+        ent_entry.device_id,
+        device_reg,
+        parse_device_identifier,
+    )
+
+
+def _resolve_device_target(
+    entry: ConfigEntry,
+    device_id: str,
+    device_reg: Any,
+    parse_device_identifier: Any,
+) -> str:
+    """Resolve a property ID from a device target.
+
+    Args:
+        entry: The selected config entry.
+        device_id: The target device ID.
+        device_reg: Device registry instance.
+        parse_device_identifier: Identifier parser.
+
+    Returns:
+        The resolved property ID.
+
+    Raises:
+        ServiceValidationError: The device cannot be resolved.
+    """
+    device_entry = device_reg.async_get(device_id)
+    if device_entry is None:
+        raise ServiceValidationError(f"Device {device_id} is not registered.")
+    if entry.entry_id not in (device_entry.config_entries or set()):
+        raise ServiceValidationError(
+            f"Device {device_id} belongs to a different "
+            "Hospitable account than the one selected."
+        )
+
+    namespace = str(entry.data.get(CONF_ACCOUNT_NAMESPACE, ""))
+
+    for identifier in device_entry.identifiers:
+        prop_id = parse_device_identifier(
+            identifier,
+            namespace,
+        )
+        if prop_id is not None:
+            return str(prop_id)
+
+    raise ServiceValidationError(
+        f"Device {device_id} is not a Hospitable property device."
+    )

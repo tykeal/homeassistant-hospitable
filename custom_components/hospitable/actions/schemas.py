@@ -76,14 +76,18 @@ FIND_RESERVATION_SCHEMA = vol.Schema(dict(_RESERVATION_TARGET))
 GET_RESERVATIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Required(ATTR_PROPERTY_ID): cv.string,
+        vol.Optional(ATTR_PROPERTY_ID): cv.string,
+        vol.Optional("entity_id"): vol.Any(cv.entity_ids, cv.entity_id),
+        vol.Optional("device_id"): vol.Any("none", vol.All(cv.ensure_list, [str])),
     }
 )
 
 GET_PROPERTY_INFO_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Required(ATTR_PROPERTY_ID): cv.string,
+        vol.Optional(ATTR_PROPERTY_ID): cv.string,
+        vol.Optional("entity_id"): vol.Any(cv.entity_ids, cv.entity_id),
+        vol.Optional("device_id"): vol.Any("none", vol.All(cv.ensure_list, [str])),
     }
 )
 
