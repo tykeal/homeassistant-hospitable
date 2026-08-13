@@ -1675,6 +1675,7 @@ it; it does not follow that the task fully discharges it.
 | FR-046 | T072a, T075a, T153, T153a, T171 |
 | FR-047 | T072a, T072b, T072c, T075a, T153a, T171 |
 | FR-047a | T072d, T075a, T153a, T171 |
+| FR-047b | T072a, T075a, T171 |
 | FR-048 | T072a, T072c, T072e, T075a, T079a, T171 |
 
 ### Success criteria and open questions
