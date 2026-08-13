@@ -30,6 +30,10 @@ from custom_components.hospitable.api.models import (
     HospitableReservation,
 )
 from custom_components.hospitable.const import CONF_ACCOUNT_NAMESPACE, DOMAIN
+from custom_components.hospitable.coordinator_messages import (
+    MessagePresence,
+    MessagePresenceFetcher,
+)
 from custom_components.hospitable.services.lifecycle import note_disappearances
 
 _LOGGER = logging.getLogger(__name__)
@@ -262,6 +266,7 @@ class HospitableReservationsCoordinator(
         lookahead_days: int,
         config_entry: ConfigEntry | None = None,
         interval_minutes: int | None = None,
+        message_fetcher: MessagePresenceFetcher | None = None,
     ) -> None:
         """Initialize the reservations coordinator with its query window."""
         super().__init__(
@@ -275,8 +280,42 @@ class HospitableReservationsCoordinator(
         self._lookback_days = lookback_days
         self._lookahead_days = lookahead_days
         self._logged_include_missing = False
+        # ``None`` when the awaiting-host-reply option is off, which is
+        # the default. The option is not merely hidden then: there is no
+        # fetcher at all, so no message call can be made (FR-038).
+        self._message_fetcher = message_fetcher
+
+    @property
+    def message_presence(self) -> dict[str, MessagePresence]:
+        """Return each property's derived message presence.
+
+        Kept off ``data`` deliberately. ``data`` is the reservation list
+        every existing consumer already types against, and the
+        write-isolation gates compare the coordinator set EXACTLY, so
+        widening either would ripple far beyond US5 for no gain.
+
+        Returns:
+            Presence records keyed by property id, empty when the
+            awaiting-host-reply option is off.
+        """
+        if self._message_fetcher is None:
+            return {}
+        return self._message_fetcher.presence
 
     async def _fetch_data(self) -> list[HospitableReservation]:
+        """Fetch reservations, then optionally their message presence.
+
+        The message step runs AFTER, never instead of, and can never
+        fail this update: it swallows its own errors so reservation data
+        that WAS fetched successfully is not discarded because a
+        throttle answered a secondary call (T142b, FR-019).
+        """
+        reservations = await self._fetch_reservations()
+        if self._message_fetcher is not None:
+            await self._message_fetcher.async_update(reservations)
+        return reservations
+
+    async def _fetch_reservations(self) -> list[HospitableReservation]:
         """Fetch reservations, degrading gracefully on a missing include."""
         today = dt_util.utcnow().date()
         start = today - timedelta(days=self._lookback_days)

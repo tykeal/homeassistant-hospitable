@@ -92,11 +92,6 @@ def _enabled(**extra: Any) -> dict[str, Any]:
 # --- T132: the last-message timestamp sensor ---------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T132 last_message_at sensor not implemented",
-    strict=True,
-)
 async def test_a_last_message_sensor_exists_for_every_property(
     hass: Any, respx_router: Any
 ) -> None:
@@ -126,11 +121,6 @@ async def test_a_last_message_sensor_exists_for_every_property(
 # --- T133: zero additional HTTP requests -------------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T133 last_message_at derivation not implemented",
-    strict=True,
-)
 async def test_the_last_message_sensor_issues_no_extra_requests(
     hass: Any, respx_router: Any
 ) -> None:
@@ -167,11 +157,6 @@ async def test_the_last_message_sensor_issues_no_extra_requests(
 # --- T134: degrade to unknown, not error -------------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T134 last_message_at degradation not implemented",
-    strict=True,
-)
 async def test_the_last_message_sensor_is_unknown_when_absent(
     hass: Any, respx_router: Any
 ) -> None:
@@ -206,11 +191,6 @@ async def test_the_last_message_sensor_is_unknown_when_absent(
 # --- T135: the opt-in gate ---------------------------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T135 awaiting_host_reply gating not implemented",
-    strict=True,
-)
 async def test_the_awaiting_sensor_appears_only_when_opted_in(
     hass: Any, respx_router: Any
 ) -> None:
@@ -233,11 +213,6 @@ async def test_the_awaiting_sensor_appears_only_when_opted_in(
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T135 awaiting_host_reply creation not implemented",
-    strict=True,
-)
 async def test_the_awaiting_sensor_is_created_when_opted_in(
     hass: Any, respx_router: Any
 ) -> None:
@@ -252,11 +227,6 @@ async def test_the_awaiting_sensor_is_created_when_opted_in(
         )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T135 awaiting_host_reply option default not wired",
-    strict=True,
-)
 async def test_the_awaiting_option_defaults_off(hass: Any, respx_router: Any) -> None:
     """The opt-in defaults OFF everywhere it is expressed (T135, FR-038a).
 
@@ -289,11 +259,6 @@ async def test_the_awaiting_option_defaults_off(hass: Any, respx_router: Any) ->
 # --- T136: at most one fetch per property per cycle --------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T136 bounded message fetch not implemented",
-    strict=True,
-)
 async def test_one_message_fetch_per_property_per_cycle(
     hass: Any, respx_router: Any
 ) -> None:
@@ -322,11 +287,6 @@ async def test_one_message_fetch_per_property_per_cycle(
 # --- T136a: the deliberately conservative 60-second floor --------------
 
 
-@pytest.mark.xfail(
-    raises=ModuleNotFoundError,
-    reason="TDD red phase: T136a message coordinator module not created",
-    strict=True,
-)
 def test_the_message_fetch_floor_is_sixty_seconds() -> None:
     """The per-reservation fetch floor is 60 seconds (T136a, FR-038a).
 
@@ -371,11 +331,6 @@ def test_the_message_fetch_floor_is_sixty_seconds() -> None:
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T136a interval independence not implemented",
-    strict=True,
-)
 async def test_the_floor_holds_below_the_reservation_interval(
     hass: Any, respx_router: Any
 ) -> None:
@@ -412,11 +367,6 @@ async def test_the_floor_holds_below_the_reservation_interval(
 # --- T136b: a rapid double refresh -------------------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T136b double-refresh budget not implemented",
-    strict=True,
-)
 async def test_a_rapid_double_refresh_stays_inside_the_budget(
     hass: Any, respx_router: Any
 ) -> None:
@@ -462,11 +412,6 @@ async def test_a_rapid_double_refresh_stays_inside_the_budget(
 # --- T136c: fanning out across different reservations is allowed -------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T136c per-reservation fan-out not implemented",
-    strict=True,
-)
 async def test_many_reservations_may_be_fetched_in_one_cycle(
     hass: Any, respx_router: Any
 ) -> None:
@@ -494,11 +439,6 @@ async def test_many_reservations_may_be_fetched_in_one_cycle(
 # --- T136d: a 429 is a throttle, not an outage -------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T136d message 429 handling not implemented",
-    strict=True,
-)
 async def test_a_throttled_fetch_retains_the_last_good_value(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -566,11 +506,6 @@ async def test_a_throttled_fetch_retains_the_last_good_value(
 # --- T137: derivation from the sender role, and never "unread" ---------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T137 sender-role derivation not implemented",
-    strict=True,
-)
 async def test_the_indicator_follows_the_latest_sender_role(
     hass: Any, respx_router: Any
 ) -> None:
@@ -609,11 +544,6 @@ async def test_the_indicator_follows_the_latest_sender_role(
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T137 empty-thread indicator not implemented",
-    strict=True,
-)
 async def test_an_empty_thread_reads_unknown(hass: Any, respx_router: Any) -> None:
     """An empty thread is unknown, not off (T137, FR-037).
 
@@ -639,11 +569,6 @@ async def test_an_empty_thread_reads_unknown(hass: Any, respx_router: Any) -> No
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T137 awaiting_host_reply user text not added",
-    strict=True,
-)
 async def test_no_user_facing_text_ever_says_unread(
     hass: Any, respx_router: Any
 ) -> None:
@@ -690,11 +615,6 @@ async def test_no_user_facing_text_ever_says_unread(
 # --- T138: message bodies never reach an attribute or a log ------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T138 message body exclusion not implemented",
-    strict=True,
-)
 async def test_message_bodies_never_reach_an_attribute_or_a_log(
     hass: Any, respx_router: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -755,11 +675,6 @@ async def test_message_bodies_never_reach_an_attribute_or_a_log(
 # --- T139: the options flow toggle -------------------------------------
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T139 awaiting_host_reply option not in the flow",
-    strict=True,
-)
 async def test_the_options_flow_exposes_the_awaiting_toggle(
     hass: Any, respx_router: Any
 ) -> None:
@@ -819,11 +734,6 @@ async def test_the_options_flow_exposes_the_awaiting_toggle(
     )
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T139 awaiting_host_reply description not written",
-    strict=True,
-)
 def test_the_toggle_description_states_the_cost_and_the_limitation() -> None:
     """The description names BOTH caveats (T139, FR-037, FR-038a).
 

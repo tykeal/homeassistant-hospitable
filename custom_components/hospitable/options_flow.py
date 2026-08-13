@@ -21,6 +21,7 @@ from homeassistant.helpers.selector import (
 )
 
 from custom_components.hospitable.const import (
+    CONF_AWAITING_HOST_REPLY,
     CONF_GUEST_CONTACT_DETAILS,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
@@ -30,6 +31,7 @@ from custom_components.hospitable.const import (
     CONF_TASK_INTERVAL,
     CONF_TASK_WINDOW_DAYS,
     CONF_TIMEZONE_OVERRIDES,
+    DEFAULT_AWAITING_HOST_REPLY,
     DEFAULT_GUEST_CONTACT_DETAILS,
     DEFAULT_PROPERTY_INTERVAL,
     DEFAULT_RESERVATION_INTERVAL,
@@ -50,6 +52,10 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_SELECTED_PROPERTIES: [],
     # OFF by requirement (FR-038b), not by preference.
     CONF_GUEST_CONTACT_DETAILS: DEFAULT_GUEST_CONTACT_DETAILS,
+    # Also OFF by requirement (FR-038a). This one additionally costs one
+    # request per property per reservation poll cycle, so opting in is a
+    # decision the user has to make deliberately.
+    CONF_AWAITING_HOST_REPLY: DEFAULT_AWAITING_HOST_REPLY,
     CONF_RESERVATION_INTERVAL: DEFAULT_RESERVATION_INTERVAL,
     CONF_PROPERTY_INTERVAL: DEFAULT_PROPERTY_INTERVAL,
     CONF_LOOKBACK_DAYS: LOOKBACK_DEFAULT,
@@ -129,6 +135,12 @@ class HospitableOptionsFlow(OptionsFlow):
                             user_input.get(
                                 CONF_GUEST_CONTACT_DETAILS,
                                 DEFAULT_GUEST_CONTACT_DETAILS,
+                            )
+                        ),
+                        CONF_AWAITING_HOST_REPLY: bool(
+                            user_input.get(
+                                CONF_AWAITING_HOST_REPLY,
+                                DEFAULT_AWAITING_HOST_REPLY,
                             )
                         ),
                     },
@@ -250,6 +262,12 @@ class HospitableOptionsFlow(OptionsFlow):
                     options.get(
                         CONF_GUEST_CONTACT_DETAILS, DEFAULT_GUEST_CONTACT_DETAILS
                     )
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_AWAITING_HOST_REPLY,
+                default=bool(
+                    options.get(CONF_AWAITING_HOST_REPLY, DEFAULT_AWAITING_HOST_REPLY)
                 ),
             ): bool,
         }

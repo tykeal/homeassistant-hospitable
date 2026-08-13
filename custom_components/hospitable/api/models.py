@@ -159,6 +159,12 @@ class HospitableReservation:
     channel_confirmation: str | None
     booking_date: datetime | None
     stay_type: str | None
+    # Kept as the RAW upstream string rather than a parsed instant. Every
+    # other timestamp on this model is raw too, and the only consumer
+    # needs a ``datetime`` anyway, so parsing here would move the
+    # tolerance for an unparsable value to the wrong layer. Defaulted so
+    # a reservation recorded before this field was read still builds.
+    last_message_at: str | None = None
 
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> HospitableReservation:
@@ -205,6 +211,7 @@ class HospitableReservation:
             payload.get("platform_id"),
             booking,
             payload.get("stay_type"),
+            _optional_str(payload.get("last_message_at")),
         )
 
 

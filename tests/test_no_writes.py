@@ -255,3 +255,96 @@ async def test_the_read_services_issue_only_get_requests(
             f"Non-GET request from a read service: "
             f"{call.request.method} {call.request.url}"
         )
+
+
+# --- US5 extension of gate 4 (T146, FR-001, FR-059) ---------------------
+#
+# ADDS to the lifecycle gate above; nothing there is relaxed. That test
+# runs with the awaiting-host-reply option OFF, which is the default, so
+# it never reaches the message poll at all. Leaving it at that would
+# make the gate silently vacuous for the one US5 code path that issues
+# new traffic — the gate would keep reporting green over a request path
+# it never executed.
+
+
+async def test_the_opt_in_message_poll_stays_read_only(
+    hass: Any, respx_router: Any
+) -> None:
+    """The message poll issues GETs and nothing else (T146, FR-059).
+
+    The poll really is exercised rather than merely permitted: the
+    message route's own call count is asserted non-zero first, so the
+    GET-only assertion below is made about traffic that actually
+    happened.
+    """
+    from custom_components.hospitable.const import CONF_AWAITING_HOST_REPLY
+    from tests.helpers.message_entry import (
+        RESERVATION_A,
+        RESERVATION_B,
+        messages_url,
+        reservations_payload,
+        thread,
+    )
+
+    options = {
+        CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
+        CONF_LOOKAHEAD_DAYS: 30,
+        CONF_AWAITING_HOST_REPLY: True,
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_TOKEN: "hp_test_synthetic_token_000000000000000000000000",
+            CONF_ACCOUNT_NAMESPACE: _ACCOUNT,
+            CONF_NAMESPACE_SOURCE: "account",
+        },
+        options=options,
+        unique_id=_ACCOUNT,
+    )
+    entry.add_to_hass(hass)
+    _mock_all_endpoints(respx_router)
+    # The reservations route is re-registered with the US5 harness
+    # payload, whose stays are anchored to today. The recorded page
+    # cannot be used here: the client filters reservations to the
+    # requested window and the recorded arrivals are in 2025, so the
+    # poll would see zero reservations, fetch nothing, and this gate
+    # would pass while proving nothing.
+    respx_router.get(f"{BASE_URL}/reservations").mock(
+        return_value=httpx.Response(200, json=reservations_payload())
+    )
+    thread_routes = [
+        respx_router.get(messages_url(uuid)).mock(
+            return_value=httpx.Response(
+                200,
+                json=thread("guest", "host"),
+                headers={"x-ratelimit-limit": "2", "x-ratelimit-remaining": "1"},
+            )
+        )
+        for uuid in (RESERVATION_A, RESERVATION_B)
+    ]
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+
+    # The coordinator set is STILL exactly these four: message presence
+    # rides on the reservation coordinator rather than adding one, so no
+    # new coordinator joined the lifecycle unproved.
+    coordinators = entry.runtime_data["coordinators"]
+    assert set(coordinators) == {"properties", "reservations", "calendar", "tasks"}
+    for coordinator in coordinators.values():
+        await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert all(route.call_count > 0 for route in thread_routes), (
+        "the message poll never ran, so this proves nothing about its method"
+    )
+    for call in respx_router.calls:
+        assert call.request.method == "GET", (
+            f"Non-GET request recorded: {call.request.method} {call.request.url}"
+        )

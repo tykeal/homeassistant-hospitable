@@ -220,3 +220,95 @@ def test_gate_3_covers_the_us4_modules() -> None:
         assert not facts.imports_from(
             "custom_components.hospitable.api.write_client"
         ), path
+
+
+# --- US5 extension of gates 1 to 3 (T146, FR-001) -----------------------
+#
+# These ADD to the gates above; nothing existing is relaxed. US5 adds a
+# message-presence module and a message sensor module, and the calendar
+# coordinator moved into its own module to keep ``coordinator.py`` within
+# the file-size budget.
+#
+# That move is exactly why this block exists. Gate 1 scans
+# ``coordinator.py`` for ``_client`` annotations and compares the result
+# as a SET, so relocating a coordinator out of that file does not fail
+# the gate — it silently stops covering it, and the gate keeps reporting
+# green over code nobody is checking any more. A gate that quietly
+# narrows is worse than one that breaks loudly.
+
+MESSAGES_COORDINATOR_MODULE = INTEGRATION_ROOT / "coordinator_messages.py"
+CALENDAR_COORDINATOR_MODULE = INTEGRATION_ROOT / "coordinator_calendar.py"
+MESSAGES_SENSOR_MODULE = SENSOR_PACKAGE / "messages.py"
+RATE_LIMIT_MODULE = INTEGRATION_ROOT / "rate_limit.py"
+
+US5_POLLING_MODULES = [
+    *US4_POLLING_MODULES,
+    MESSAGES_COORDINATOR_MODULE,
+    CALENDAR_COORDINATOR_MODULE,
+    RATE_LIMIT_MODULE,
+]
+
+
+def test_gate_1_covers_the_relocated_and_new_coordinator_modules() -> None:
+    """Every out-of-file coordinator still types the GET-only client.
+
+    Both modules are asserted to exist first: an annotation scan over a
+    missing file returns an empty set, and an empty set would sail past
+    a subset check while proving nothing at all.
+    """
+    from tests.helpers.ast_isolation import annotated_assignment_types
+
+    for module in (MESSAGES_COORDINATOR_MODULE, CALENDAR_COORDINATOR_MODULE):
+        assert module.is_file(), f"{module} must exist to be isolated"
+        assert annotated_assignment_types(module, "_client") == {BASE_CLIENT_NAME}, (
+            f"{module} must annotate self._client as the base client"
+        )
+
+
+def test_gate_3_covers_the_us5_modules() -> None:
+    """No US5 polling module reaches for a write-capable symbol."""
+    from tests.helpers.ast_isolation import scan_paths
+
+    for module in (
+        MESSAGES_COORDINATOR_MODULE,
+        CALENDAR_COORDINATOR_MODULE,
+        MESSAGES_SENSOR_MODULE,
+        RATE_LIMIT_MODULE,
+    ):
+        assert module.is_file(), f"{module} must exist to be isolated"
+
+    scanned = scan_paths(US5_POLLING_MODULES)
+    covered = {path.as_posix() for path in scanned}
+    for module in (
+        MESSAGES_COORDINATOR_MODULE,
+        CALENDAR_COORDINATOR_MODULE,
+        MESSAGES_SENSOR_MODULE,
+        RATE_LIMIT_MODULE,
+    ):
+        assert module.as_posix() in covered, f"the scan did not reach {module}"
+
+    for path, facts in scanned.items():
+        assert not facts.references("HospitableWriteClient"), path
+        assert not facts.references("_post"), path
+        assert not facts.imports_from("custom_components.hospitable.actions"), path
+        assert not facts.imports_from(
+            "custom_components.hospitable.api.write_client"
+        ), path
+
+
+def test_the_message_poll_cannot_reach_the_send_helper() -> None:
+    """The message poll names no send symbol at all (T146, FR-001).
+
+    ``api/messages.py`` holds BOTH the read helper this module uses and
+    ``async_send_message``. Gate 3 would not catch importing the wrong
+    one: it is the same module, not the ``actions`` package, and it is
+    reached through the GET-only client's typing rather than the write
+    client's. So the send helper is named here explicitly.
+    """
+    from tests.helpers.ast_isolation import scan_paths
+
+    scanned = scan_paths([MESSAGES_COORDINATOR_MODULE, MESSAGES_SENSOR_MODULE])
+    assert len(scanned) == 2, "the scan did not reach both message modules"
+    for path, facts in scanned.items():
+        assert not facts.references("async_send_message"), path
+        assert not facts.references("MessageAcceptance"), path
