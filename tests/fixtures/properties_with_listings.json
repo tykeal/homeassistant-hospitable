@@ -1,0 +1,124 @@
+{
+  "data": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Test Property Alpha",
+      "public_name": "Alpha Getaway",
+      "address": {
+        "city": "Test City",
+        "state": "TS",
+        "country": "US",
+        "display": "1 Example Avenue, Test City, TS 00001, US"
+      },
+      "capacity": {
+        "max": 4,
+        "bedrooms": 2,
+        "beds": 2,
+        "bathrooms": 1.0
+      },
+      "checkin": "15:00",
+      "checkout": "10:00",
+      "currency": "USD",
+      "listed": true,
+      "property_type": "apartment",
+      "listings": [
+        {
+          "platform": "airbnb",
+          "platform_id": "AIR-TEST-001",
+          "co_hosts": [
+            {
+              "user_id": "cohost-user-001",
+              "channel_name": "airbnb",
+              "name": "Test CoHost One"
+            },
+            {
+              "user_id": "cohost-user-002",
+              "channel_name": "airbnb",
+              "name": "Test CoHost Two"
+            }
+          ]
+        },
+        {
+          "platform": "booking_com",
+          "platform_id": "BDC-TEST-001",
+          "co_hosts": [
+            {
+              "user_id": "cohost-user-003",
+              "channel_name": "booking_com",
+              "name": "Test CoHost Three"
+            }
+          ]
+        }
+      ],
+      "timezone": "-0500"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Test Property Beta",
+      "public_name": null,
+      "address": {
+        "city": "Sample Town",
+        "state": "ST",
+        "country": "US",
+        "display": "2 Example Avenue, Sample Town, ST 00002, US"
+      },
+      "capacity": {
+        "max": 2,
+        "bedrooms": 1,
+        "beds": 1,
+        "bathrooms": 1.0
+      },
+      "checkin": "14:00",
+      "checkout": "11:00",
+      "currency": "USD",
+      "listed": false,
+      "property_type": "studio",
+      "listings": [],
+      "timezone": "-0700"
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Test Property Gamma",
+      "public_name": "Gamma Retreat",
+      "address": {
+        "city": "Demo City",
+        "state": "DC",
+        "country": "US",
+        "display": "3 Example Avenue, Demo City, DC 00003, US"
+      },
+      "capacity": {
+        "max": 8,
+        "bedrooms": 4,
+        "beds": 5,
+        "bathrooms": 2.5
+      },
+      "checkin": "16:00",
+      "checkout": "10:00",
+      "currency": "USD",
+      "listed": true,
+      "property_type": "house",
+      "listings": [
+        {
+          "platform": "vrbo",
+          "platform_id": "VRBO-TEST-001",
+          "co_hosts": []
+        }
+      ],
+      "timezone": "-0600"
+    }
+  ],
+  "links": [
+    {
+      "active": true,
+      "label": "1",
+      "url": "http://public.api.hospitable.com/v2/properties?page=1"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "path": "http://public.api.hospitable.com/v2/properties",
+    "per_page": 100,
+    "total": 3
+  }
+}
