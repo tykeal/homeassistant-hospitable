@@ -757,3 +757,122 @@ def test_the_toggle_description_states_the_cost_and_the_limitation() -> None:
             f"{name} does not state that this is not a read receipt"
         )
         assert "unread" not in text, f"{name} uses the forbidden word 'unread'"
+
+
+# --- Review follow-ups (PR #42) ----------------------------------------
+
+
+async def test_a_naive_timestamp_is_read_as_utc_not_as_local(
+    hass: Any, respx_router: Any
+) -> None:
+    """A naive last_message_at is UTC, not installation-local.
+
+    ``dt_util.as_utc`` documents that it assumes a NAIVE value is in
+    Home Assistant's configured zone, so handing one straight to it
+    would shift the reading by the installation's offset. Every observed
+    value from this endpoint carries a ``Z``, so a naive one is a
+    malformed UTC value rather than a local one.
+
+    The test sets a non-UTC HA zone deliberately. With the zone left at
+    UTC the correct and incorrect implementations agree, and the test
+    would pass either way.
+    """
+    await hass.config.async_set_time_zone("America/Los_Angeles")
+    payload = reservations_payload(last_message_at_a="2026-08-12T18:45:00")
+    mock_base_endpoints(respx_router, reservations=payload)
+    await setup_message_entry(hass)
+
+    state = _state(hass, PROPERTY_A, LAST_MESSAGE_KEY)
+    assert state.state == "2026-08-12T18:45:00+00:00", (
+        f"a naive timestamp read as {state.state!r}; it must be taken as "
+        "UTC, not as the installation's local zone"
+    )
+
+
+async def test_an_offset_timestamp_is_normalised_to_utc(
+    hass: Any, respx_router: Any
+) -> None:
+    """An offset-bearing last_message_at is converted, not passed through.
+
+    Asserted on ``native_value``, NOT on the state string. Home
+    Assistant renders a timestamp sensor by converting to UTC itself, so
+    the state string is identical whether or not this sensor normalises,
+    and a state assertion here would pass against an implementation that
+    does no normalising at all. This was confirmed by deliberately
+    removing the conversion: a state-based version of this test still
+    passed, which is what a tautology looks like.
+
+    So the normalisation is cosmetic as far as the state goes. It is
+    still asserted because ``native_value`` is public API that templates
+    and other integrations can read directly, where the offset would be
+    visible.
+    """
+    payload = reservations_payload(last_message_at_a="2026-08-12T11:45:00-07:00")
+    mock_base_endpoints(respx_router, reservations=payload)
+    await setup_message_entry(hass)
+
+    entity_id = message_entity_id(hass, PROPERTY_A, LAST_MESSAGE_KEY)
+    assert entity_id is not None, "no last_message_at sensor to inspect"
+    component = hass.data["entity_components"]["sensor"]
+    entity = component.get_entity(entity_id)
+    assert entity is not None, f"{entity_id} is registered but has no entity object"
+
+    value = entity.native_value
+    assert value is not None, "the sensor derived no value"
+    assert value.utcoffset() == timedelta(0), (
+        f"native_value carries offset {value.utcoffset()}, not UTC"
+    )
+    assert value.isoformat() == "2026-08-12T18:45:00+00:00", (
+        f"an offset timestamp became {value.isoformat()!r}, not the same "
+        "instant expressed in UTC"
+    )
+
+
+def test_the_compatibility_path_never_hands_out_a_stale_tracker() -> None:
+    """``actions.rate_limit.TRACKER`` follows the canonical singleton.
+
+    The tracker is a module-level singleton that the suite's reset
+    fixture REBINDS. A compatibility module that bound the name at
+    import time would keep handing out the object that existed when it
+    was first imported, so callers arriving by that path would silently
+    charge a different budget from everybody else — and would be exempt
+    from the reset, leaking allowance between tests.
+    """
+    from custom_components.hospitable import rate_limit
+    from custom_components.hospitable.actions import rate_limit as compat
+
+    assert compat.TRACKER is rate_limit.TRACKER
+
+    replacement = rate_limit.RateLimitTracker()
+    original = rate_limit.TRACKER
+    rate_limit.TRACKER = replacement
+    try:
+        assert compat.TRACKER is replacement, (
+            "the compatibility path kept a stale tracker after a rebind"
+        )
+    finally:
+        rate_limit.TRACKER = original
+
+
+def test_the_message_poll_reaches_the_tracker_by_module_attribute() -> None:
+    """The poll resolves TRACKER per call, so the reset reaches it.
+
+    Asserted on the source rather than the behaviour because the failure
+    this guards against is invisible in a single test: a name-bound
+    import still WORKS, it just quietly stops being reset, and the
+    resulting budget leak surfaces later as an unrelated flake in
+    whichever test happens to run afterwards.
+    """
+    from tests.helpers.ast_isolation import scan_paths
+
+    module = Path("custom_components/hospitable/coordinator_messages.py")
+    scanned = scan_paths([module])
+    assert scanned, "the scan did not reach the message coordinator"
+    source = module.read_text(encoding="utf-8")
+    bound_by_name = "from custom_components.hospitable.rate_limit import TRACKER"
+    assert bound_by_name not in source, (
+        "the message poll binds TRACKER by name, so the reset fixture cannot reach it"
+    )
+    assert "rate_limit.TRACKER" in source, (
+        "the message poll does not reach the shared tracker at all"
+    )

@@ -28,7 +28,7 @@ indicator reports only who wrote last (FR-037).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
@@ -129,10 +129,19 @@ class HospitableLastMessageSensor(_HospitableMessageEntity):
         instant = dt_util.parse_datetime(selected.last_message_at)
         if instant is None:
             return None
-        # A naive instant would make the sensor's rendering depend on
-        # the receiving system's zone, so it is anchored to UTC, which
-        # is what the endpoint documents its timestamps as.
-        return dt_util.as_utc(instant) if instant.tzinfo is None else instant
+        # A naive instant is tagged UTC EXPLICITLY rather than handed to
+        # ``dt_util.as_utc``, which documents that it assumes a naive
+        # value is in Home Assistant's configured zone. That assumption
+        # is wrong here: every observed value from this endpoint carries
+        # a ``Z`` suffix, so a naive one would be a malformed UTC value,
+        # not a local one, and reading it as local would shift the
+        # timestamp by the installation's offset.
+        if instant.tzinfo is None:
+            return instant.replace(tzinfo=UTC)
+        # An offset-bearing instant is normalised rather than passed
+        # through, so the value this entity reports is UTC regardless of
+        # which offset the payload happened to use.
+        return dt_util.as_utc(instant)
 
 
 class HospitableAwaitingHostReplySensor(_HospitableMessageEntity):

@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
+from custom_components.hospitable import rate_limit
 from custom_components.hospitable.api.client import HospitableApiClient
 from custom_components.hospitable.api.exceptions import (
     HospitableError,
@@ -41,7 +42,6 @@ from custom_components.hospitable.api.models import (
     HospitableMessage,
     HospitableReservation,
 )
-from custom_components.hospitable.rate_limit import TRACKER
 from custom_components.hospitable.services.selection import select_reservation
 
 _LOGGER = logging.getLogger(__name__)
@@ -236,11 +236,18 @@ class MessagePresenceFetcher:
         if now < self._blocked_until.get(uuid, 0.0):
             return False
         try:
+            # Reached as an ATTRIBUTE of the module, never imported by
+            # name. ``TRACKER`` is a module-level singleton that the test
+            # suite's reset fixture rebinds; a name-bound import would
+            # capture the original object and go on using it after the
+            # reset, so the budget would leak between tests and this
+            # module alone would be exempt from the reset.
+            #
             # The SHARED tracker from T047, not a second counter: the
             # upstream budget this consumes is the same one a send
             # consumes, and OQ-007 leaves open whether they are literally
             # the same bucket. Two counters could not model that.
-            TRACKER.check(self._token, uuid)
+            rate_limit.TRACKER.check(self._token, uuid)
         except ServiceValidationError:
             # A refusal is a deferral, not an error. The reservation
             # data is still good and the previous indicator still holds.
@@ -281,6 +288,6 @@ class MessagePresenceFetcher:
                 type(err).__name__,
             )
             return
-        TRACKER.record(self._token, uuid)
-        TRACKER.apply_headers(self._token, uuid, thread.headers)
+        rate_limit.TRACKER.record(self._token, uuid)
+        rate_limit.TRACKER.apply_headers(self._token, uuid, thread.headers)
         self._presence[property_id] = derive_presence(thread.messages)
