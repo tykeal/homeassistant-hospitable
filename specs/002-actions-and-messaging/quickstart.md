@@ -128,8 +128,14 @@ Error message names the limit and approximate reset time.
 from `actions/` or `api.write_client`.
 
 ```shell
-uv run pytest tests/test_no_writes.py::test_write_module_not_imported_by_polling_code -v
+uv run pytest tests/test_write_isolation.py -k gate_3 -v
 ```
+
+**Expected**: Gate 3 finds no polling module naming a write symbol, and
+the companion scan-coverage test confirms gate 3 actually reached every
+polling module. The second test matters as much as the first: gate 3
+compares a set of modules, so a relocated module would otherwise narrow
+its coverage while still passing.
 
 ### VS-11: Service-response PII audit
 

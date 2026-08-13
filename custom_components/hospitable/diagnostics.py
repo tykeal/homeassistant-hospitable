@@ -20,7 +20,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+from custom_components.hospitable.const import (
+    CONF_GUEST_CONTACT_DETAILS,
+    CONF_NAMESPACE_SOURCE,
+)
 
 ALLOWED_TOP_LEVEL = {
     "version",
@@ -111,3 +114,169 @@ def _redact_guest_object(value: Any) -> Any:
     if not isinstance(value, dict):
         return value
     return dict.fromkeys(value, REDACTED)
+
+
+async def async_get_config_entry_diagnostics(hass: Any, entry: Any) -> dict[str, Any]:
+    """Return the diagnostics download for one config entry (FR-063).
+
+    This is the name Home Assistant looks up when it resolves a
+    diagnostics platform, and its absence is why the redactor above sat
+    unreachable: the platform registered with a null handler, so the
+    integration had no diagnostics download at all despite shipping a
+    complete and correct redactor for one.
+
+    The payload is assembled to be safe BY CONSTRUCTION and then passed
+    through the redactor anyway. Two independent layers, because the
+    whole failure mode this file exists to prevent is a single control
+    being scoped to the wrong surface:
+
+    * the credential never enters the payload, since ``entry.data`` is
+      never dumped and ``data`` is not an allowlisted section either;
+    * guest identity DOES enter it, deliberately, so that FR-042's
+      show-redacted requirement has something to act on.
+
+    Args:
+        hass: The Home Assistant instance. Unused, but part of the
+            signature Home Assistant calls.
+        entry: The config entry being dumped.
+
+    Returns:
+        The allowlisted, redacted diagnostics payload.
+    """
+    del hass
+    coordinators = _entry_coordinators(entry)
+    return redact_diagnostics(
+        {
+            "version": getattr(entry, "version", None),
+            "minor_version": getattr(entry, "minor_version", None),
+            "namespace_source": dict(getattr(entry, "data", None) or {}).get(
+                CONF_NAMESPACE_SOURCE
+            ),
+            "options": dict(getattr(entry, "options", None) or {}),
+            "coordinators": {
+                name: _coordinator_section(name, coordinator)
+                for name, coordinator in coordinators.items()
+            },
+            "counts": {
+                name: _item_count(coordinator)
+                for name, coordinator in coordinators.items()
+            },
+        }
+    )
+
+
+def _entry_coordinators(entry: Any) -> dict[str, Any]:
+    """Return the entry's coordinators, tolerating an unloaded entry.
+
+    Args:
+        entry: The config entry being dumped.
+
+    Returns:
+        Coordinators by name, empty when the entry is not loaded. A
+        diagnostics download is most wanted when something is broken,
+        so failing to produce one for a half-loaded entry would with-
+        hold the dump exactly when it matters.
+    """
+    runtime_data = getattr(entry, "runtime_data", None)
+    if not isinstance(runtime_data, dict):
+        return {}
+    coordinators = runtime_data.get("coordinators")
+    return coordinators if isinstance(coordinators, dict) else {}
+
+
+def _coordinator_section(name: str, coordinator: Any) -> dict[str, Any]:
+    """Summarize one coordinator for the dump.
+
+    Args:
+        name: The coordinator's key in runtime data.
+        coordinator: The coordinator itself.
+
+    Returns:
+        Its health and size, plus reservation rows for the one
+        coordinator that holds guest identity.
+    """
+    section: dict[str, Any] = {
+        "last_update_success": bool(getattr(coordinator, "last_update_success", False)),
+        "update_interval": str(getattr(coordinator, "update_interval", None)),
+        "item_count": _item_count(coordinator),
+    }
+    if name == "reservations":
+        section["items"] = [
+            _reservation_row(reservation)
+            for reservation in _coordinator_items(coordinator)
+        ]
+    return section
+
+
+def _coordinator_items(coordinator: Any) -> list[Any]:
+    """Return a coordinator's payload as a flat list.
+
+    Args:
+        coordinator: The coordinator to read.
+
+    Returns:
+        Its items. Coordinator data is a list for reservations and a
+        mapping keyed by property elsewhere, so both are flattened.
+    """
+    data = getattr(coordinator, "data", None)
+    if isinstance(data, dict):
+        return list(data.values())
+    if isinstance(data, list):
+        return list(data)
+    return []
+
+
+def _item_count(coordinator: Any) -> int:
+    """Return how many items a coordinator holds.
+
+    Args:
+        coordinator: The coordinator to measure.
+
+    Returns:
+        The item count, zero when it holds nothing.
+    """
+    return len(_coordinator_items(coordinator))
+
+
+def _reservation_row(reservation: Any) -> dict[str, Any]:
+    """Render one reservation for the dump.
+
+    Only operational fields are named individually. Guest identity goes
+    in whole, under the ``guest`` key, so that the redactor blanks every
+    VALUE while preserving every KEY -- that is what lets a
+    troubleshooter tell a field the API never sent from one this
+    integration hid (FR-042).
+
+    A null guest stays null for the same reason. That a reservation has
+    no guest is not private, and it is exactly the condition FR-040
+    tolerates and that support questions turn on.
+
+    Args:
+        reservation: A reservation model.
+
+    Returns:
+        The reservation's operational fields and its guest object.
+    """
+    guest = getattr(reservation, "guest", None)
+    return {
+        "reservation_id": getattr(reservation, "reservation_id", None),
+        "property_id": getattr(reservation, "property_id", None),
+        "status_category": getattr(reservation, "status_category", None),
+        "status_sub_category": getattr(reservation, "status_sub_category", None),
+        "arrival_date": str(getattr(reservation, "arrival_date", None)),
+        "departure_date": str(getattr(reservation, "departure_date", None)),
+        "channel": getattr(reservation, "channel", None),
+        "has_last_message_at": getattr(reservation, "last_message_at", None)
+        is not None,
+        "guest": None
+        if guest is None
+        else {
+            "guest_id": guest.guest_id,
+            "first_name": guest.first_name,
+            "last_name": guest.last_name,
+            "email": guest.email,
+            "phone_numbers": guest.phone_numbers,
+            "location": guest.location,
+            "language": guest.language,
+        },
+    }
