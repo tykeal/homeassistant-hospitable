@@ -13,8 +13,9 @@ Order of operations matters and is enforced by test:
 4. POST, then charge the budget only on acceptance.
 5. Return through the shared privacy chokepoint.
 
-A 202 is an acceptance for asynchronous delivery. Nothing here claims a
-message was sent or delivered.
+A 202 means Hospitable ACCEPTED the message for asynchronous
+delivery. It is not a confirmation that the guest received anything,
+and no text this module produces may imply otherwise.
 """
 
 from __future__ import annotations

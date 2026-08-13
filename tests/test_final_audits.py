@@ -186,14 +186,6 @@ def test_the_two_localisation_files_agree() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED PHASE (Principle XII): task_interval_minutes ships with a "
-        "label and no description while enforcing a 5-minute floor. "
-        "Marker removed in the fix commit."
-    ),
-)
 @pytest.mark.parametrize("path", LOCALISATION_FILES, ids=lambda path: path.name)
 def test_every_spec_002_option_is_described(path: Path) -> None:
     """The spec 002 options carry descriptions, not just labels (FR-007).
@@ -218,14 +210,6 @@ def test_every_spec_002_option_is_described(path: Path) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED PHASE (Principle XII): task_interval_minutes ships with a "
-        "label and no description while enforcing a 5-minute floor. "
-        "Marker removed in the fix commit."
-    ),
-)
 def test_the_task_interval_description_states_its_floor() -> None:
     """The interval description names the bound it silently enforces.
 
@@ -295,15 +279,6 @@ def test_no_user_facing_file_claims_delivery(path: Path) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED PHASE (Principle XII): the send_message module docstring "
-        "carries a NEGATED meta-statement using the words it forbids. "
-        "Reworded in the fix commit rather than exempted, so this audit "
-        "needs zero allowances."
-    ),
-)
 def test_no_action_docstring_claims_delivery() -> None:
     """No docstring in the actions package claims delivery (FR-045).
 
@@ -346,11 +321,22 @@ def test_the_send_service_description_says_accepted() -> None:
     # descriptions are localised. Auditing the wrong file would have
     # been a scope error of exactly the kind this project keeps hitting
     # -- checking a surface the user never reads.
+    # Scoped to the service's own DESCRIPTION, not to the whole
+    # service blob. A first draft searched the serialised blob and a
+    # mutation that stripped every acceptance word from the
+    # description still passed, because an unrelated field mentioned
+    # it. That is this project's recurring defect shape in miniature:
+    # a control that looks complete but is scoped to a wider surface
+    # than the one it claims to guard.
     strings = json.loads(STRINGS.read_text())
-    rendered = json.dumps(strings["services"]["send_message"]).lower()
+    description = strings["services"]["send_message"]["description"].lower()
 
-    assert "accept" in rendered, (
-        "the send service never uses the word 'accepted'; saying nothing "
-        "leaves the user to assume delivery, which is the exact "
-        "misunderstanding FR-045 exists to prevent"
+    assert "accept" in description, (
+        "the send service description never uses the word 'accepted'; "
+        "saying nothing leaves the user to assume delivery, which is "
+        "the exact misunderstanding FR-045 exists to prevent"
+    )
+    assert "not confirmation" in description or "does not confirm" in description, (
+        "the description states acceptance but never states what "
+        "acceptance is NOT; the distinction only lands if it is drawn"
     )
