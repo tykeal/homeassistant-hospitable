@@ -262,14 +262,6 @@ async def test_no_guest_or_message_value_reaches_a_log_record(
         assert secret not in logged, f"guest value {secret!r} reached a log record"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED PHASE (Principle XII): there is no diagnostics download to "
-        "audit. See tests/test_diagnostics_platform.py. Marker removed "
-        "in the fix commit."
-    ),
-)
 async def test_no_guest_or_message_value_reaches_diagnostics(
     hass: Any, respx_router: Any
 ) -> None:
@@ -280,9 +272,9 @@ async def test_no_guest_or_message_value_reaches_diagnostics(
     ``tests/test_diagnostics_platform.py``. It is named here too so
     that this file's four-surface claim is not a claim about three.
     """
-    from custom_components.hospitable import diagnostics as _diag
-
-    async_get_config_entry_diagnostics = _diag.async_get_config_entry_diagnostics  # type: ignore[attr-defined]  # RED PHASE
+    from custom_components.hospitable.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
 
     entry = await setup_audit_entry(hass, respx_router, guest_contact=True)
     dump = json.dumps(

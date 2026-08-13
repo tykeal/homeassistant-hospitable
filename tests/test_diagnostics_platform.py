@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The diagnostics DOWNLOAD, as opposed to the redactor (T153).
 
-**Principle XII status: RED PHASE.** Every test here is expected to
-fail until the platform entry point exists. They ship marked
-``xfail(strict=True)`` in the red commit and the markers come off in
-the green commit.
+**Principle XII status: GREEN.** Every test here failed in the red
+commit that introduced them, marked ``xfail(strict=True)``; the
+markers came off in the commit that added the entry point.
 
 **The defect these tests exist to pin.** ``diagnostics.py`` implements
 ``redact_diagnostics`` and every existing test in
@@ -36,7 +35,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
 from homeassistant.setup import async_setup_component
 
 from tests.helpers.audit_entry import (
@@ -47,17 +45,6 @@ from tests.helpers.audit_entry import (
 )
 
 REDACTED = "**REDACTED**"
-
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED PHASE (Principle XII): the integration has no diagnostics "
-        "download. custom_components/hospitable/diagnostics.py defines "
-        "redact_diagnostics but never defines the entry point Home "
-        "Assistant looks up, so the platform registers with a null "
-        "handler. Removed in the fix commit."
-    ),
-)
 
 
 async def test_the_integration_exposes_a_diagnostics_entry_point() -> None:
@@ -107,9 +94,9 @@ async def test_the_download_is_useful_for_troubleshooting(
     A download that redacted everything would satisfy the privacy half
     of the requirement and fail the other half.
     """
-    from custom_components.hospitable import diagnostics as _diag
-
-    async_get_config_entry_diagnostics = _diag.async_get_config_entry_diagnostics  # type: ignore[attr-defined]  # RED PHASE
+    from custom_components.hospitable.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
 
     entry = await setup_audit_entry(hass, respx_router, guest_contact=True)
     dump = await async_get_config_entry_diagnostics(hass, entry)
@@ -138,9 +125,9 @@ async def test_the_download_shows_guest_fields_as_redacted(
     Presence with a redaction marker is what lets a troubleshooter tell
     "the API never sent it" from "we hid it". Omission cannot.
     """
-    from custom_components.hospitable import diagnostics as _diag
-
-    async_get_config_entry_diagnostics = _diag.async_get_config_entry_diagnostics  # type: ignore[attr-defined]  # RED PHASE
+    from custom_components.hospitable.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
 
     entry = await setup_audit_entry(hass, respx_router, guest_contact=True)
     dump = await async_get_config_entry_diagnostics(hass, entry)
@@ -169,9 +156,9 @@ async def test_no_guest_value_or_token_survives_the_download(
     This is the assertion SC-003 has always claimed and never made,
     because until now there was nothing to render.
     """
-    from custom_components.hospitable import diagnostics as _diag
-
-    async_get_config_entry_diagnostics = _diag.async_get_config_entry_diagnostics  # type: ignore[attr-defined]  # RED PHASE
+    from custom_components.hospitable.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
 
     entry = await setup_audit_entry(hass, respx_router, guest_contact=True)
     rendered = json.dumps(
