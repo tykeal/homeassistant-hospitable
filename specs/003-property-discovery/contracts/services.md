@@ -135,13 +135,13 @@ target:
 | Supplied | Supplied, different property | `ServiceValidationError` |
 | Not supplied | Not supplied | `ServiceValidationError` |
 
-**Backward compatibility**: Callers that supply `property_id` directly
+**Direct-ID path preserved**: Callers that supply `property_id` directly
 continue to work unchanged (FR-016, SC-006).
 
 ### `hospitable.get_property_info` (MODIFIED)
 
 Identical changes to `get_reservations` above. Same target definition,
-same resolution rules, same backward compatibility.
+same resolution rules, same direct-ID preservation.
 
 ## Error contract (unchanged)
 

@@ -239,7 +239,7 @@ field. Confirm the property is resolved and reservations are returned.
   property and MUST include exactly these fields:
   - `property_id` — the Hospitable property UUID (string).
   - `name` — the property's internal name (string).
-  - `public_name` — the property's guest-facing name (string).
+  - `public_name` — the property's guest-facing name (string or null).
   - `selected` — boolean, `true` when the property is in the
     `selected_property_ids` set for the config entry; `false`
     otherwise.

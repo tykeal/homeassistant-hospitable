@@ -203,11 +203,12 @@ Expected failure modes are stated per task. Groups touching
 `ImportError` there means the test is wrong, not the code.
 
 **Behavioural red-phase tests (AssertionError)**: T009, T010, T011,
-T015, T016 fail with genuine `AssertionError` against existing code or
-against real observed behaviour. These are the tests that cannot pass
-from an empty stub and therefore genuinely constrain the implementation.
+T014, T015, T016 fail with genuine `AssertionError` against existing
+code or against real observed behaviour. These are the tests that
+cannot pass from an empty stub and therefore genuinely constrain the
+implementation.
 
-**Import red-phase tests (ImportError)**: T008, T012, T013, T014 fail
+**Import red-phase tests (ImportError)**: T008, T012, T013 fail
 with `ImportError` because the class or module does not yet exist.
 These are constitutionally valid (the constitution's canonical example
 uses `raises=ImportError`) but are NOT the only red-phase tests for
@@ -260,18 +261,15 @@ this deliverable.
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-004)
 - [ ] T014 [US1] In `tests/actions/test_list_properties.py`, add an
-      xfail test (`raises=ImportError`) asserting that
+      xfail test (`raises=AssertionError`) asserting that
       `"list_properties"` appears as a `name` in the
       `SERVICE_DEFINITIONS` tuple in `actions/__init__.py`. Import
-      `SERVICE_DEFINITIONS` (it exists) and assert any definition has
-      `name == "list_properties"`. Note: this will fail with
-      `ImportError` because the handler import
-      (`from ... .list_properties import async_handle_list_properties`)
-      at the top of `actions/__init__.py` will fail at collection time
-      since the module does not exist yet. So the test must import
-      `SERVICE_DEFINITIONS` inside the body with
-      `# type: ignore[import-not-found]` since the entire
-      `actions/__init__` module will fail to import. Verify:
+      `SERVICE_DEFINITIONS` (it exists — the handler import is NOT
+      added until the green phase T022) and assert any definition has
+      `name == "list_properties"`. This MUST fail with
+      `AssertionError` because the tuple contains only five entries
+      and none is named `"list_properties"`. No `# type: ignore` is
+      needed — the module and the name both exist. Verify:
       `uv run pytest --runxfail tests/actions/test_list_properties.py::<node>`.
       (FR-003, FR-005)
 - [ ] T015 [US1] In `tests/actions/test_list_properties.py`, add an
@@ -507,7 +505,9 @@ existing code does not support targeting.
 - [ ] T038 [P] [US3] In `tests/actions/test_property_targeting.py`, add
       an xfail test (`raises=AssertionError`) for FR-016: when only
       `property_id` is supplied (no target), the action proceeds using
-      the property_id directly. This tests the backward-compatible path.
+      the property_id directly. This tests the direct-ID scripting path
+      (FR-016: `list_properties` returns IDs that callers feed straight
+      back into property-scoped actions).
       Verify:
       `uv run pytest --runxfail tests/actions/test_property_targeting.py::<node>`.
       (FR-016, FR-019)
