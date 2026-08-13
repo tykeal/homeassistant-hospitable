@@ -800,12 +800,65 @@ diagnostics never contain the guest name unredacted.
   role discriminators, not identity — may be returned. Message `body`
   and `attachments` remain returnable, since retrieving them is the
   service's purpose (FR-024), but MUST NOT be logged.
-- **FR-048**: The FR-047 and FR-047a filtering MUST be applied inside
-  ONE shared response-builder chokepoint that every service response
-  passes through. It MUST NOT be implemented per handler, and it MUST
-  NOT rely on the caller to filter. A service added later that
-  serialises a guest or sender object MUST inherit the filter by
-  construction rather than by remembering to call it.
+- **FR-047b**: A co-host object returned in a service response
+  (today only via `get_property_info`, at
+  `property.listings[].co_hosts[]`) MUST be reduced to an allowlist
+  on the same fail-closed terms as FR-047: any key not enumerated
+  below is omitted rather than passed through, so that a field added
+  upstream cannot leak by default.
+  - `user_id`, `channel_name`, and `name` are unconditionally
+    returnable.
+  - `email` and `phone_numbers`, if they ever appear on a co-host
+    object, MUST be released only when the guest-contact-details
+    option (FR-038b) is enabled for the config entry serving the
+    call.
+  - `profile_picture` is never returnable at any depth — the
+    unconditional drop already established by FR-047 applies here
+    and is not duplicated.
+
+  **Live-shape evidence (2026-08-13):** A read-only probe of
+  `GET /properties?include=listings&per_page=100` across 13
+  properties with 8 populated co-host entries found that every
+  co-host object carried exactly `{channel_name, name, user_id}`,
+  all string-valued. No `email`, `phone_numbers`, or
+  `profile_picture` key exists on a co-host object today. No
+  contact data is currently exposed. This control is preventive:
+  it ensures that if the upstream API adds a contact field to the
+  co-host shape later, the new key is gated from the day it
+  appears rather than shipping unfiltered.
+
+  **Asymmetry — `name` retained vs. `teammate.name` dropped:** A
+  teammate name rides an always-on polled sensor attribute, where
+  the operator has no per-invocation choice about its presence.
+  A co-host name is returned only from a service the operator
+  explicitly invokes, and FR-013 exists precisely so a human can
+  choose which co-host to pass as `sender_id`; `user_id` alone
+  is opaque and unusable for that purpose. Retaining `name` here
+  is therefore deliberate, not an oversight.
+
+  **Scope boundary — listing-level `platform_email` and
+  `platform_picture`:** These listing-sibling keys are the account
+  owner's / listing owner's own operator data, not a third party's
+  personal information. They are out of scope for this requirement
+  and remain unfiltered by design, consistent with the pre-existing
+  treatment of operator-owned fields. The boundary is recorded here
+  so that the omission is deliberate rather than accidental.
+
+  **Option-key naming:** The existing `guest_contact_details`
+  option key (FR-038b) MUST NOT be renamed — it is user-facing
+  config and renaming it would break existing installs. Its
+  meaning widens from "guest contact data" to "third-party contact
+  data" (guest + co-host). The user-facing description text in
+  `strings.json` and `translations/en.json` will need updating to
+  reflect this broader scope; the implementation PR is responsible
+  for that change.
+- **FR-048**: The FR-047, FR-047a, and FR-047b filtering MUST be
+  applied inside ONE shared response-builder chokepoint that every
+  service response passes through. It MUST NOT be implemented per
+  handler, and it MUST NOT rely on the caller to filter. A service
+  added later that serialises a guest, sender, or co-host object
+  MUST inherit the filter by construction rather than by remembering
+  to call it.
 
 ### Key Entities
 
