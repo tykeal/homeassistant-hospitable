@@ -34,7 +34,6 @@ import pytest
 from tests.helpers.audit_entry import (
     GUEST_SECRETS,
     MESSAGE_BODY,
-    PROPERTY_A,
     setup_audit_entry,
 )
 from tests.helpers.surface import entity_attributes
@@ -349,4 +348,14 @@ async def test_the_audit_reached_every_property(hass: Any, respx_router: Any) ->
             f"only {len(matching)} {kind} entities were audited; the "
             "two-property fan-out is not being covered"
         )
-    assert any(PROPERTY_A in str(value) for value in (audited,)) or audited
+    # Named entity slugs, not a count. A count of two proves only that
+    # two entities exist; if the fan-out produced two entities for the
+    # SAME property the count would still pass. The reviewer was right
+    # that the previous line here was vacuous -- it ended in
+    # "or audited", which short-circuits truthy and could never fail.
+    slugs = {"example_beach_house", "example_mountain_cabin"}
+    for slug in slugs:
+        assert any(slug in name for name in audited), (
+            f"no entity for {slug} was audited; the fan-out covered "
+            "fewer properties than the per-kind counts imply"
+        )

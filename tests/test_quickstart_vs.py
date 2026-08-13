@@ -42,8 +42,12 @@ from pathlib import Path
 
 import pytest
 
-QUICKSTART = Path("specs/002-actions-and-messaging/quickstart.md")
-REPO_ROOT = Path()
+# Anchored on this file rather than on the process working directory.
+# A repo-root-relative path silently resolves to nothing when pytest is
+# invoked from anywhere else, and every path check here would then
+# report a missing file instead of a real result.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+QUICKSTART = REPO_ROOT / "specs/002-actions-and-messaging/quickstart.md"
 
 #: Every scenario the guide must define. Hard-coded on purpose: parsing
 #: the headings and then checking the parsed headings against
@@ -252,7 +256,7 @@ def test_vs1_lifecycle_gate_is_present_and_named() -> None:
     make this guarantee disappear. VS-1 is the FR-001/FR-002 promise
     that the polling lifecycle issues no writes at all.
     """
-    names = _test_names(Path("tests/test_no_writes.py"))
+    names = _test_names(REPO_ROOT / "tests/test_no_writes.py")
 
     assert "test_full_lifecycle_issues_only_get_requests" in names, (
         "the FR-001/FR-002 lifecycle gate is gone or renamed; VS-1 has "
@@ -272,7 +276,7 @@ def test_vs10_static_import_gate_is_present_and_named() -> None:
     ``tests/test_write_isolation.py``, together with the scan-coverage
     test that stops gate 3 from silently narrowing.
     """
-    names = _test_names(Path("tests/test_write_isolation.py"))
+    names = _test_names(REPO_ROOT / "tests/test_write_isolation.py")
 
     for required in (
         "test_gate_3_polling_modules_never_name_write_symbols",

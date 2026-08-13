@@ -119,6 +119,8 @@ MANUAL_ONLY: dict[str, str] = {
     ),
 }
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 ALL_CRITERIA = (*(f"SC-{index:03d}" for index in range(1, 10)), "SC-003a")
 
 
@@ -168,7 +170,8 @@ def test_every_named_evidence_test_exists(node_id: str) -> None:
         node_id: A ``path::name`` node id from the evidence table.
     """
     raw_path, _, name = node_id.partition("::")
-    path = Path(raw_path)
+    # Anchored on this file, not on the working directory.
+    path = REPO_ROOT / raw_path
 
     assert path.exists(), f"{node_id} names a file that does not exist"
     assert name in _defined_tests(path), (

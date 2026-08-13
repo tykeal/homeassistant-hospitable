@@ -37,12 +37,13 @@ from __future__ import annotations
 import copy
 import json
 from collections.abc import Callable, Coroutine
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
 import respx
+
+from tests.helpers import load_fixture
 
 PROPERTY_A = "prop-example-001"
 
@@ -73,9 +74,11 @@ def _properties_payload_with_cohost() -> dict[str, Any]:
     Returns:
         The properties payload, deep-copied and mutated.
     """
-    fixture = Path("tests/fixtures/properties_single.json")
-    payload = json.loads(fixture.read_text())
-    data: dict[str, Any] = copy.deepcopy(payload)
+    # Loaded through the shared helper, which anchors on its own
+    # __file__ rather than on the process working directory. A
+    # hard-coded relative path works only when pytest is invoked from
+    # the repository root.
+    data: dict[str, Any] = copy.deepcopy(load_fixture("properties_single.json"))
     data["data"][0]["listings"][0]["co_hosts"] = [copy.deepcopy(CO_HOST)]
     return data
 
