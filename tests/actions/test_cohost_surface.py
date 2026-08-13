@@ -33,6 +33,7 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 import httpx
+import pytest
 import respx
 
 from tests.helpers import load_fixture
@@ -205,3 +206,99 @@ async def test_the_co_host_profile_picture_is_dropped(
         "profile_picture must be dropped at any depth"
     )
     assert CO_HOST_PICTURE not in json.dumps(co_host)
+
+
+@pytest.mark.parametrize(
+    "guest_contact",
+    [
+        pytest.param(
+            False,
+            marks=pytest.mark.xfail(raises=AssertionError, strict=True),
+        ),
+        True,
+    ],
+)
+async def test_co_host_contact_gated_by_option(
+    hass: Any,
+    respx_router: respx.Router,
+    loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
+    guest_contact: bool,
+) -> None:
+    """FR-047b: co-host contact data is gated by guest_contact_details.
+
+    This REPLACES the earlier characterization test
+    ``test_co_host_contact_details_survive_regardless_of_the_option``,
+    which asserted that co-host contact data passed through unfiltered.
+    That test's own docstring anticipated this outcome: "if this now
+    fails, the open design question was answered and this test must be
+    updated to match the decision." FR-047b answered it: co-host
+    contact data is gated identically to guest contact data.
+
+    Uses the HYPOTHETICAL ``CO_HOST_WITH_CONTACT`` fixture (not
+    observed on the live API today) to exercise the preventive
+    control.
+
+    Args:
+        hass: Home Assistant instance.
+        respx_router: Active respx router.
+        loaded_config_entry_factory: Entry setup factory.
+        guest_contact: Value of the guest contact details option.
+    """
+    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
+    await loaded_config_entry_factory(
+        hass, options={CONF_GUEST_CONTACT_DETAILS: guest_contact}
+    )
+    serve_cohost_properties(respx_router, CO_HOST_WITH_CONTACT)
+
+    co_host = _co_hosts(await _property_info(hass))[0]
+
+    if guest_contact:
+        assert co_host.get("email") == CO_HOST_EMAIL, (
+            "email must be present when guest_contact_details is on"
+        )
+        assert co_host.get("phone_numbers") == [CO_HOST_PHONE], (
+            "phone_numbers must be present when guest_contact_details is on"
+        )
+    else:
+        assert "email" not in co_host, (
+            "email must be gated behind guest_contact_details"
+        )
+        assert "phone_numbers" not in co_host, (
+            "phone_numbers must be gated behind guest_contact_details"
+        )
+
+
+@pytest.mark.xfail(raises=AssertionError, strict=True)
+async def test_co_host_allowlist_is_fail_closed(
+    hass: Any,
+    respx_router: respx.Router,
+    loaded_config_entry_factory: Callable[..., Coroutine[Any, Any, Any]],
+) -> None:
+    """FR-047b fail-closed: unknown keys on a co-host are dropped.
+
+    If the upstream API adds a new field to the co-host object, it
+    must not leak through by default. This injects an unknown key
+    and proves it is stripped.
+
+    Uses the HYPOTHETICAL fixture shape; the unknown key is not
+    observed on the live API today.
+    """
+    from custom_components.hospitable.const import CONF_GUEST_CONTACT_DETAILS
+
+    cohost_with_extra = {
+        **CO_HOST_WITH_CONTACT,
+        "secret_field": "should-be-dropped",
+    }
+    await loaded_config_entry_factory(hass, options={CONF_GUEST_CONTACT_DETAILS: True})
+    serve_cohost_properties(respx_router, cohost_with_extra)
+
+    co_host = _co_hosts(await _property_info(hass))[0]
+
+    assert "secret_field" not in co_host, (
+        "unknown co-host keys must be dropped (fail-closed)"
+    )
+    # The allowlisted keys must still be present
+    assert co_host["user_id"] == CO_HOST_USER_ID
+    assert co_host["channel_name"] == CO_HOST_CHANNEL
+    assert co_host["name"] == CO_HOST_NAME
