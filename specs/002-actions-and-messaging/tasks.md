@@ -1270,15 +1270,15 @@ strengthening of existing behaviour. If any task here uncovers a
 behaviour change, that change gets its own red/green pair inside this
 phase.
 
-- [ ] T148 [US6] Add `tests/test_quickstart_vs.py` automating VS-1
+- [X] T148 [US6] Add `tests/test_quickstart_vs.py` automating VS-1
       (polling lifecycle remains write-free) as an executable assertion
       against the narrowed `tests/test_no_writes.py` machinery.
       (FR-001, FR-002)
-- [ ] T149 [P] [US6] Automate VS-2 (send message, mocked) and VS-3 (read
+- [X] T149 [P] [US6] Automate VS-2 (send message, mocked) and VS-3 (read
       messages, mocked) from `quickstart.md`. (FR-009, FR-020)
-- [ ] T150 [P] [US6] Automate VS-4 (lookup services, mocked) from
+- [X] T150 [P] [US6] Automate VS-4 (lookup services, mocked) from
       `quickstart.md`. (FR-025, FR-026, FR-027, FR-028)
-- [ ] T150a [US6] Add the SC-007 side-effect assertion: subscribe a
+- [X] T150a [US6] Add the SC-007 side-effect assertion: subscribe a
       catch-all listener to the Home Assistant event bus, call every
       lookup service, and assert it captured no integration-fired
       event; assert no coordinator refresh was triggered and no entity
@@ -1286,14 +1286,14 @@ phase.
       asserts it. Latency is deliberately NOT asserted — under `respx`
       the response is already in memory, so a timing bound would
       measure the mock. (FR-025 to FR-028, SC-007)
-- [ ] T151 [P] [US6] Automate VS-5 (task sensors) from `quickstart.md`.
+- [X] T151 [P] [US6] Automate VS-5 (task sensors) from `quickstart.md`.
       (FR-030, FR-031, FR-032, FR-033)
-- [ ] T152 [P] [US6] Automate VS-6 (guest attributes on the reservation
+- [X] T152 [P] [US6] Automate VS-6 (guest attributes on the reservation
       entity) from `quickstart.md`. (FR-039, FR-039a, FR-039b)
-- [ ] T153 [US6] Automate VS-7 (PII audit) from `quickstart.md`,
+- [X] T153 [US6] Automate VS-7 (PII audit) from `quickstart.md`,
       covering logs, diagnostics, and recorder exclusion for guest and
       message data in one pass. (FR-024, FR-041, FR-042, FR-043)
-- [ ] T153a [US6] Automate VS-11 (service-response PII audit) from
+- [X] T153a [US6] Automate VS-11 (service-response PII audit) from
       `quickstart.md`: call every registered service under both settings
       of the guest-contact-details option and assert `profile_picture`
       and the raw message `sender` object are absent in all cases, and
@@ -1301,47 +1301,47 @@ phase.
       service-response surface; T153 covers logs, diagnostics, and the
       recorder, and does NOT reach this one. (FR-046, FR-047, FR-047a,
       SC-003a)
-- [ ] T154 [P] [US6] Automate VS-8 (multi-entry disambiguation) from
+- [X] T154 [P] [US6] Automate VS-8 (multi-entry disambiguation) from
       `quickstart.md`. (FR-008, FR-029)
-- [ ] T155 [P] [US6] Automate VS-9 (rate-limit enforcement) from
+- [X] T155 [P] [US6] Automate VS-9 (rate-limit enforcement) from
       `quickstart.md`. (FR-017, FR-019)
-- [ ] T155a [P] [US6] Add an end-to-end throttling test: with the
+- [X] T155a [P] [US6] Add an end-to-end throttling test: with the
       awaiting-host-reply option on, drive a reservation's
       `x-ratelimit-remaining` to zero across polling cycles, serve a
       429, and assert the entity keeps its last-good value, the poll
       does not fail, and the next fetch waits for `retry-after`.
       (FR-017, FR-019, FR-037)
-- [ ] T156 [P] [US6] Automate VS-10 (static import isolation) from
+- [X] T156 [P] [US6] Automate VS-10 (static import isolation) from
       `quickstart.md`, reusing the T014 AST helper. (FR-001)
-- [ ] T157 [US6] Add a genuine end-to-end test in
+- [X] T157 [US6] Add a genuine end-to-end test in
       `tests/test_e2e_actions.py` using a real `hass` instance, a
       `MockConfigEntry`, and `respx` — following the pattern already
       established in `tests/sensor/test_platform.py` — that sets up the
       integration, calls `send_message`, then `get_messages`, then a
       lookup service, and asserts entity state afterwards. No mocked
       coordinator, no monkeypatched handler. (SC-001, SC-002, SC-003)
-- [ ] T158 [US6] Add a multi-entry rate-limit sharing test: two config
+- [X] T158 [US6] Add a multi-entry rate-limit sharing test: two config
       entries with the SAME token share one budget end to end, through
       the real service call path rather than by poking the tracker.
       (FR-018)
-- [ ] T159 [US6] Run a final localisation audit with the T016 helper:
+- [X] T159 [US6] Run a final localisation audit with the T016 helper:
       every registered service, every service field, every new option,
       and every new sensor has text in `services.yaml` where applicable
       and in BOTH `strings.json` and `translations/en.json`. Fail the
       build on any gap. (FR-007)
-- [ ] T160 [US6] Run a final acceptance-language audit with the T018
+- [X] T160 [US6] Run a final acceptance-language audit with the T018
       helper across `services.yaml`, `strings.json`,
       `translations/en.json`, and every handler docstring: nothing
       claims a message was sent or delivered, and nothing says
       "unread". (FR-011, FR-037)
-- [ ] T161 [US6] Confirm all four write-isolation gates are green
+- [X] T161 [US6] Confirm all four write-isolation gates are green
       simultaneously and that `tests/test_no_writes.py` still exists in
       narrowed form. Add a comment to the file recording that FR-002
       forbids its deletion. (FR-001, FR-002)
-- [ ] T162 [US6] Run the full spec 001 test suite unchanged and confirm
+- [X] T162 [US6] Run the full spec 001 test suite unchanged and confirm
       no regression. Any spec 001 test that must change requires an
       explicit note in the PR description explaining why.
-- [ ] T163 [US6] Verify each of SC-001 to SC-009 against a concrete
+- [X] T163 [US6] Verify each of SC-001 to SC-009 against a concrete
       test node id and record the mapping in the PR description. Any
       criterion that cannot be verified without a live account MUST be
       declared unverified rather than claimed. In particular, the
