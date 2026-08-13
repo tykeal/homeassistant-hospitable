@@ -845,8 +845,13 @@ diagnostics never contain the guest name unredacted.
   so that the omission is deliberate rather than accidental.
 
   **Option-key naming:** The existing `guest_contact_details`
-  option key (FR-038b) MUST NOT be renamed — it is user-facing
-  config and renaming it would break existing installs. Its
+  option key (FR-038b) MUST NOT be renamed. The integration has
+  not been released (see
+  [`specs/003-property-discovery/spec.md`](../003-property-discovery/spec.md)
+  Assumptions), so there are no external installs to break, but
+  renaming would churn the developer's test-instance stored
+  options for zero benefit, and the key name remains accurate
+  enough. Its
   meaning widens from "guest contact data" to "third-party contact
   data" (guest + co-host). The user-facing description text in
   `strings.json` and `translations/en.json` will need updating to
