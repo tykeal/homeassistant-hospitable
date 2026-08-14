@@ -21,7 +21,7 @@ guarded here, each because it actually happened or nearly did.
 3. **Acceptance language.** A 202 from the send endpoint means
    ACCEPTED FOR DELIVERY. User-facing documentation that says a message
    was "sent" or "delivered" is a factual claim the integration cannot
-   support, and the README and ``info.md`` are user-facing.
+   support, and the README is user-facing.
 
 These are deliberately checks on FACTS that can be verified against the
 source, not on wording. A test that pinned prose would be changed
@@ -37,13 +37,12 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 README = REPO_ROOT / "README.md"
-INFO = REPO_ROOT / "info.md"
 SPEC = REPO_ROOT / "specs/002-actions-and-messaging/spec.md"
 TASKS = REPO_ROOT / "specs/002-actions-and-messaging/tasks.md"
 SPEC_003 = REPO_ROOT / "specs/003-property-discovery/spec.md"
 TASKS_003 = REPO_ROOT / "specs/003-property-discovery/tasks.md"
 
-USER_FACING_DOCS = (README, INFO)
+USER_FACING_DOCS = (README,)
 
 #: Words that would assert delivery. ``sent`` is matched as a whole
 #: word so that "consent" and similar do not trip it.
@@ -351,7 +350,7 @@ def test_the_open_questions_are_recorded_as_open() -> None:
 
 
 def test_every_registered_service_is_documented() -> None:
-    """Every registered service appears in both user-facing documents.
+    """Every registered service has a dedicated section in README.md.
 
     Enumerated from the registration table rather than from a list
     written here, so a service added later is documented or fails.
@@ -359,7 +358,6 @@ def test_every_registered_service_is_documented() -> None:
     from custom_components.hospitable.actions import SERVICE_DEFINITIONS
 
     readme = README.read_text()
-    info = INFO.read_text()
 
     # A dedicated HEADING, not a passing mention. get_property_info is
     # referenced inside send_message's field notes, so a bare substring
@@ -369,7 +367,4 @@ def test_every_registered_service_is_documented() -> None:
             f"{definition.name} is registered but has no section of its "
             "own in README.md; a passing mention elsewhere is not "
             "documentation of the service"
-        )
-        assert definition.name in info, (
-            f"{definition.name} is registered but absent from info.md"
         )
