@@ -85,6 +85,7 @@ class HospitableApiClient:
         self._token_provider = token_provider
         self._http = http_client
         self._base_url = base_url.rstrip("/")
+        self.last_trace_id: str | None = None
 
     async def _get(
         self, path: str, *, params: Mapping[str, QueryValue] | None = None
@@ -134,6 +135,7 @@ class HospitableApiClient:
                 "Hospitable returned a malformed response", endpoint=path
             ) from exc
         headers = {key.lower(): value for key, value in response.headers.items()}
+        self.last_trace_id = headers.get("x-hospitable-trace")
         if not isinstance(data, dict):
             return {}, headers
         return data, headers
@@ -146,18 +148,28 @@ class HospitableApiClient:
         except ValueError:
             parsed = None
         body = parsed if isinstance(parsed, dict) else None
+        trace_id = response.headers.get("x-hospitable-trace")
         if response.status_code == 401:
             raise HospitableAuthError(
-                "Hospitable token was rejected", status=401, endpoint=path
+                "Hospitable token was rejected",
+                status=401,
+                endpoint=path,
+                trace_id=trace_id,
             )
         if response.status_code == 403:
             error_type = classify_403(body)
             raise error_type(
-                "Hospitable request is forbidden", status=403, endpoint=path
+                "Hospitable request is forbidden",
+                status=403,
+                endpoint=path,
+                trace_id=trace_id,
             )
         if response.status_code == 404:
             raise HospitableNotFoundError(
-                "Hospitable resource was not found", status=404, endpoint=path
+                "Hospitable resource was not found",
+                status=404,
+                endpoint=path,
+                trace_id=trace_id,
             )
         if response.status_code == 400:
             # A 400 carries the SAME Laravel envelope the message-send
@@ -169,6 +181,7 @@ class HospitableApiClient:
                 field_messages=envelope.field_messages(),
                 status=400,
                 endpoint=path,
+                trace_id=trace_id,
             )
         if response.status_code == 429:
             retry_after = parse_retry_after(response.headers.get("Retry-After"))
@@ -176,9 +189,13 @@ class HospitableApiClient:
                 "Hospitable rate limit reached",
                 retry_after=retry_after,
                 endpoint=path,
+                trace_id=trace_id,
             )
         raise HospitableConnectionError(
-            "Hospitable API request failed", status=response.status_code, endpoint=path
+            "Hospitable API request failed",
+            status=response.status_code,
+            endpoint=path,
+            trace_id=trace_id,
         )
 
     async def get_reservation(

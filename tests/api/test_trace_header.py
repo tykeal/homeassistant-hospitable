@@ -20,29 +20,19 @@ from tests.helpers import load_fixture
 # ---- T038: HospitableError accepts trace_id kwarg ----
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    reason="TDD red phase: T038 trace_id kwarg not on __init__",
-    strict=True,
-)
 def test_error_accepts_trace_id() -> None:
     """``HospitableError`` accepts a ``trace_id`` keyword argument."""
     from custom_components.hospitable.api.exceptions import (
         HospitableError,
     )
 
-    exc = HospitableError("test", trace_id="abc123")  # type: ignore[call-arg]
-    assert exc.trace_id == "abc123"  # type: ignore[attr-defined]
+    exc = HospitableError("test", trace_id="abc123")
+    assert exc.trace_id == "abc123"
 
 
 # ---- T039: _raise_for_status passes trace_id from header ----
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T039 _raise_for_status does not pass trace_id",
-    strict=True,
-)
 async def test_raise_for_status_captures_trace_header(
     respx_router: respx.Router,
     mock_httpx_client: httpx.AsyncClient,
@@ -71,11 +61,6 @@ async def test_raise_for_status_captures_trace_header(
 # ---- T040: coordinator last_trace_id from success ----
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T040 last_trace_id not on coordinator",
-    strict=True,
-)
 async def test_coordinator_stores_trace_on_success(
     hass: Any,
     respx_router: respx.Router,
@@ -112,11 +97,6 @@ async def test_coordinator_stores_trace_on_success(
 # ---- T041: absent header -> last_trace_id is None ----
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T041 last_trace_id attr absent",
-    strict=True,
-)
 async def test_coordinator_trace_none_when_absent(
     hass: Any,
     respx_router: respx.Router,
@@ -151,11 +131,6 @@ async def test_coordinator_trace_none_when_absent(
 # ---- T042: diagnostics includes last_trace_id ----
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T042 diagnostics does not include trace",
-    strict=True,
-)
 async def test_diagnostics_includes_trace_id(
     hass: Any,
     respx_router: respx.Router,

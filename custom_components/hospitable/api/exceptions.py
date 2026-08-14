@@ -15,12 +15,14 @@ class HospitableError(Exception):
         status: int | None = None,
         endpoint: str = "",
         body: str = "",
+        trace_id: str | None = None,
     ) -> None:
         """Initialize the error with status, endpoint, and redacted body."""
         super().__init__(message)
         self.status = status
         self.endpoint = endpoint
         self.body = body
+        self.trace_id = trace_id
 
 
 class HospitableAuthError(HospitableError):
@@ -50,9 +52,16 @@ class HospitableRateLimitError(HospitableError):
         status: int | None = 429,
         endpoint: str = "",
         body: str = "",
+        trace_id: str | None = None,
     ) -> None:
         """Initialize the rate-limit error."""
-        super().__init__(message, status=status, endpoint=endpoint, body=body)
+        super().__init__(
+            message,
+            status=status,
+            endpoint=endpoint,
+            body=body,
+            trace_id=trace_id,
+        )
         self.retry_after = retry_after
 
 
@@ -82,6 +91,7 @@ class HospitableRequestValidationError(HospitableError):
         field_messages: list[str] | None = None,
         status: int | None = None,
         endpoint: str = "",
+        trace_id: str | None = None,
     ) -> None:
         """Initialize with the per-field validation messages.
 
@@ -90,6 +100,12 @@ class HospitableRequestValidationError(HospitableError):
             field_messages: Per-field messages from the envelope.
             status: HTTP status that produced the error.
             endpoint: Endpoint path that was called.
+            trace_id: Upstream trace correlation identifier.
         """
-        super().__init__(message, status=status, endpoint=endpoint)
+        super().__init__(
+            message,
+            status=status,
+            endpoint=endpoint,
+            trace_id=trace_id,
+        )
         self.field_messages = list(field_messages or [])
