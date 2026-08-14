@@ -65,6 +65,7 @@ strict = true
 warn_unused_ignores = true
 explicit_package_bases = true
 mypy_path = "."
+files = ["custom_components", "tests"]
 
 [[tool.mypy.overrides]]
 module = [
