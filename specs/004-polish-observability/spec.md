@@ -234,9 +234,10 @@ and `send_message` both resolve a reservation by UUID via
 window-bound. Only `get_reservations` and the reservation sensors
 respect the configured window.
 
-**Independent Test**: Invoke `get_reservations` with
-`lookforward_days: 400` spanning a known far-future reservation.
-Confirm it appears without any change to `lookahead_days`.
+**Independent Test**: With `lookahead_days` at its default (90),
+invoke `get_reservations` with `lookforward_days: 400` spanning a
+known far-future reservation. Confirm it appears without any
+change to `lookahead_days`.
 
 **Acceptance Scenarios**:
 
@@ -287,7 +288,7 @@ Confirm it appears without any change to `lookahead_days`.
 - `lookforward_days: 1` — valid; queries only one day forward.
   `lookforward_days: 1095` — valid (boundary inclusive).
   `lookforward_days: 1096` — rejected locally.
-- `lookbackward_days: 0` — valid; future-only search (see FR-025
+- `lookbackward_days: 0` — valid; future-only search (see FR-026
   justification). `lookbackward_days: 365` — valid (boundary
   inclusive). `lookbackward_days: 366` — rejected locally.
 - Both parameters supplied simultaneously — both take effect;
@@ -673,10 +674,11 @@ endpoint enforces.
 - **SC-006**: No unknown listing key passes through the response
   privacy chokepoint unfiltered.
 - **SC-007**: `get_reservations` with `lookforward_days: 400`
-  returns reservations beyond the configured `lookahead_days`
-  window, verified by test. Out-of-range values raise
-  `ServiceValidationError` (with the service confirmed
-  registered first to avoid `ServiceNotFound` false passes).
+  (while `lookahead_days` is at its default 90) returns
+  reservations beyond the configured window, verified by test.
+  Out-of-range values raise `ServiceValidationError` (with the
+  service confirmed registered first to avoid `ServiceNotFound`
+  false passes).
 
 ## Assumptions
 
