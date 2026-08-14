@@ -9,19 +9,22 @@ This module covers Deliverable 5 of spec 004: optional
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
 import httpx
 import pytest
 import respx
 import voluptuous as vol
+from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import DOMAIN
 from tests.helpers import load_fixture
+
+_FROZEN = "2025-06-15T12:00:00+00:00"
+_FROZEN_DATE = date(2025, 6, 15)
 
 
 async def _call(hass: HomeAssistant, data: dict[str, Any]) -> Any:
@@ -154,6 +157,7 @@ async def test_lookbackward_zero_is_valid(
 # ---- T060: backward default is fixed 7 ----
 
 
+@freeze_time(_FROZEN)
 async def test_backward_default_is_fixed_seven(
     hass: HomeAssistant,
     respx_router: respx.Router,
@@ -195,7 +199,7 @@ async def test_backward_default_is_fixed_seven(
 
     await _call(hass, {"property_id": "prop-example-001"})
 
-    today = dt_util.utcnow().date()
+    today = _FROZEN_DATE
     expected_start = today - timedelta(days=7)
     assert len(captured) > 0, "No reservations request captured"
     params = captured[-1].url.params
@@ -404,6 +408,7 @@ async def test_lookbackward_boundary_ceiling_valid(
 # ---- E2E: actual upstream dates asserted ----
 
 
+@freeze_time(_FROZEN)
 async def test_lookforward_extends_upstream_window(
     hass: HomeAssistant,
     respx_router: respx.Router,
@@ -447,7 +452,7 @@ async def test_lookforward_extends_upstream_window(
         },
     )
 
-    today = dt_util.utcnow().date()
+    today = _FROZEN_DATE
     expected_end = today + timedelta(days=400)
     expected_start = today - timedelta(days=7)
     assert len(captured) > 0, "No reservations request captured"
@@ -456,6 +461,7 @@ async def test_lookforward_extends_upstream_window(
     assert params.get("start_date") == expected_start.isoformat()
 
 
+@freeze_time(_FROZEN)
 async def test_lookbackward_extends_upstream_window(
     hass: HomeAssistant,
     respx_router: respx.Router,
@@ -496,13 +502,14 @@ async def test_lookbackward_extends_upstream_window(
         },
     )
 
-    today = dt_util.utcnow().date()
+    today = _FROZEN_DATE
     expected_start = today - timedelta(days=30)
     assert len(captured) > 0, "No reservations request captured"
     params = captured[-1].url.params
     assert params.get("start_date") == expected_start.isoformat()
 
 
+@freeze_time(_FROZEN)
 async def test_forward_default_inherits_config_lookahead(
     hass: HomeAssistant,
     respx_router: respx.Router,
@@ -540,7 +547,7 @@ async def test_forward_default_inherits_config_lookahead(
 
     await _call(hass, {"property_id": "prop-example-001"})
 
-    today = dt_util.utcnow().date()
+    today = _FROZEN_DATE
     # Config sets lookahead_days=30
     expected_end = today + timedelta(days=30)
     assert len(captured) > 0, "No reservations request captured"
