@@ -124,6 +124,7 @@ class HospitableApiClient:
             raise HospitableConnectionError(
                 "Could not reach the Hospitable API", endpoint=path
             ) from exc
+        self.last_trace_id = response.headers.get("x-hospitable-trace")
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -132,10 +133,11 @@ class HospitableApiClient:
             data = response.json()
         except ValueError as exc:
             raise HospitableResponseError(
-                "Hospitable returned a malformed response", endpoint=path
+                "Hospitable returned a malformed response",
+                endpoint=path,
+                trace_id=self.last_trace_id,
             ) from exc
         headers = {key.lower(): value for key, value in response.headers.items()}
-        self.last_trace_id = headers.get("x-hospitable-trace")
         if not isinstance(data, dict):
             return {}, headers
         return data, headers

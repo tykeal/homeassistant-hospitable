@@ -80,8 +80,7 @@ def test_listing_contact_fields_withheld_when_disabled() -> None:
 def test_listing_contact_fields_present_when_enabled_unknown_dropped() -> None:
     """Contact fields present when enabled; unknown keys dropped.
 
-    The unknown ``secret_field`` MUST be absent (fail-closed). The
-    current code passes ALL keys through, so this assertion fails.
+    The unknown ``secret_field`` MUST be absent (fail-closed).
     """
     payload = {
         "found": True,
@@ -112,10 +111,9 @@ def test_listing_contact_fields_present_when_enabled_unknown_dropped() -> None:
 def test_listing_filter_on_list_of_dicts() -> None:
     """Every entry in a listing LIST is individually filtered.
 
-    This is the mutation target for T037. The current code's
-    ``_filter_identity`` guard ``if not isinstance(value, dict)``
-    routes the list through recursive serialisation WITHOUT applying
-    the listing allowlist, so ``platform_email`` survives.
+    This is the mutation target for T037. The listing filter must
+    handle the list-of-dicts shape explicitly so that each entry
+    goes through the listing allowlist.
     """
     payload = {
         "found": True,
@@ -151,8 +149,6 @@ def test_co_host_user_id_survives_listing_filter() -> None:
     This regression test ensures the Airbnb co-host message-sending
     workflow is not broken. The co-host data shape is exactly what
     has been observed in live data: ``{user_id, channel_name, name}``.
-    The ``platform_email`` assertion fails in red because no listing
-    allowlist filters it out yet.
     """
     payload = {
         "found": True,
