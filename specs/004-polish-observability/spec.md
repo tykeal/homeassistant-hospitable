@@ -523,9 +523,9 @@ options.
 
 - **FR-029 (privacy chokepoint preserved)**: The response MUST
   continue to flow through `serialize_response` in
-  `actions/response.py`. The `found: false` vs `found: true`
-  - empty-list distinction documented at the top of
-  `get_reservations.py` MUST be preserved.
+  `actions/response.py`. The `found: false` vs
+  `found: true` + empty-list distinction documented at the
+  top of `get_reservations.py` MUST be preserved.
 
 - **FR-030 (no changes to options or sensors)**: This
   deliverable MUST NOT change the reservation coordinator, the
