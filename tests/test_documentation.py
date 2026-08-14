@@ -306,19 +306,31 @@ def test_the_open_questions_are_recorded_as_open() -> None:
     """
     readme = README.read_text()
 
+    # Extract the Open questions section so cross-section mentions
+    # of an OQ identifier cannot mask a closure declaration here.
+    oq_match = re.search(
+        r"^## Open questions\n(.+?)(?=\n## |\Z)",
+        readme,
+        re.MULTILINE | re.DOTALL,
+    )
+    assert oq_match, "the README has no '## Open questions' section"
+    oq_section = oq_match.group(1)
+
     # --- still-open questions: must appear AND not be declared closed --
     open_questions = ("OQ-001", "OQ-007")
     for question in open_questions:
-        assert question in readme, f"{question} is not recorded in the README"
-        # The question must NOT appear only inside a "…is closed"
-        # sentence. Walk the lines that mention this identifier and
-        # require at least one that does NOT declare it closed.
-        mentions = [line for line in readme.splitlines() if question in line]
-        open_mentions = [line for line in mentions if "is closed" not in line.lower()]
-        assert open_mentions, (
-            f"{question} appears in the README only in a sentence "
-            "declaring it closed; the control requires it to be "
-            "documented as open"
+        assert question in oq_section, (
+            f"{question} is not recorded in the Open questions section"
+        )
+        # Within this section every line mentioning the identifier
+        # must NOT be a closure declaration. A single "is closed"
+        # line would mean the question was resolved.
+        section_mentions = [
+            line for line in oq_section.splitlines() if question in line
+        ]
+        assert not any("is closed" in ln.lower() for ln in section_mentions), (
+            f"{question} is declared closed in the Open questions "
+            "section; if it really was resolved, update this test"
         )
 
     assert "cannot be closed" in readme.lower() or "unresolvable" in readme.lower(), (
@@ -327,11 +339,11 @@ def test_the_open_questions_are_recorded_as_open() -> None:
     )
 
     # --- OQ-005: must be recorded as closed so evidence is preserved --
-    assert "OQ-005" in readme, (
-        "OQ-005 is no longer recorded in the README at all; "
+    assert "OQ-005" in oq_section, (
+        "OQ-005 is no longer recorded in the Open questions section; "
         "its closure evidence has silently vanished"
     )
-    oq005_lines = [line for line in readme.splitlines() if "OQ-005" in line]
+    oq005_lines = [line for line in oq_section.splitlines() if "OQ-005" in line]
     assert any("is closed" in line.lower() for line in oq005_lines), (
         "OQ-005 appears in the README but is not marked closed; "
         "the manual send on 2026-08-13/14 confirmed it"
