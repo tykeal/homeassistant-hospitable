@@ -269,18 +269,17 @@ All tests below are in
       sensor code (no `ImportError`), sets up the sensor, and
       asserts on `caplog`. The assertion fails because the drift
       guard does not exist.
-- [ ] T016 [P] [D1] Add an xfail test (`raises=AssertionError`)
+- [ ] T016 [P] [D1] Add an xfail test (`raises=KeyError`)
       asserting that `progress_status=None` still increments
-      `pending_count` (existing behaviour, unchanged). This is a
-      characterization test that currently PASSES — however, it
-      depends on T012's `cancelled_count` key being present (the
-      test sums all four buckets). With `cancelled_count` absent,
-      it raises `KeyError`. So pin `raises=KeyError`. Verify:
-      `uv run pytest --runxfail <node>`. (FR-004, FR-005)
+      `pending_count` (existing behaviour, unchanged) AND that
+      all four buckets sum to `task_count`. The test accesses
+      `attrs["cancelled_count"]` which does not exist yet, so it
+      raises `KeyError` before reaching the assertion logic.
+      Verify: `uv run pytest --runxfail <node>`. (FR-004, FR-005)
 
-      **Correction**: Pin `raises=KeyError`, not
-      `AssertionError`. The test's assertion logic requires all
-      four bucket keys; accessing `cancelled_count` fails first.
+      **Why `raises=KeyError`**: The test's assertion logic
+      requires all four bucket keys; accessing `cancelled_count`
+      fails first with `KeyError`.
 
 ### GREEN PHASE COMMIT — Deliverable 1 (implementation)
 
@@ -782,49 +781,15 @@ behavioural tests that assert on the API call parameters.
       then the `hass.services.async_call(...)` raises
       `ServiceValidationError`. With `raises=ServiceValidationError`
       on the xfail marker, this is correctly captured.
-- [ ] T054 [D5] Add an xfail test (`raises=AssertionError`)
-      that calls `get_reservations` with `lookforward_days:
-      400`, mocks the API, and asserts the API was called with
-      an end date 400 days from today (not the config's 90).
-      First assert the service is registered. Fails with
-      `AssertionError` because the schema rejects
-      `lookforward_days` before the handler runs. **Wait** — if
-      the schema rejects it, the call raises
-      `ServiceValidationError`, not `AssertionError`.
-      **Resolution**: This test uses `pytest.raises` to catch
-      the expected success case and assert on the mock. Since
-      the schema rejection prevents the handler from running,
-      the API mock is never called, and the assertion on mock
-      call args fails. Pin `raises=ServiceValidationError`
-      since that is what actually fires. **No — the xfail
-      `raises=` matches the exception the TEST raises, not one
-      inside `pytest.raises`.** If the test body raises
-      `ServiceValidationError` uncaught, pin that. If using
-      `pytest.raises(ServiceValidationError)` as a context
-      manager, the test proceeds past it. Structure: call the
-      service WITHOUT `pytest.raises`, let it raise
-      `ServiceValidationError` (schema rejects unknown key),
-      and let xfail capture it.
-      Pin `raises=ServiceValidationError`. Verify:
-      `uv run pytest --runxfail <node>`. (FR-023, FR-024)
-
-      **Correction**: T053 and T054 both fail with
-      `ServiceValidationError` for the same reason (schema
-      rejects unknown key). T054 is redundant in the red phase.
-      **Combine**: make T053 the schema-acceptance test AND the
-      behavioural test. In the red phase it fails at schema
-      rejection. In the green phase, the field is accepted and
-      the assertion on the API call parameters is the real test.
-      Keep T054 as a SEPARATE behavioural test for the backward
-      window.
-
-      **Final pin for T054**: Add an xfail test
-      (`raises=ServiceValidationError`) that calls
-      `get_reservations` with `lookbackward_days: 30`, asserts
-      the API was called with a start date 30 days ago. Fails
-      with `ServiceValidationError` (schema rejects unknown
-      key). Verify:
-      `uv run pytest --runxfail <node>`. (FR-023, FR-025)
+- [ ] T054 [D5] Add an xfail test
+      (`raises=ServiceValidationError`) that first asserts the
+      service IS registered, then calls `get_reservations` with
+      `lookbackward_days: 30`. Mocks the API and would assert
+      the API was called with a start date 30 days ago. In the
+      red phase, fails with `ServiceValidationError` because
+      the schema rejects the unknown `lookbackward_days` key.
+      Verify: `uv run pytest --runxfail <node>`.
+      (FR-023, FR-025)
 - [ ] T055 [P] [D5] Add an xfail test
       (`raises=ServiceValidationError`) that calls
       `get_reservations` with `lookforward_days: 1096` (above
