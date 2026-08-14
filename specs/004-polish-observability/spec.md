@@ -11,22 +11,24 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status**: Draft
 
-**Input**: User description: "Polish and observability — four
+**Input**: User description: "Polish and observability — five
 independent deliverables: a cancelled task progress bucket,
-listing-field privacy gating, bare mypy invocation, and trace-header
-capture."
+listing-field privacy gating, bare mypy invocation, trace-header
+capture, and a per-call date range override for
+`get_reservations`."
 
 ## Overview
 
 Specs 001 through 003 delivered a read-only Hospitable integration
 with reservation sensors, property sensors, task/cleaning sensors,
 five service actions, guest-identity privacy controls, and property
-discovery. This specification covers four small, independent polish
+discovery. This specification covers five small, independent polish
 and observability improvements that harden the integration against
 silent data loss, close a privacy gap, simplify contributor tooling,
-and surface upstream correlation identifiers for support diagnostics.
+surface upstream correlation identifiers for support diagnostics,
+and remove a workflow friction point from `get_reservations`.
 
-The four deliverables are independent. Each may be implemented and
+The five deliverables are independent. Each may be implemented and
 merged in its own PR without depending on the others.
 
 ### Evidence confidence legend
@@ -79,7 +81,7 @@ numbers without wondering where the missing tasks went.
 
 **Why this priority**: A breakdown that does not reconcile invites
 bug reports and erodes trust in the integration's data. This is the
-maintainer's top priority among the four deliverables.
+maintainer's top priority among the five deliverables.
 
 **Independent Test**: Supply a task fixture containing tasks with
 each of the six known `progress_status` values (including
@@ -209,6 +211,59 @@ confirm the logged error includes the trace ID.
 
 ---
 
+### User Story 5 — Per-call date range override (Priority: P2)
+
+As a property manager, I want to query reservations outside the
+configured lookback/lookahead window in a single service call —
+without changing integration options — so that I can discover a
+far-future booking's UUID and then use it with `find_reservation`
+or `send_message`, which are not window-bound.
+
+**Why this priority**: A workflow friction point that forces a
+persistent configuration change for a one-off discovery task. Not
+a data-integrity issue, but it recurs every time a far-future
+booking needs attention during a live guest issue.
+
+**Motivation (2026-08-13, maintainer-reported):** To validate
+message sending end-to-end, the maintainer had to create an owner
+stay more than 90 days out, then widen the integration's
+`lookahead_days` option purely to make the reservation appear in
+`get_reservations` so he could read its UUID. `find_reservation`
+and `send_message` both resolve a reservation by UUID via
+`resolve_reservation_uuid` and fetch it directly — neither is
+window-bound. Only `get_reservations` and the reservation sensors
+respect the configured window.
+
+**Independent Test**: Invoke `get_reservations` with `start_date`
+and `end_date` spanning a known far-future reservation. Confirm
+it appears without any change to `lookback_days` or
+`lookahead_days`.
+
+**Acceptance Scenarios**:
+
+1. **Given** both `start_date` and `end_date` are omitted, **When**
+   a user invokes `get_reservations`, **Then** the queried window
+   is exactly the configured `lookback_days`/`lookahead_days`
+   window (existing behaviour, unchanged).
+2. **Given** both `start_date` and `end_date` are supplied, **When**
+   a user invokes `get_reservations`, **Then** the queried window
+   is `[start_date, end_date]` regardless of the configured window.
+3. **Given** only one of `start_date` or `end_date` is supplied,
+   **When** a user invokes `get_reservations`, **Then** the call
+   raises `ServiceValidationError` requiring both fields.
+4. **Given** `start_date` is after `end_date`, **When** a user
+   invokes `get_reservations`, **Then** the call raises
+   `ServiceValidationError` before any upstream request.
+5. **Given** `end_date` is more than 3 years from today, **When**
+   a user invokes `get_reservations`, **Then** the call raises
+   `ServiceValidationError` naming the 3-year upstream ceiling.
+6. **Given** `start_date` and `end_date` are within valid bounds,
+   **When** the upstream request succeeds, **Then** the response
+   flows through `serialize_response` and the `found: false` vs
+   `found: true` distinction is preserved.
+
+---
+
 ### Edge Cases
 
 - A task with a `progress_status` that matches an
@@ -223,6 +278,12 @@ confirm the logged error includes the trace ID.
 - `mypy` `files` setting interaction with explicit CLI paths — the
   CLI paths must override `files` (standard mypy behaviour) so
   existing invocations are unaffected.
+- `start_date` and `end_date` supplied as identical dates — valid;
+  queries a single-day window (checkin on that date).
+- `end_date` is exactly 3 years from today — valid (boundary
+  inclusive). `end_date` is 3 years + 1 day — rejected locally.
+- `start_date` far in the past — no lower bound enforced (see
+  FR-027 justification); upstream may return an empty list.
 
 ## Requirements *(mandatory)*
 
@@ -382,6 +443,107 @@ bucket is vocabulary-driven and preventive, not observed.
   MUST NOT be repeated. A test MUST verify the entrypoint is
   importable and callable.
 
+### Deliverable 5 — Per-call date range override for `get_reservations`
+
+**Motivation:** `get_reservations` currently queries ONLY the
+window defined by the integration's `lookback_days` /
+`lookahead_days` options. Discovering a far-future reservation's
+UUID requires widening those persistent options, even though the
+subsequent `find_reservation` and `send_message` calls resolve by
+UUID and are not window-bound. This deliverable adds optional
+per-call `start_date` / `end_date` fields so a single call can
+look outside the configured window without changing integration
+options.
+
+- **FR-023**: `get_reservations` MUST accept two optional service
+  fields, `start_date` (date) and `end_date` (date). Both MUST
+  be declared as `vol.Optional` in the action schema with a
+  `selector` of `DateSelector`.
+
+- **FR-024 (partial-supply rule)**: If exactly one of `start_date`
+  or `end_date` is supplied and the other is omitted, the action
+  MUST raise `ServiceValidationError`. Both must be supplied
+  together or both omitted.
+
+  **Justification:** This project has a strong convention against
+  silent defaulting: spec 003 FR-017/FR-018 raise
+  `ServiceValidationError` on both conflicting inputs AND on
+  absent required inputs rather than silently picking a winner.
+  Pairing a lone `start_date` with the configured lookahead
+  would silently default the other half of the window — the
+  caller's intent is ambiguous and the integration must not
+  guess. Requiring both or neither is consistent with the
+  project's "never silently pick a winner, never silently ignore
+  an input" principle.
+
+- **FR-025 (default behaviour preservation)**: When BOTH fields
+  are omitted, the queried window MUST be exactly as today: from
+  `today - lookback_days` to `today + lookahead_days`, using the
+  configured option values (or their defaults). The existing
+  docstring promise — that the action and the entities describe
+  the same span of time — still holds when both fields are
+  omitted.
+
+  **Note:** This is a least-surprise / contract-stability
+  argument, not a backwards-compatibility one. The integration
+  is unreleased and has no existing users; the concern is
+  consistent API semantics, not migration.
+
+- **FR-026 (start-after-end validation)**: If `start_date` is
+  strictly after `end_date`, the action MUST raise
+  `ServiceValidationError` with a message naming both dates.
+  The check MUST occur before any upstream request.
+
+- **FR-027 (upstream ceiling — 3-year future limit)**: If
+  `end_date` is more than 3 years from today, the action MUST
+  raise `ServiceValidationError` with a message explaining the
+  3-year upstream ceiling. The upstream reservations endpoint
+  rejects windows reaching more than 3 years into the future
+  with HTTP 400 and a misleading error mentioning "prices and
+  availabilities" rather than reservations
+  (CONFIRMED-BY-TEST, 2026-08-13: `+1y`, `+2y`, `+3y` returned
+  HTTP 200; `+5y` and `+10y` returned HTTP 400). The local
+  validation MUST name the real 3-year limit so users are not
+  confused by the upstream wording.
+
+  **No lower bound on `start_date`:** A lower bound is not
+  warranted. The upstream API does not reject historical
+  queries — old reservations simply return as completed or
+  cancelled. Rejecting a far-past `start_date` locally would
+  be an arbitrary restriction with no operational benefit; the
+  worst case is an empty result set.
+
+- **FR-028 (`date_query` remains fixed)**: The per-call override
+  MUST NOT expose or change the `date_query` parameter. It
+  remains fixed at `checkin` (the value set in
+  `build_reservation_params`). Exposing it would widen the
+  action's surface for no stated user need and would require
+  documenting the semantic differences between query modes.
+  Scope is kept tight.
+
+- **FR-029 (privacy chokepoint preserved)**: The response MUST
+  continue to flow through `serialize_response` in
+  `actions/response.py`. The `found: false` vs `found: true`
+  - empty-list distinction documented at the top of
+  `get_reservations.py` MUST be preserved.
+
+- **FR-030 (no changes to options or sensors)**: This
+  deliverable MUST NOT change the reservation coordinator, the
+  reservation sensors, the `lookback_days` / `lookahead_days`
+  options, or their bounds. The existing 730-day lookahead
+  maximum sits comfortably under the 3-year ceiling and needs
+  no change. This is a per-call escape hatch only.
+
+**Observed evidence (2026-08-13, CONFIRMED-BY-TEST):**
+The reservations endpoint (`GET /v2/reservations`) enforces a
+3-year future ceiling. Queries with `end_date` at +1y, +2y,
++3y all returned HTTP 200. Queries at +5y and +10y returned
+HTTP 400 with `{"reason_phrase": "You cannot fetch prices and
+availabilities more than 3 years in the future."}`. Note the
+misleading message — it names prices/availabilities while gating
+a reservations query. This is the same ceiling the `/tasks`
+endpoint enforces.
+
 ### Key Entities
 
 - **Progress status**: A task's lifecycle phase
@@ -397,6 +559,10 @@ bucket is vocabulary-driven and preventive, not observed.
   `platform_email`, `platform_picture`, and `co_hosts`.
 - **Trace ID**: The `x-hospitable-trace` response header value. An
   opaque correlation string assigned by Hospitable's infrastructure.
+- **Per-call date range**: Optional `start_date` / `end_date`
+  fields on `get_reservations` that override the configured
+  lookback/lookahead window for a single call. Both must be
+  supplied together or both omitted.
 
 ## Success Criteria *(mandatory)*
 
@@ -418,6 +584,10 @@ bucket is vocabulary-driven and preventive, not observed.
   gate; implementation tests will be added per deliverable).
 - **SC-006**: No unknown listing key passes through the response
   privacy chokepoint unfiltered.
+- **SC-007**: `get_reservations` with explicit `start_date` and
+  `end_date` returns reservations outside the configured window,
+  verified by test. Partial supply (one field only) raises
+  `ServiceValidationError`.
 
 ## Assumptions
 
@@ -476,9 +646,19 @@ bucket is vocabulary-driven and preventive, not observed.
   live listing shape and adjust the allowlist accordingly. Any
   addition must be explicitly decided, not silently passed through.
 
+- **OQ-002 — Pagination on wide date ranges.** The reservations
+  endpoint uses `per_page: 100` (hardcoded in
+  `build_reservation_params`). A per-call override spanning
+  multiple years could exceed 100 reservations for a high-volume
+  property. The current implementation does not paginate beyond
+  the first page. Whether pagination should be added — or whether
+  a warning in the response is sufficient — is deferred to the
+  implementation PR. The spec notes the risk but does not mandate
+  a solution.
+
 ## Out of Scope
 
-- **Write operations of any kind.** All four deliverables are
+- **Write operations of any kind.** All five deliverables are
   read-only or configuration-only.
 - **New sensors or entities.** Deliverable 1 adds an attribute to
   an existing sensor; it does not create a new entity.
@@ -486,6 +666,11 @@ bucket is vocabulary-driven and preventive, not observed.
   bucketed. Assignment status tracking is not specified.
 - **Rate-limit header capture.** Only `x-hospitable-trace` is
   captured; `x-ratelimit-*` headers remain unhandled.
+- **Changes to `lookback_days` / `lookahead_days` bounds.**
+  Deliverable 5 is a per-call escape hatch; the configured option
+  bounds are unchanged.
+- **Exposing `date_query` parameter.** The query semantic remains
+  fixed at `checkin` (FR-028).
 - **OAuth.** Deferred as in spec 001.
 - **Webhooks.** Deferred as in spec 001.
 - **Production code or tests.** This is a specification-only
@@ -508,3 +693,6 @@ bucket is vocabulary-driven and preventive, not observed.
   mandates routing through it).
 - **Spec 003 FR-007** — Co-host data in `list_properties` response
   (FR-013 preserves this dependency).
+- **Spec 003 FR-017/FR-018** — `ServiceValidationError` on
+  conflicting or missing inputs (FR-024 applies the same
+  convention to partial date supply).
