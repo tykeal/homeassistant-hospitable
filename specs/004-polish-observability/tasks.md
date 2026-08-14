@@ -760,7 +760,7 @@ which requires the field to be accepted AND the handler to use
 it. Both conditions fail. Pin `raises=AssertionError` for
 behavioural tests that assert on the API call parameters.
 
-- [ ] T053 [D5] Add an xfail test (`raises=ServiceValidationError`)
+- [X] T053 [D5] Add an xfail test (`raises=ServiceValidationError`)
       that first asserts the service IS registered:
       `assert hass.services.has_service(DOMAIN,
       "get_reservations")`. Then calls `get_reservations` with
@@ -776,7 +776,7 @@ behavioural tests that assert on the API call parameters.
       passes first (service exists), then `async_call` raises
       `ServiceValidationError`. The service IS registered, so
       this is not `ServiceNotFound`.
-- [ ] T054 [D5] Add an xfail test
+- [X] T054 [D5] Add an xfail test
       (`raises=ServiceValidationError`) that first asserts the
       service IS registered, then calls `get_reservations` with
       `lookbackward_days: 30`. Mocks the API and would assert
@@ -785,7 +785,7 @@ behavioural tests that assert on the API call parameters.
       the schema rejects the unknown `lookbackward_days` key.
       Verify: `uv run pytest --runxfail <node>`.
       (FR-023, FR-025)
-- [ ] T055 **MOVED TO GREEN PHASE.** See T055 in the green
+- [X] T055 **MOVED TO GREEN PHASE.** See T055 in the green
       phase section below. (FR-027, FR-028)
 
       **Why moved**: In the red phase the schema field does
@@ -798,13 +798,13 @@ behavioural tests that assert on the API call parameters.
       behaviour. These tests belong in the green phase as
       plain passing tests, where `vol.Range` produces the
       rejection after the schema field exists.
-- [ ] T056 **MOVED TO GREEN PHASE.** See T056 below.
+- [X] T056 **MOVED TO GREEN PHASE.** See T056 below.
       Same wrong-reason XFAIL issue as T055. (FR-026, FR-028)
-- [ ] T057 **MOVED TO GREEN PHASE.** See T057 below.
+- [X] T057 **MOVED TO GREEN PHASE.** See T057 below.
       Same wrong-reason XFAIL issue as T055. (FR-027, FR-028)
-- [ ] T058 **MOVED TO GREEN PHASE.** See T058 below.
+- [X] T058 **MOVED TO GREEN PHASE.** See T058 below.
       Same wrong-reason XFAIL issue as T055. (FR-026, FR-028)
-- [ ] T059 [D5] Add an xfail test
+- [X] T059 [D5] Add an xfail test
       (`raises=ServiceValidationError`) asserting that
       `lookbackward_days: 0` is VALID — future-only search.
       First assert service is registered. Call with
@@ -813,7 +813,7 @@ behavioural tests that assert on the API call parameters.
       phase, `ServiceValidationError` fires (schema rejects
       unknown key). Pin `raises=ServiceValidationError`.
       Verify: `uv run pytest --runxfail <node>`. (FR-026)
-- [ ] T060 [D5] Add an xfail test (`raises=AssertionError`)
+- [X] T060 [D5] Add an xfail test (`raises=AssertionError`)
       for the deliberate backward-default asymmetry: call
       `get_reservations` with NO `lookforward_days` or
       `lookbackward_days` (both omitted, no schema rejection).
@@ -828,7 +828,7 @@ behavioural tests that assert on the API call parameters.
       deliberate asymmetry — backward defaults to 7, not the
       config's `lookback_days` — is the exact behaviour being
       introduced.
-- [ ] T061 [D5] Add an xfail test (`raises=AssertionError`)
+- [X] T061 [D5] Add an xfail test (`raises=AssertionError`)
       asserting that the docstring of
       `async_handle_get_reservations` no longer contains the
       phrase "the service and the entities describe the same
@@ -838,7 +838,7 @@ behavioural tests that assert on the API call parameters.
 
 ### GREEN PHASE COMMIT — Deliverable 5 (implementation)
 
-- [ ] T062 [D5] In
+- [X] T062 [D5] In
       `custom_components/hospitable/actions/schemas.py`, add
       two constants and two schema fields:
 
@@ -859,7 +859,7 @@ behavioural tests that assert on the API call parameters.
       ```
 
       (FR-023, FR-026, FR-027)
-- [ ] T063 [D5] In `async_handle_get_reservations` in
+- [X] T063 [D5] In `async_handle_get_reservations` in
       `custom_components/hospitable/actions/get_reservations.py`,
       modify the window calculation to use per-call overrides:
 
@@ -887,7 +887,7 @@ behavioural tests that assert on the API call parameters.
       `lookbackward` defaults to fixed 7. This is intentional.
       See FR-025 justification. Do NOT "correct" it to
       symmetry.
-- [ ] T064 [D5] Rewrite the `async_handle_get_reservations`
+- [X] T064 [D5] Rewrite the `async_handle_get_reservations`
       docstring in `get_reservations.py`. Remove the sentence
       "The queried window matches the one the reservation
       coordinator polls, so the service and the entities
@@ -901,13 +901,13 @@ behavioural tests that assert on the API call parameters.
       > explicitly.
 
       (FR-031)
-- [ ] T065 [D5] Add the `lookforward_days` and
+- [X] T065 [D5] Add the `lookforward_days` and
       `lookbackward_days` field definitions to
       `custom_components/hospitable/services.yaml` under the
       `get_reservations` service. Both are optional. Add
       appropriate selectors (number with min/max/step).
       (FR-023)
-- [ ] T066 [D5] Add field name and description strings for
+- [X] T066 [D5] Add field name and description strings for
       `lookforward_days` and `lookbackward_days` to
       `custom_components/hospitable/strings.json` under
       `services.get_reservations.fields`. Description for
@@ -916,12 +916,12 @@ behavioural tests that assert on the API call parameters.
       option." Description for `lookbackward_days`: "Number
       of days to look backward (0–365). Defaults to 7 — not
       the integration's lookback_days option." (FR-023)
-- [ ] T067 [D5] Copy the exact same field blocks into
+- [X] T067 [D5] Copy the exact same field blocks into
       `custom_components/hospitable/translations/en.json`.
       The `services` sections of `strings.json` and
       `translations/en.json` MUST remain BYTE-IDENTICAL.
       (FR-023)
-- [ ] T055 [P] [D5] Add a test (NO xfail — plain passing test)
+- [X] T055 [P] [D5] Add a test (NO xfail — plain passing test)
       that first asserts the service IS registered, then calls
       `get_reservations` with `lookforward_days: 1096` (above
       the 1095-day ceiling). Assert `ServiceValidationError`
@@ -929,29 +929,29 @@ behavioural tests that assert on the API call parameters.
       `vol.Range(max=1095)` rejects the value and HA raises
       `ServiceValidationError`. Verify:
       `uv run pytest <node> -v`. (FR-027, FR-028)
-- [ ] T056 [P] [D5] Add a test (NO xfail) that first asserts
+- [X] T056 [P] [D5] Add a test (NO xfail) that first asserts
       the service IS registered, then calls
       `get_reservations` with `lookbackward_days: 366` (above
       365). Assert `ServiceValidationError` is raised via
       `vol.Range(max=365)`. Verify:
       `uv run pytest <node> -v`. (FR-026, FR-028)
-- [ ] T057 [P] [D5] Add a test (NO xfail) that first asserts
+- [X] T057 [P] [D5] Add a test (NO xfail) that first asserts
       the service IS registered, then calls
       `get_reservations` with `lookforward_days: 0` (below 1).
       Assert `ServiceValidationError` is raised via
       `vol.Range(min=1)`. Verify:
       `uv run pytest <node> -v`. (FR-027, FR-028)
-- [ ] T058 [P] [D5] Add a test (NO xfail) that first asserts
+- [X] T058 [P] [D5] Add a test (NO xfail) that first asserts
       the service IS registered, then calls
       `get_reservations` with `lookbackward_days: -1` (below
       0). Assert `ServiceValidationError` is raised via
       `vol.Range(min=0)`. Verify:
       `uv run pytest <node> -v`. (FR-026, FR-028)
-- [ ] T068 [D5] Remove all `xfail` markers and
+- [X] T068 [D5] Remove all `xfail` markers and
       `# type: ignore[...]` comments from T053–T061 tests.
       Run `uv run pytest tests/ -q` and confirm all tests
       pass.
-- [ ] T069 [D5] Run the write-isolation test suite. Confirm
+- [X] T069 [D5] Run the write-isolation test suite. Confirm
       all 20 tests pass. (SC-005)
 
 **Exit criteria**: `lookforward_days: 400` extends window.
@@ -972,27 +972,27 @@ and comprehensive validation.
 **Principle XII status**: EXEMPT — verification-only and
 documentation-only tasks.
 
-- [ ] T070 Verify `strings.json` and `translations/en.json` are
+- [X] T070 Verify `strings.json` and `translations/en.json` are
       BYTE-IDENTICAL in their `services` sections by running
       `diff` on the normalized JSON or `cmp` on the raw files.
       Fix any divergence. (FR-023, SC-005)
-- [ ] T071 Verify that `tests/test_documentation.py` passes
+- [X] T071 Verify that `tests/test_documentation.py` passes
       with all changes. In particular confirm service
       descriptions are documented in `README.md` and `info.md`
       where required by existing documentation tests.
-- [ ] T072 Run the full write-isolation test suite one final
+- [X] T072 Run the full write-isolation test suite one final
       time across all three files: `test_no_writes.py`,
       `test_write_isolation.py`,
       `test_isolation_discovery.py`. Confirm all 20 tests
       pass. **No existing assertion may be deleted, weakened,
       renamed, or skipped** — if a gate fails, the design is
       wrong, not the gate. (SC-005)
-- [ ] T073 Run the full test suite: `uv run pytest tests/ -q`.
+- [X] T073 Run the full test suite: `uv run pytest tests/ -q`.
       Confirm all tests pass (590 + new). Run
       `uv run ruff check custom_components/ tests/`. Run
       `uv run mypy custom_components/ tests/`. Run
       `uv run mypy` (bare — should now work after D3).
-- [ ] T074 **Traceability table**: Verify the table below covers
+- [X] T074 **Traceability table**: Verify the table below covers
       all 32 FRs (FR-001 to FR-032) and all 7 SCs (SC-001 to
       SC-007). Any gap is a defect in this file.
 

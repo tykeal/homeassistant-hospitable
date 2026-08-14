@@ -51,6 +51,8 @@ SEND_MESSAGE_SCHEMA = vol.Schema(
 
 
 ATTR_PROPERTY_ID = "property_id"
+ATTR_LOOKFORWARD_DAYS = "lookforward_days"
+ATTR_LOOKBACKWARD_DAYS = "lookbackward_days"
 
 # Every service accepts the optional config_entry_id (FR-029, FR-008).
 # The reservation-targeted services additionally accept EITHER an
@@ -79,6 +81,12 @@ GET_RESERVATIONS_SCHEMA = vol.Schema(
         vol.Optional(ATTR_PROPERTY_ID): cv.string,
         vol.Optional("entity_id"): vol.Any(cv.entity_ids, cv.entity_id),
         vol.Optional("device_id"): vol.Any("none", vol.All(cv.ensure_list, [str])),
+        vol.Optional(ATTR_LOOKFORWARD_DAYS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=1095)
+        ),
+        vol.Optional(ATTR_LOOKBACKWARD_DAYS): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=365)
+        ),
     }
 )
 

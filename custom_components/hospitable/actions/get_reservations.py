@@ -31,6 +31,8 @@ from custom_components.hospitable.actions.helpers import (
 )
 from custom_components.hospitable.actions.schemas import (
     ATTR_CONFIG_ENTRY_ID,
+    ATTR_LOOKBACKWARD_DAYS,
+    ATTR_LOOKFORWARD_DAYS,
     ATTR_PROPERTY_ID,
 )
 from custom_components.hospitable.api.exceptions import (
@@ -42,26 +44,25 @@ from custom_components.hospitable.api.reservations import (
 )
 from custom_components.hospitable.const import (
     CONF_LOOKAHEAD_DAYS,
-    CONF_LOOKBACK_DAYS,
 )
 from custom_components.hospitable.services.window import (
     LOOKAHEAD_DEFAULT,
-    LOOKBACK_DEFAULT,
 )
 
 
 async def async_handle_get_reservations(
     hass: HomeAssistant, call: ServiceCall
 ) -> ServiceResponse:
-    """Return one property's reservations within the configured window.
+    """Return one property's reservations within a per-call window.
 
     Args:
         hass: Home Assistant instance.
         call: The service call.
 
-    The queried window matches the one the reservation coordinator
-    polls, so the service and the entities describe the same span of
-    time.
+    When both parameters are omitted the forward reach matches the
+    reservation coordinator's ``lookahead_days``; the backward reach
+    defaults to 7 days (not ``lookback_days``). Callers who need the
+    sensors' exact window must pass both parameters explicitly.
 
     Returns:
         The reservations, filtered through the shared serialiser.
@@ -82,12 +83,15 @@ async def async_handle_get_reservations(
         return _not_found(property_id, guest_contact=guest_contact)
 
     today = dt_util.utcnow().date()
-    start = today - timedelta(
-        days=int(entry.options.get(CONF_LOOKBACK_DAYS, LOOKBACK_DEFAULT))
+    # lookforward inherits config lookahead_days; lookbackward defaults
+    # to fixed 7.  The asymmetry is deliberate (FR-025).
+    lookforward = call.data.get(
+        ATTR_LOOKFORWARD_DAYS,
+        int(entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT)),
     )
-    end = today + timedelta(
-        days=int(entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT))
-    )
+    lookbackward = call.data.get(ATTR_LOOKBACKWARD_DAYS, 7)
+    start = today - timedelta(days=lookbackward)
+    end = today + timedelta(days=lookforward)
     client = read_client(hass, entry)
     try:
         payloads = await client.get_reservation_payloads(
