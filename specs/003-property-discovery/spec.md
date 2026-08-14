@@ -449,11 +449,11 @@ field. Confirm the property is resolved and reservations are returned.
   include a cache-freshness timestamp. The action returns whatever
   the coordinator currently holds; no freshness indicator will be
   provided.
-- **OQ-002 — Target on `list_properties` itself.** Should
-  `list_properties` accept a device target to filter to a single
-  property? This would be unusual (it defeats the "list" purpose) and
-  is omitted from this specification. If needed, it can be added in a
-  future amendment.
+- **OQ-002 — Target on `list_properties` itself (CLOSED — NO).**
+  The maintainer decided on 2026-08-13 that `list_properties` will
+  NOT accept a device target. It defeats the purpose of a list
+  action, and `get_property_info` already covers the single-property
+  case.
 
 ## Out of Scope
 
