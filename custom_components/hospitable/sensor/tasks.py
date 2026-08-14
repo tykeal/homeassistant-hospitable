@@ -14,6 +14,7 @@ to guard (FR-042).
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -32,16 +33,28 @@ from custom_components.hospitable.entity import (
     build_unique_id,
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 # Progress buckets for the count sensor's breakdown. ``progress_status``
 # is NULLABLE upstream and was null on 54 of 153 observed tasks, so null
 # is treated as not-yet-started rather than dropped, which would make
 # the breakdown quietly disagree with the count for a third of tasks.
-# A CANCELLED task falls in no bucket, so the buckets deliberately need
-# not sum to the total: counting a cancelled task as pending would
-# overstate outstanding work.
+#
+# The four buckets cover the full six-value ``progress_status``
+# vocabulary documented by ``meta.progress_statuses``. While every
+# task's status is a member of this vocabulary (or null, treated as
+# pending), the four bucket counts sum to ``task_count``. If an
+# unknown status appears, the drift guard logs a warning and the
+# task is counted in no bucket.
+#
+# ``cancelled`` is keyed on ``progress_status``, NOT
+# ``assignment_status``. Both vocabularies contain ``cancelled`` but
+# they are different dimensions: a task can be assignment-cancelled
+# (teammate withdrew) while still progress-in_progress (work ongoing).
 PENDING_STATUSES = frozenset({"not_started"})
 IN_PROGRESS_STATUSES = frozenset({"on_the_way", "arrived", "in_progress"})
 COMPLETED_STATUSES = frozenset({"completed"})
+CANCELLED_STATUSES = frozenset({"cancelled"})
 
 TASK_DETAIL_ATTRIBUTES = frozenset(
     {
@@ -226,7 +239,12 @@ class HospitableTaskCountSensor(_HospitableTaskEntity):
     _attr_translation_key = "task_count"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _unrecorded_attributes = frozenset(
-        {"pending_count", "in_progress_count", "completed_count"}
+        {
+            "pending_count",
+            "in_progress_count",
+            "completed_count",
+            "cancelled_count",
+        }
     )
 
     @property
@@ -245,16 +263,39 @@ class HospitableTaskCountSensor(_HospitableTaskEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return a breakdown of the tasks by progress status.
 
+        The four buckets sum to ``task_count`` while all tasks carry a
+        ``progress_status`` from the known six-value vocabulary (or
+        null, treated as pending). An unknown status triggers a warning
+        and is counted in no bucket.
+
         Returns:
-            Counts per progress bucket. A cancelled task appears in no
-            bucket, so these deliberately need not sum to the state.
+            Counts per progress bucket.
         """
         tasks = self._tasks()
+        all_known = (
+            PENDING_STATUSES
+            | IN_PROGRESS_STATUSES
+            | COMPLETED_STATUSES
+            | CANCELLED_STATUSES
+        )
         pending = sum(
             1
             for task in tasks
             if task.progress_status is None or task.progress_status in PENDING_STATUSES
         )
+        cancelled = sum(
+            1 for task in tasks if task.progress_status in CANCELLED_STATUSES
+        )
+        for task in tasks:
+            if (
+                task.progress_status is not None
+                and task.progress_status not in all_known
+            ):
+                _LOGGER.warning(
+                    "Unknown progress_status %r on task %s",
+                    task.progress_status,
+                    task.task_id,
+                )
         return {
             "pending_count": pending,
             "in_progress_count": sum(
@@ -263,6 +304,7 @@ class HospitableTaskCountSensor(_HospitableTaskEntity):
             "completed_count": sum(
                 1 for task in tasks if task.progress_status in COMPLETED_STATUSES
             ),
+            "cancelled_count": cancelled,
         }
 
 

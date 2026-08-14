@@ -105,12 +105,12 @@ for all deliverables.
 **Principle XII status**: EXEMPT — test scaffolding and fixture
 creation asserting no new production behaviour.
 
-- [ ] T001 Verify baseline: run `uv run pytest tests/ -q` and
+- [X] T001 Verify baseline: run `uv run pytest tests/ -q` and
       confirm 590 tests pass. Run
       `uv run ruff check custom_components/ tests/` and
       `uv run mypy custom_components/ tests/` clean. Record the
       commit SHA (`0796f8c`).
-- [ ] T002 [P] Measure current line counts for all files the plan
+- [X] T002 [P] Measure current line counts for all files the plan
       identifies as modified. Record in the commit message:
       `api/client.py` 410, `sensor/tasks.py` 298,
       `diagnostics.py` 282, `coordinator_tasks.py` 148,
@@ -125,26 +125,26 @@ creation asserting no new production behaviour.
       implementation and include a contingency note: if D4 pushes
       past 440, extract the `_raise_for_status` helper into a
       separate module before committing).
-- [ ] T003 [P] Create
+- [X] T003 [P] Create
       `tests/sensor/test_task_count_cancelled.py` as an empty
       test module with SPDX header and module docstring stating
       it covers D1 (cancelled progress bucket, FR-001 to FR-008).
       The file MUST NOT import any
       `custom_components.hospitable` module at module level.
-- [ ] T004 [P] Create
+- [X] T004 [P] Create
       `tests/actions/test_listing_privacy.py` as an empty test
       module with SPDX header and module docstring stating it
       covers D2 (listing field privacy gating, FR-009 to FR-014).
-- [ ] T005 [P] Create `tests/api/test_trace_header.py` as an
+- [X] T005 [P] Create `tests/api/test_trace_header.py` as an
       empty test module with SPDX header and module docstring
       stating it covers D4 (trace header capture, FR-017 to
       FR-022).
-- [ ] T006 [P] Create
+- [X] T006 [P] Create
       `tests/actions/test_get_reservations_window.py` as an empty
       test module with SPDX header and module docstring stating
       it covers D5 (relative-day window override, FR-023 to
       FR-032).
-- [ ] T007 [P] Add SPDX headers or `REUSE.toml` coverage for
+- [X] T007 [P] Add SPDX headers or `REUSE.toml` coverage for
       every file created in T003..T006 and run
       `uv run reuse lint` to confirm compliance.
 
@@ -168,10 +168,10 @@ output.
 `pyproject.toml`. The plan explicitly rules D3 XII-EXEMPT. Do
 NOT invent a hollow red phase.
 
-- [ ] T008 [D3] Add `files = ["custom_components", "tests"]` to
+- [X] T008 [D3] Add `files = ["custom_components", "tests"]` to
       the `[tool.mypy]` section in `pyproject.toml` (after line
       62, the existing `[tool.mypy]` header). (FR-015)
-- [ ] T009 [D3] Verify equivalence: run `uv run mypy` and
+- [X] T009 [D3] Verify equivalence: run `uv run mypy` and
       `uv run mypy custom_components/ tests/` and confirm both
       produce identical output. Record the comparison in the
       commit message. (FR-016)
@@ -205,14 +205,14 @@ All tests below are in
 **Behavioural red-phase tests**: T011–T015 fail with
 `KeyError` or `AssertionError` against existing code.
 
-- [ ] T010 [P] [D1] Add an xfail test (`raises=ImportError`)
+- [X] T010 [P] [D1] Add an xfail test (`raises=ImportError`)
       asserting that `CANCELLED_STATUSES` can be imported from
       `custom_components.hospitable.sensor.tasks`. Import inside
       the test body with `# type: ignore[attr-defined]` (the
       module exists but the name does not). Also assert its value
       equals `frozenset({"cancelled"})`. Verify:
       `uv run pytest --runxfail <node>`. (FR-001)
-- [ ] T011 [P] [D1] Add an xfail test (`raises=ImportError`)
+- [X] T011 [P] [D1] Add an xfail test (`raises=ImportError`)
       asserting that the union of all four frozensets
       (`PENDING_STATUSES | IN_PROGRESS_STATUSES |
       COMPLETED_STATUSES | CANCELLED_STATUSES`) equals exactly
@@ -222,7 +222,7 @@ All tests below are in
       `# type: ignore[attr-defined]`. Fails with `ImportError`
       because `CANCELLED_STATUSES` does not exist. Verify:
       `uv run pytest --runxfail <node>`. (FR-007)
-- [ ] T012 [D1] Add an xfail test (`raises=KeyError`) that sets
+- [X] T012 [D1] Add an xfail test (`raises=KeyError`) that sets
       up a task-count sensor with fixtures containing a task with
       `progress_status="cancelled"` (SYNTHETIC — no cancelled
       task has been observed in live data, per spec assumptions).
@@ -237,7 +237,7 @@ All tests below are in
       `extra_state_attributes`. The current implementation
       returns only three keys; subscripting a missing key raises
       `KeyError`.
-- [ ] T013 [D1] Add an xfail test (`raises=KeyError`) asserting
+- [X] T013 [D1] Add an xfail test (`raises=KeyError`) asserting
       that a cancelled task increments `cancelled_count` and
       does NOT increment `pending_count`, `in_progress_count`,
       or `completed_count`. Uses the same synthetic fixture.
@@ -250,14 +250,14 @@ All tests below are in
       dimensions. The fixture task MUST have
       `progress_status="cancelled"` and may have any
       `assignment_status` (e.g. `null`).
-- [ ] T014 [D1] Add an xfail test (`raises=KeyError`) asserting
+- [X] T014 [D1] Add an xfail test (`raises=KeyError`) asserting
       that the sum `pending_count + in_progress_count +
       completed_count + cancelled_count` equals `task_count`
       (the sensor's `native_value`). Provide a fixture with
       tasks spanning all six statuses plus a null. Fails with
       `KeyError` (missing `cancelled_count`). Verify:
       `uv run pytest --runxfail <node>`. (FR-005)
-- [ ] T015 [D1] Add an xfail test (`raises=AssertionError`) for
+- [X] T015 [D1] Add an xfail test (`raises=AssertionError`) for
       the vocabulary drift guard: supply a task with
       `progress_status="teleported"` (an unknown value, not
       `null`). Assert that a warning is logged naming
@@ -269,7 +269,7 @@ All tests below are in
       sensor code (no `ImportError`), sets up the sensor, and
       asserts on `caplog`. The assertion fails because the drift
       guard does not exist.
-- [ ] T016 [P] [D1] Add an xfail test (`raises=KeyError`)
+- [X] T016 [P] [D1] Add an xfail test (`raises=KeyError`)
       asserting that `progress_status=None` still increments
       `pending_count` (existing behaviour, unchanged) AND that
       all four buckets sum to `task_count`. The test accesses
@@ -283,10 +283,10 @@ All tests below are in
 
 ### GREEN PHASE COMMIT — Deliverable 1 (implementation)
 
-- [ ] T017 [D1] Add `CANCELLED_STATUSES = frozenset({"cancelled"})`
+- [X] T017 [D1] Add `CANCELLED_STATUSES = frozenset({"cancelled"})`
       to `custom_components/hospitable/sensor/tasks.py` below
       `COMPLETED_STATUSES` (after line 43). (FR-001)
-- [ ] T018 [D1] Rewrite the comment block above the frozenset
+- [X] T018 [D1] Rewrite the comment block above the frozenset
       definitions (lines 35–42 of `sensor/tasks.py`). Remove the
       statement "A CANCELLED task falls in no bucket, so the
       buckets deliberately need not sum to the total." Replace
@@ -297,11 +297,11 @@ All tests below are in
       `progress_status`, NOT `assignment_status` — both
       vocabularies contain `cancelled` but they are different
       dimensions. (FR-002, FR-008)
-- [ ] T019 [D1] Add `"cancelled_count"` to the
+- [X] T019 [D1] Add `"cancelled_count"` to the
       `_unrecorded_attributes` frozenset on
       `HospitableTaskCountSensor` in `sensor/tasks.py` (line
       228). (FR-003)
-- [ ] T020 [D1] In `HospitableTaskCountSensor.extra_state_attributes`
+- [X] T020 [D1] In `HospitableTaskCountSensor.extra_state_attributes`
       in `sensor/tasks.py`:
       1. Add a `cancelled` counter:
          `sum(1 for task in tasks if task.progress_status in
@@ -318,14 +318,14 @@ All tests below are in
          `logging` and create `_LOGGER` at module level if not
          already present.
       (FR-003, FR-005, FR-006)
-- [ ] T021 [D1] Rewrite the `extra_state_attributes` docstring on
+- [X] T021 [D1] Rewrite the `extra_state_attributes` docstring on
       `HospitableTaskCountSensor` from "A cancelled task appears
       in no bucket, so these deliberately need not sum to the
       state" to describe the four-bucket sum guarantee. (FR-008)
-- [ ] T022 [D1] Remove all `xfail` markers and
+- [X] T022 [D1] Remove all `xfail` markers and
       `# type: ignore[...]` comments from T010–T016 tests. Run
       `uv run pytest tests/ -q` and confirm all tests pass.
-- [ ] T023 [D1] Run the write-isolation test suite:
+- [X] T023 [D1] Run the write-isolation test suite:
       `uv run pytest tests/test_no_writes.py
       tests/test_write_isolation.py
       tests/test_isolation_discovery.py -v`. Confirm all 20
@@ -333,7 +333,7 @@ All tests below are in
 
 ### MUTATION VERIFICATION — Deliverable 1
 
-- [ ] T024 [D1] **Mutation verification for D1.** Procedure:
+- [X] T024 [D1] **Mutation verification for D1.** Procedure:
 
       1. **Clear `__pycache__`**: `find . -type d -name
          __pycache__ -exec rm -rf {} +` — a mutation can appear
