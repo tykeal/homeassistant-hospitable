@@ -19,10 +19,10 @@ Hospitable account.
 
 The integration uses Hospitable Personal Access Tokens. Public API
 access requires a paid Hospitable plan; Essentials plans are excluded.
-The token needs read access to user, property, reservation, and calendar
-data. Sending a message additionally requires the token to carry a
-message-send scope; see [Evidence tiers](#evidence-tiers) for what is
-and is not known about that.
+The token needs read **and** write permissions. A Personal Access Token
+created with both successfully sends a message (confirmed by the
+maintainer's manual end-to-end validation against his own account on
+2026-08-13/14, not by an automated test).
 
 ## Installation
 
@@ -76,12 +76,21 @@ the property id, and the entity key, not from the display name.
 | Next arrival | `next_arrival` | Timestamp | Soonest future active check-in instant, or no value | None |
 | Next departure | `next_departure` | Timestamp | Soonest future active check-out instant, or no value | None |
 | Upcoming reservations | `upcoming_reservations` | Measurement state class | Count of forthcoming reservations | None |
-| Property info | `property_info` | Diagnostic entity category | Current property display name, or no value | `address`, `checkin_time`, `checkout_time`, `max_guests`, `effective_timezone`, `timezone_source`, `listings`, `listings_available` |
+| Property info | `property_info` | Diagnostic entity category | Current property display name, or no value | `property_id`, `address`, `checkin_time`, `checkout_time`, `max_guests`, `effective_timezone`, `timezone_source`, `listings`, `listings_available` |
 | Availability | `availability` | Enum | `available`, `booked`, `unknown` | `nightly_rate`, `currency`, `min_stay`, `closed_for_checkin`, `closed_for_checkout`, `forward_window` |
 | Next task | `next_task` | Timestamp | Start instant of the soonest task in the window, or no value | `task_id`, `task_type`, `service_type`, `service_id`, `start_date`, `end_date`, `progress_status`, `assignment_status`, `assignment_updated_at` |
-| Task count | `task_count` | Measurement state class | Number of tasks in the configured window | `pending_count`, `in_progress_count`, `completed_count` |
+| Task count | `task_count` | Measurement state class | Number of tasks in the configured window | `pending_count`, `in_progress_count`, `completed_count`, `cancelled_count` |
 | Last message | `last_message_at` | Timestamp | Instant of the most recent message in the thread, or no value | `last_guest_message_at` |
 | Awaiting host reply | `awaiting_host_reply` | Enum | `on` (guest wrote last), `off` (host wrote last) | Created only when the `awaiting_host_reply` option is on |
+
+The four task-count buckets (`pending_count`, `in_progress_count`,
+`completed_count`, `cancelled_count`) are exhaustive over Hospitable's
+documented six-value `progress_status` vocabulary and therefore sum to
+`task_count`. They key on `progress_status` — not `assignment_status`,
+which has its own unrelated `cancelled` value.
+
+The property-info `property_id` attribute is the value that
+`get_reservations` and `get_property_info` need.
 
 Message bodies are never stored as an entity attribute and are never
 logged. The awaiting-host-reply indicator reports only *who wrote last*.
@@ -95,13 +104,21 @@ state is reserved for integration data that cannot currently be reached.
 
 ## Request economy
 
-The integration has exactly three polling coordinators:
+The integration has four polling coordinators:
 
-- properties coordinator: fetches `/properties` pages;
+- properties coordinator: fetches `/properties` pages at the
+  `property_interval_minutes` cadence;
 - reservations coordinator: fetches `/reservations` pages for selected
-  property ids;
+  property ids at the `reservation_interval_minutes` cadence;
 - calendar coordinator: fetches one `/properties/{property_id}/calendar`
-  response per selected property.
+  response per selected property, sharing the property cadence;
+- tasks coordinator: fetches one `/tasks` request per selected property
+  at the `task_interval_minutes` cadence (each request may paginate).
+
+A fifth component, the message-presence fetcher, is not a coordinator
+of its own. When the `awaiting_host_reply` option is on, it
+piggybacks on each reservation poll and adds one message-thread read
+per property per cycle, subject to a 60-second floor per reservation.
 
 Sensor entities read shared coordinator data and issue zero upstream
 requests of their own.
@@ -109,25 +126,46 @@ requests of their own.
 At defaults, the request budget is:
 
 ```text
-property_polls_per_day = floor(1440 / 60) = 24
-calendar_polls_per_day = 24 * selected_property_count
-reservation_polls_per_day = floor(1440 / 5) * batches * pages
-batches = ceil(selected_property_count / 50)
-pages = max(1, ceil(last_observed_reservation_count / 100))
+property_polls_per_day = floor(1440 / property_interval_minutes)
+calendar_polls_per_day = property_polls_per_day * selected_property_count
+reservation_polls_per_day = floor(1440 / reservation_interval_minutes)
+                            * batches * pages
+task_polls_per_day = floor(1440 / task_interval_minutes)
+                     * selected_property_count * task_pages
+batches     = ceil(selected_property_count / 50)
+pages       = max(1, ceil(last_observed_reservation_count / 100))
+task_pages  = max(1, ceil(tasks_in_window / tasks_per_page))
 ```
 
-For SC-004's example of ten selected properties and no more than 500
-reservations in the window, the actual code gives this formula:
+For SC-004's example of ten selected properties with no more than 500
+reservations in the window and one page of tasks per property:
 
 | Component | Arithmetic | Requests/day |
 | --- | --- | --- |
-| Properties | `24 * 1` page, assuming at most 100 account properties | 24 |
-| Calendar | `24 * selected_property_count` | 240 for 10 selected properties |
+| Properties | `24 * 1` page, assuming ≤100 account properties | 24 |
+| Calendar | `24 * 10` selected properties | 240 |
 | Reservations | `288 * 1` batch `* 5` pages | 1,440 |
-| **Total** | `24 + 240 + 1,440` | **1,704** |
+| Tasks | `96 * 10` selected properties `* 1` page | 960 |
+| **Total** | `24 + 240 + 1,440 + 960` | **2,664** |
 
-That matches the task text and is below SC-004's 2,000 requests/day
-ceiling for the ten-property scenario. The general formula is:
+**That exceeds SC-004's 2,000 requests/day ceiling.** The original
+three-coordinator count omitted tasks entirely. At defaults a
+ten-property account breaches the ceiling by roughly 33%. Increasing
+`task_interval_minutes` to `30` brings the total to
+`24 + 240 + 1440 + 480 = 2,184`, still above. To stay under 2,000
+with ten properties at a 5-minute reservation interval, either the
+task interval must rise to roughly `60` (yielding
+`24 + 240 + 1440 + 240 = 1,944`) or the reservation interval must
+widen, or fewer properties must be selected.
+
+If the `awaiting_host_reply` option is also on, each reservation
+poll adds one message-thread read per property, subject to the
+60-second per-reservation floor. At a 5-minute reservation cadence
+that adds `288 * 10 = 2,880` requests/day — far beyond the ceiling
+on its own, which is why the option is off by default and documented
+as an API-cost opt-in.
+
+The general formula is:
 
 ```text
 daily_requests =
@@ -135,6 +173,11 @@ daily_requests =
   + floor(1440 / property_interval_minutes) * selected_property_count
   + floor(1440 / reservation_interval_minutes) * reservation_batches
     * reservation_pages
+  + floor(1440 / task_interval_minutes) * selected_property_count
+    * task_pages
+  + (if awaiting_host_reply is on)
+    floor(1440 / max(reservation_interval_minutes, 1))
+    * selected_property_count
 ```
 
 The property endpoint is paginated, so accounts with more than 100
@@ -203,7 +246,21 @@ Returns one reservation's detail. Takes `entity_id` or
 Returns the reservations for one property. Requires a `property_id`
 or an entity/device target identifying the property, because
 Hospitable rejects a reservations request without a property filter
-(see [OQ-004](#known-upstream-limitation-oq-004)).
+(see [spec 001 OQ-004](#known-upstream-limitation-spec-001-oq-004)).
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `property_id` | One of | The property UUID. Give this or target the entity/device. |
+| `entity_id` | One of | A Hospitable entity identifying the property. |
+| `device_id` | One of | A Hospitable device identifying the property. |
+| `lookforward_days` | No | Days ahead from today. Range 1–1095 (roughly three years). When omitted, inherits the configured `lookahead_days` option. Hospitable rejects queries more than three years ahead with an HTTP 400 whose message misleadingly cites prices and availabilities. |
+| `lookbackward_days` | No | Days behind from today. Range 0–365. Fixed default of 7 when omitted; does **not** inherit from the `lookback_days` option. |
+| `config_entry_id` | No | Account to use. |
+
+The asymmetry between forward and backward defaults is deliberate:
+the action is an interactive lookup tool, whereas the sensors are
+ongoing monitoring, so inheriting the full sensor lookback window
+would pull more history than an ad-hoc query typically needs.
 
 ### `hospitable.get_property_info`
 
@@ -211,10 +268,13 @@ Returns one property's raw detail including `listings` and their
 `co_hosts`. Requires a `property_id` or an entity/device target.
 Use `list_properties` to discover available property IDs.
 
-Note that co-host entries may include that co-host's own contact
-details. Those are third-party details belonging to your team rather
-than to a guest, and the `guest_contact_details` option does not govern
-them.
+Co-host entries may include that co-host's own contact details
+(`email`, `phone_numbers`). Those are third-party details belonging
+to your team rather than to a guest, but the `guest_contact_details`
+option **does** govern them: with the opt-in off, co-host contact
+fields are dropped; with it on, they are returned. The same gating
+applies to listing-level contact fields (`platform_email`,
+`platform_picture`).
 
 ### `hospitable.list_properties`
 
@@ -296,7 +356,7 @@ one fetch per 60 seconds per reservation, which deliberately leaves
 half the confirmed allowance free for messages you send yourself.
 
 That floor is a **conservative choice, not a measured upstream
-maximum**, and the reason is [OQ-007](#open-questions): it is not known
+maximum**, and the reason is [spec 002 OQ-007](#open-questions): it is not known
 whether reads and writes draw on the same per-reservation bucket. If
 they do, an aggressive poll could consume budget you need to send a
 message. The integration is defensive in both directions rather than
@@ -320,33 +380,39 @@ interchangeable:
 
 ## Open questions
 
-Three questions remain genuinely open. **They cannot be closed without
-issuing a real message send to a real guest**, which has deliberately
-not been done.
+Two questions remain genuinely open and cannot be closed without
+further end-to-end testing against the live API.
 
-- **OQ-001 — the shape of the 202 response body.** The integration
-  handles a correlation identifier if one is present and treats an
-  empty body as success rather than as an error, because it does not
-  know which it will get.
-- **OQ-005 — whether a Personal Access Token carries the message-send
-  scope.** An HTTP 403 from the send endpoint is reported with wording
-  that names a possible missing scope, rather than being reported as a
-  generic failure.
-- **OQ-007 — whether reads and writes share one per-reservation
-  bucket.** The confirmed read limit and the documented send limit are
-  both 2 per 60 seconds per reservation, which makes a shared bucket
-  plausible but unproven. Nothing in the code or the tests asserts an
-  answer either way.
+- **spec 002 OQ-001 — the shape of the 202 response body.** The
+  integration handles a correlation identifier if one is present and
+  treats an empty body as success rather than as an error, because it
+  does not know which it will get. A single successful send confirmed
+  acceptance but did not reveal the body's structure.
+- **spec 002 OQ-007 — whether reads and writes share one
+  per-reservation bucket.** The confirmed read limit and the
+  documented send limit are both 2 per 60 seconds per reservation,
+  which makes a shared bucket plausible but unproven. A single send
+  reveals nothing about bucket sharing.
 
-**OQ-002 is closed** (CONFIRMED-BY-TEST, 2026-08-12): the messages
-endpoint is not paginated and silently ignores `page` and `per_page`.
-`/tasks` pagination, by contrast, is real.
+**spec 002 OQ-005 is closed** (CONFIRMED, 2026-08-13/14): a Personal
+Access Token created with read and write permissions sends a message
+successfully. This was confirmed by the maintainer's manual end-to-end
+validation against his own account — not by an automated probe or a
+repository test. HTTP 202 still means *accepted for asynchronous
+delivery*; whether the guest's channel received or displayed it is
+unobserved.
+
+**spec 002 OQ-002 is closed** (CONFIRMED-BY-TEST, 2026-08-12): the
+messages endpoint is not paginated and silently ignores `page` and
+`per_page`. `/tasks` pagination, by contrast, is real.
 
 ## Diagnostics
 
 Downloading diagnostics from the integration's entry gives configuration
-and coordinator state with guest fields shown as `**REDACTED**`. The
-Personal Access Token is never included.
+and coordinator state with guest fields shown as `**REDACTED**`. Each
+coordinator section includes a `last_trace_id` for correlating with
+upstream support; a trace identifier is treated as operational data,
+not personal data. The Personal Access Token is never included.
 
 ## Terminology
 
@@ -355,7 +421,7 @@ that object a listing or a unit. The `property_info` diagnostic attribute
 named `listings` is the code-level API-derived channel reference list;
 it is not a user-facing name for the property itself.
 
-## Known upstream limitation: OQ-004
+## Known upstream limitation: spec 001 OQ-004
 
 Hospitable requires a `properties[]` filter on `GET /reservations`. A
 request without that filter returns HTTP 400. Because of that upstream
