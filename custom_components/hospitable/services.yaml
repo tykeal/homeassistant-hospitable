@@ -82,8 +82,6 @@ get_reservations:
   target:
     entity:
       integration: hospitable
-    device:
-      integration: hospitable
   fields:
     config_entry_id:
       required: false
@@ -117,8 +115,6 @@ get_reservations:
 get_property_info:
   target:
     entity:
-      integration: hospitable
-    device:
       integration: hospitable
   fields:
     config_entry_id:
