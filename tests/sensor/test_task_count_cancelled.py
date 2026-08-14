@@ -166,14 +166,9 @@ def _attrs(hass: Any, property_id: str) -> dict[str, Any]:
 # ── T010: CANCELLED_STATUSES import (FR-001) ────────────────────
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    reason="TDD red phase: T010 CANCELLED_STATUSES not yet defined",
-    strict=True,
-)
 def test_cancelled_statuses_import() -> None:
     """``CANCELLED_STATUSES`` is importable and equals the expected set."""
-    from custom_components.hospitable.sensor.tasks import (  # type: ignore[attr-defined]
+    from custom_components.hospitable.sensor.tasks import (
         CANCELLED_STATUSES,
     )
 
@@ -183,14 +178,9 @@ def test_cancelled_statuses_import() -> None:
 # ── T011: Exhaustiveness / vocabulary contract (FR-007) ──────────
 
 
-@pytest.mark.xfail(
-    raises=ImportError,
-    reason="TDD red phase: T011 CANCELLED_STATUSES not yet defined",
-    strict=True,
-)
 def test_exhaustiveness() -> None:
     """The union of all four frozensets equals the known vocabulary."""
-    from custom_components.hospitable.sensor.tasks import (  # type: ignore[attr-defined]
+    from custom_components.hospitable.sensor.tasks import (
         CANCELLED_STATUSES,
         COMPLETED_STATUSES,
         IN_PROGRESS_STATUSES,
@@ -217,11 +207,6 @@ def test_exhaustiveness() -> None:
 # ── T012: cancelled_count present in attributes (FR-003) ────────
 
 
-@pytest.mark.xfail(
-    raises=KeyError,
-    reason="TDD red phase: T012 cancelled_count attribute missing",
-    strict=True,
-)
 async def test_cancelled_count_present(hass: Any, respx_router: Any) -> None:
     """``cancelled_count`` appears in extra_state_attributes.
 
@@ -242,11 +227,6 @@ async def test_cancelled_count_present(hass: Any, respx_router: Any) -> None:
 # ── T013: cancelled increments only cancelled_count (FR-002/003) ─
 
 
-@pytest.mark.xfail(
-    raises=KeyError,
-    reason="TDD red phase: T013 cancelled_count attribute missing",
-    strict=True,
-)
 async def test_cancelled_increments_cancelled_count_only(
     hass: Any, respx_router: Any
 ) -> None:
@@ -276,11 +256,6 @@ async def test_cancelled_increments_cancelled_count_only(
 # ── T014: four buckets sum to task_count (FR-005) ────────────────
 
 
-@pytest.mark.xfail(
-    raises=KeyError,
-    reason="TDD red phase: T014 cancelled_count attribute missing",
-    strict=True,
-)
 async def test_buckets_sum_to_task_count(hass: Any, respx_router: Any) -> None:
     """The four bucket counts sum to the sensor's native_value.
 
@@ -307,11 +282,6 @@ async def test_buckets_sum_to_task_count(hass: Any, respx_router: Any) -> None:
 # ── T015: vocabulary drift guard (FR-006) ────────────────────────
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="TDD red phase: T015 drift guard not yet implemented",
-    strict=True,
-)
 async def test_drift_guard_logs_unknown_status(
     hass: Any, respx_router: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -335,11 +305,6 @@ async def test_drift_guard_logs_unknown_status(
 # ── T016: null still pending + four buckets sum (FR-004/005) ─────
 
 
-@pytest.mark.xfail(
-    raises=KeyError,
-    reason="TDD red phase: T016 cancelled_count attribute missing",
-    strict=True,
-)
 async def test_null_progress_still_pending_and_buckets_sum(
     hass: Any, respx_router: Any
 ) -> None:

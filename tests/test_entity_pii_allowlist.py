@@ -119,7 +119,14 @@ ALLOWED_ATTRIBUTES: dict[str, frozenset[str]] = {
             "timezone",
         }
     ),
-    "task_count": frozenset({"completed_count", "in_progress_count", "pending_count"}),
+    "task_count": frozenset(
+        {
+            "completed_count",
+            "in_progress_count",
+            "pending_count",
+            "cancelled_count",
+        }
+    ),
 }
 
 
