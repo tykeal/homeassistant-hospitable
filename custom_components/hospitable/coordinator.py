@@ -101,6 +101,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             update_interval=timedelta(minutes=minutes),
         )
         self.consecutive_failures = 0
+        self.last_trace_id: str | None = None
         self._logged_scope_limitation = False
         self._logged_rate_limit = False
 
@@ -125,6 +126,7 @@ class HospitableDataUpdateCoordinator[DataT](DataUpdateCoordinator[DataT]):
             self.consecutive_failures += 1
             raise
         self.consecutive_failures = 0
+        self.last_trace_id = self._client.last_trace_id
         self._logged_rate_limit = False
         self._clear_repair_issues()
         return data

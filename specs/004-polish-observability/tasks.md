@@ -390,13 +390,13 @@ All tests below are in `tests/actions/test_listing_privacy.py`.
 `AssertionError` because the current chokepoint does not filter
 listings.
 
-- [ ] T025 [P] [D2] Add an xfail test (`raises=ImportError`)
+- [X] T025 [P] [D2] Add an xfail test (`raises=ImportError`)
       asserting that `LISTING_KEYS` can be imported from
       `custom_components.hospitable.actions.response`. Import
       inside the test body with
       `# type: ignore[attr-defined]`. Verify:
       `uv run pytest --runxfail <node>`. (FR-011)
-- [ ] T026 [D2] Add an xfail test (`raises=AssertionError`)
+- [X] T026 [D2] Add an xfail test (`raises=AssertionError`)
       that constructs a payload containing `"listings":
       [{"platform": "airbnb", "platform_id": "123",
       "platform_email": "x@y.com", "platform_picture":
@@ -413,7 +413,7 @@ listings.
       importable and callable; the payload recurses through the
       dict/list branches. The assertion on the result fails
       because both keys survive.
-- [ ] T027 [D2] Add an xfail test (`raises=AssertionError`)
+- [X] T027 [D2] Add an xfail test (`raises=AssertionError`)
       that passes the same payload through
       `serialize_response(payload, guest_contact=True)` and
       asserts `"platform_email"` IS present and
@@ -428,7 +428,7 @@ listings.
       `"secret_field": "oops"` to the fixture and assert it is
       ABSENT. Fails with `AssertionError`. Verify:
       `uv run pytest --runxfail <node>`. (FR-009, FR-011)
-- [ ] T028 [D2] Add an xfail test (`raises=AssertionError`) for
+- [X] T028 [D2] Add an xfail test (`raises=AssertionError`) for
       the **list-of-dicts path** (THE critical trap — FR-012,
       Hazard C from the brief). Supply `"listings":
       [{"platform": "airbnb", "platform_email": "a@b"},
@@ -450,7 +450,7 @@ listings.
       **Why `raises=AssertionError`**: Both `serialize_response`
       and the payload are valid; the assertion on the filtered
       output fails.
-- [ ] T029 [D2] Add an xfail test (`raises=AssertionError`) for
+- [X] T029 [D2] Add an xfail test (`raises=AssertionError`) for
       the **`co_hosts[].user_id` regression** (Hazard D from the
       brief — spec 003 FR-007 dependency). Supply a payload with
       `"listings": [{"platform": "airbnb", "platform_id": "X",
@@ -469,7 +469,7 @@ listings.
       regression assertion (user_id survives) with a gating
       assertion (platform_email absent). The gating assertion
       fails.
-- [ ] T030 [P] [D2] Add an xfail test (`raises=AssertionError`)
+- [X] T030 [P] [D2] Add an xfail test (`raises=AssertionError`)
       that constructs a payload with an unknown listing key:
       `"listings": [{"platform": "airbnb", "platform_id": "X",
       "co_hosts": [], "totally_new_field": "surprise"}]`. Pass
@@ -480,7 +480,7 @@ listings.
 
 ### GREEN PHASE COMMIT — Deliverable 2 (implementation)
 
-- [ ] T031 [D2] In `custom_components/hospitable/actions/response.py`,
+- [X] T031 [D2] In `custom_components/hospitable/actions/response.py`,
       add the following constants below the existing
       `CO_HOST_CONTACT` line:
 
@@ -494,7 +494,7 @@ listings.
       ```
 
       (FR-011)
-- [ ] T032 [D2] In `serialize_response`'s dict comprehension in
+- [X] T032 [D2] In `serialize_response`'s dict comprehension in
       `response.py`, add a third conditional branch BEFORE the
       `else serialize_response(...)` fallback:
 
@@ -504,7 +504,7 @@ listings.
       ```
 
       (FR-010)
-- [ ] T033 [D2] Add `_filter_listings` and
+- [X] T033 [D2] Add `_filter_listings` and
       `_filter_one_listing` functions to `response.py`.
       `_filter_listings` MUST handle the list-of-dicts shape
       (mirroring `_filter_co_hosts`): check `isinstance(value,
@@ -518,7 +518,7 @@ listings.
       that `co_hosts` hits the `CO_HOST_KEYS` branch). A
       non-list value is recursed through `serialize_response`.
       (FR-010, FR-012, FR-013)
-- [ ] T034 [D2] Update the `get_property_info` handler's module
+- [X] T034 [D2] Update the `get_property_info` handler's module
       docstring in
       `custom_components/hospitable/actions/get_property_info.py`
       (lines 10–14). Remove the statement that
@@ -526,15 +526,15 @@ listings.
       filtered." Replace with text reflecting the new gating:
       both fields are now gated behind `guest_contact_details`
       through the response chokepoint. (FR-014)
-- [ ] T035 [D2] Remove all `xfail` markers and
+- [X] T035 [D2] Remove all `xfail` markers and
       `# type: ignore[...]` comments from T025–T030 tests. Run
       `uv run pytest tests/ -q` and confirm all tests pass.
-- [ ] T036 [D2] Run the write-isolation test suite. Confirm all
+- [X] T036 [D2] Run the write-isolation test suite. Confirm all
       20 tests pass. (SC-005)
 
 ### MUTATION VERIFICATION — Deliverable 2
 
-- [ ] T037 [D2] **Mutation verification for D2.** Procedure:
+- [X] T037 [D2] **Mutation verification for D2.** Procedure:
 
       1. **Clear `__pycache__`**: `find . -type d -name
          __pycache__ -exec rm -rf {} +`
@@ -586,7 +586,7 @@ confirm the logged error includes the trace ID.
 Tests below are in `tests/api/test_trace_header.py` and
 `tests/test_diagnostics.py` (existing file, new tests).
 
-- [ ] T038 [P] [D4] In `tests/api/test_trace_header.py`, add an
+- [X] T038 [P] [D4] In `tests/api/test_trace_header.py`, add an
       xfail test (`raises=TypeError`) asserting that
       `HospitableError` accepts a `trace_id` keyword argument.
       Construct `HospitableError("test", trace_id="abc123")`
@@ -598,7 +598,7 @@ Tests below are in `tests/api/test_trace_header.py` and
       **Why `raises=TypeError`**: Python raises `TypeError:
       __init__() got an unexpected keyword argument 'trace_id'`
       when the constructor does not declare the parameter.
-- [ ] T039 [P] [D4] In `tests/api/test_trace_header.py`, add an
+- [X] T039 [P] [D4] In `tests/api/test_trace_header.py`, add an
       xfail test (`raises=AssertionError`) that mocks an error
       response carrying `x-hospitable-trace: trace-xyz` via
       `respx`. Trigger a client call that hits
@@ -626,7 +626,7 @@ Tests below are in `tests/api/test_trace_header.py` and
       Pin `raises=AssertionError`. The test MUST use
       `getattr(exc, "trace_id", None)` rather than
       `exc.trace_id` to avoid `AttributeError`.
-- [ ] T040 [P] [D4] In `tests/api/test_trace_header.py`, add an
+- [X] T040 [P] [D4] In `tests/api/test_trace_header.py`, add an
       xfail test (`raises=AssertionError`) that mocks a
       successful API response carrying
       `x-hospitable-trace: trace-abc`. Trigger a coordinator
@@ -635,7 +635,7 @@ Tests below are in `tests/api/test_trace_header.py` and
       `AssertionError` because coordinators do not store trace
       IDs today. Verify:
       `uv run pytest --runxfail <node>`. (FR-019)
-- [ ] T041 [P] [D4] In `tests/api/test_trace_header.py`, add an
+- [X] T041 [P] [D4] In `tests/api/test_trace_header.py`, add an
       xfail test (`raises=AssertionError`) that mocks a
       response WITHOUT the `x-hospitable-trace` header.
       Trigger a coordinator refresh. Assert `last_trace_id is
@@ -645,7 +645,7 @@ Tests below are in `tests/api/test_trace_header.py` and
       assert the result is `None`. `"MISSING" != None` →
       `AssertionError`. Verify:
       `uv run pytest --runxfail <node>`. (FR-020)
-- [ ] T042 [P] [D4] In `tests/test_diagnostics.py` (or
+- [X] T042 [P] [D4] In `tests/test_diagnostics.py` (or
       `tests/api/test_trace_header.py`), add an xfail test
       (`raises=AssertionError`) asserting the diagnostics
       payload includes a `last_trace_id` key in each
@@ -655,14 +655,14 @@ Tests below are in `tests/api/test_trace_header.py` and
       because `_coordinator_section` does not include
       `last_trace_id`. Verify:
       `uv run pytest --runxfail <node>`. (FR-019, FR-021)
-- [ ] T043 [P] [D4] In `tests/api/test_trace_header.py`, add an
+- [X] T043 [P] [D4] In `tests/api/test_trace_header.py`, add an
       xfail test (`raises=AssertionError`) that the trace ID
       passes through the diagnostics redactor unredacted.
       Build a diagnostics payload with a trace ID, run it
       through the redactor, assert the trace value survives
       unchanged. Fails with `AssertionError`. Verify:
       `uv run pytest --runxfail <node>`. (FR-021)
-- [ ] T044 [D4] In `tests/test_diagnostics.py`, add a PLAIN
+- [X] T044 [D4] In `tests/test_diagnostics.py`, add a PLAIN
       test (NO xfail — this is a characterization test of
       EXISTING behaviour) asserting that the
       `async_get_config_entry_diagnostics` entrypoint is
@@ -672,17 +672,17 @@ Tests below are in `tests/api/test_trace_header.py` and
 
 ### GREEN PHASE COMMIT — Deliverable 4 (implementation)
 
-- [ ] T045 [D4] In
+- [X] T045 [D4] In
       `custom_components/hospitable/api/exceptions.py`, add a
       `trace_id: str | None = None` keyword parameter to
       `HospitableError.__init__` and store it as
       `self.trace_id`. (FR-017)
-- [ ] T046 [D4] In `HospitableRateLimitError.__init__` in
+- [X] T046 [D4] In `HospitableRateLimitError.__init__` in
       `exceptions.py`, add `trace_id: str | None = None` to
       the parameter list and forward it to
       `super().__init__(..., trace_id=trace_id)`. Same for
       `HospitableRequestValidationError.__init__`. (FR-017)
-- [ ] T047 [D4] In `_raise_for_status` in
+- [X] T047 [D4] In `_raise_for_status` in
       `custom_components/hospitable/api/client.py`, before
       raising any `HospitableError` subclass, extract
       `trace_id = response.headers.get("x-hospitable-trace")`
@@ -694,7 +694,7 @@ Tests below are in `tests/api/test_trace_header.py` and
       lines after this change, extract `_raise_for_status` and
       its helpers (`classify_403`, `parse_error_envelope`)
       into a new `api/status.py` module before committing.
-- [ ] T048 [D4] Add a `last_trace_id: str | None = None`
+- [X] T048 [D4] Add a `last_trace_id: str | None = None`
       attribute to each coordinator class. In
       `HospitableDataUpdateCoordinator` (the base class in
       `coordinator.py`), add it as an instance attribute
@@ -704,19 +704,19 @@ Tests below are in `tests/api/test_trace_header.py` and
       `headers.get("x-hospitable-trace")` and store it. If
       the header is absent, store `None` — never an empty
       string. (FR-019, FR-020)
-- [ ] T049 [D4] In `_coordinator_section` in
+- [X] T049 [D4] In `_coordinator_section` in
       `custom_components/hospitable/diagnostics.py`, add
       `"last_trace_id": getattr(coordinator, "last_trace_id",
       None)` to the returned dict. Since this is nested inside
       `"coordinators"` which is in `ALLOWED_TOP_LEVEL`, the
       trace passes through the redactor unredacted. (FR-019,
       FR-021)
-- [ ] T050 [D4] Remove all `xfail` markers and
+- [X] T050 [D4] Remove all `xfail` markers and
       `# type: ignore[...]` comments from T038–T043 tests. Run
       `uv run pytest tests/ -q` and confirm all tests pass.
-- [ ] T051 [D4] Run the write-isolation test suite. Confirm all
+- [X] T051 [D4] Run the write-isolation test suite. Confirm all
       20 tests pass. (SC-005)
-- [ ] T052 [D4] Measure `wc -l client.py` and record in the
+- [X] T052 [D4] Measure `wc -l client.py` and record in the
       commit message. Confirm it remains under 440.
 
 **Exit criteria**: Error responses with trace header produce logs

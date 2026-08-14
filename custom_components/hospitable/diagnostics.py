@@ -199,6 +199,7 @@ def _coordinator_section(name: str, coordinator: Any) -> dict[str, Any]:
         "last_update_success": bool(getattr(coordinator, "last_update_success", False)),
         "update_interval": str(getattr(coordinator, "update_interval", None)),
         "item_count": _item_count(coordinator),
+        "last_trace_id": getattr(coordinator, "last_trace_id", None),
     }
     if name == "reservations":
         section["items"] = [
