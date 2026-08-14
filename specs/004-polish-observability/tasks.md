@@ -772,15 +772,10 @@ behavioural tests that assert on the API call parameters.
       **Why `raises=ServiceValidationError`**: `vol.Schema`
       rejects unknown keys by default. HA catches
       `vol.MultipleInvalid` and raises
+      `ServiceValidationError`. The `has_service` assertion
+      passes first (service exists), then `async_call` raises
       `ServiceValidationError`. The service IS registered, so
       this is not `ServiceNotFound`.
-
-      **Wait — the test asserts the service is registered, then
-      the service call raises.** The `assert
-      hass.services.has_service(...)` passes (service exists),
-      then the `hass.services.async_call(...)` raises
-      `ServiceValidationError`. With `raises=ServiceValidationError`
-      on the xfail marker, this is correctly captured.
 - [ ] T054 [D5] Add an xfail test
       (`raises=ServiceValidationError`) that first asserts the
       service IS registered, then calls `get_reservations` with
@@ -790,33 +785,25 @@ behavioural tests that assert on the API call parameters.
       the schema rejects the unknown `lookbackward_days` key.
       Verify: `uv run pytest --runxfail <node>`.
       (FR-023, FR-025)
-- [ ] T055 [P] [D5] Add an xfail test
-      (`raises=ServiceValidationError`) that calls
-      `get_reservations` with `lookforward_days: 1096` (above
-      the 1095-day ceiling). First assert the service IS
-      registered. In the red phase, ALSO fails with
-      `ServiceValidationError` (schema rejects unknown key).
-      In the green phase, the field is accepted but
-      `vol.Range(max=1095)` rejects the value, still raising
-      `ServiceValidationError`. The pin is correct for both
-      phases. Verify:
-      `uv run pytest --runxfail <node>`. (FR-027, FR-028)
-- [ ] T056 [P] [D5] Add an xfail test
-      (`raises=ServiceValidationError`) that calls
-      `get_reservations` with `lookbackward_days: 366` (above
-      365). First assert service is registered. Same
-      red/green pin reasoning as T055. Verify:
-      `uv run pytest --runxfail <node>`. (FR-026, FR-028)
-- [ ] T057 [P] [D5] Add an xfail test
-      (`raises=ServiceValidationError`) that calls
-      `get_reservations` with `lookforward_days: 0` (below 1).
-      First assert service is registered. Same pin. Verify:
-      `uv run pytest --runxfail <node>`. (FR-027, FR-028)
-- [ ] T058 [P] [D5] Add an xfail test
-      (`raises=ServiceValidationError`) that calls
-      `get_reservations` with `lookbackward_days: -1` (below
-      0). First assert service is registered. Same pin. Verify:
-      `uv run pytest --runxfail <node>`. (FR-026, FR-028)
+- [ ] T055 **MOVED TO GREEN PHASE.** See T055 in the green
+      phase section below. (FR-027, FR-028)
+
+      **Why moved**: In the red phase the schema field does
+      not exist, so `vol.Schema` rejects `lookforward_days`
+      as an unknown key with `ServiceValidationError` — the
+      same exception type the xfail marker pins. The test
+      therefore XFAILs for the wrong reason (unknown-key
+      rejection, not `vol.Range` validation), producing a
+      meaningless red phase that cannot verify range-boundary
+      behaviour. These tests belong in the green phase as
+      plain passing tests, where `vol.Range` produces the
+      rejection after the schema field exists.
+- [ ] T056 **MOVED TO GREEN PHASE.** See T056 below.
+      Same wrong-reason XFAIL issue as T055. (FR-026, FR-028)
+- [ ] T057 **MOVED TO GREEN PHASE.** See T057 below.
+      Same wrong-reason XFAIL issue as T055. (FR-027, FR-028)
+- [ ] T058 **MOVED TO GREEN PHASE.** See T058 below.
+      Same wrong-reason XFAIL issue as T055. (FR-026, FR-028)
 - [ ] T059 [D5] Add an xfail test
       (`raises=ServiceValidationError`) asserting that
       `lookbackward_days: 0` is VALID — future-only search.
@@ -826,42 +813,15 @@ behavioural tests that assert on the API call parameters.
       phase, `ServiceValidationError` fires (schema rejects
       unknown key). Pin `raises=ServiceValidationError`.
       Verify: `uv run pytest --runxfail <node>`. (FR-026)
-- [ ] T060 [D5] Add an xfail test
-      (`raises=ServiceValidationError`) asserting that the
-      default `lookforward_days` (when omitted) inherits from
-      config `lookahead_days`. Set config `lookahead_days` to
-      120. Call with NO `lookforward_days`. Assert the API was
-      called with end date 120 days out. In the red phase, this
-      tests the CURRENT behaviour — the handler already uses
-      config `lookahead_days`. **Wait — this currently PASSES.**
-      The handler already reads `CONF_LOOKAHEAD_DAYS`. But the
-      backward default changes from `LOOKBACK_DEFAULT` (90?) to
-      fixed 7. Let me check:
-
-      The current handler uses `entry.options.get(
-      CONF_LOOKBACK_DAYS, LOOKBACK_DEFAULT)` for the backward
-      reach. After D5, the backward default when
-      `lookbackward_days` is omitted is fixed 7. So a
-      characterization test of the CURRENT backward default
-      would BREAK after implementation. **Plan**: do NOT
-      characterization-test the old backward default. Test the
-      NEW defaults directly in the green phase.
-
-      **Resolution**: Remove T060 from the red phase. The
-      forward-default test currently passes (no change).
-      Instead, add T060 as a BEHAVIOURAL red-phase test for
-      the deliberate asymmetry: call with NO parameters, assert
-      the backward reach is 7 days (not the config's 90). This
-      currently FAILS because the handler uses config
-      `lookback_days` (default 90). Pin `raises=AssertionError`.
-
-      **Wait — the call with no `lookforward_days` or
-      `lookbackward_days` will succeed (both are omitted, no
-      schema rejection).** The current handler runs normally.
-      The test asserts `start == today - timedelta(days=7)` but
-      the current start is `today - timedelta(days=90)`. So the
-      assertion fails with `AssertionError`. Pin
-      `raises=AssertionError`. Verify:
+- [ ] T060 [D5] Add an xfail test (`raises=AssertionError`)
+      for the deliberate backward-default asymmetry: call
+      `get_reservations` with NO `lookforward_days` or
+      `lookbackward_days` (both omitted, no schema rejection).
+      The current handler runs normally. Assert the API was
+      called with `start == today - timedelta(days=7)`. The
+      current handler uses config `lookback_days` (default 90),
+      so the actual start is `today - timedelta(days=90)` and
+      the assertion fails with `AssertionError`. Verify:
       `uv run pytest --runxfail <node>`. (FR-025)
 
       **This is the key behavioural red test for D5.** The
@@ -961,6 +921,32 @@ behavioural tests that assert on the API call parameters.
       The `services` sections of `strings.json` and
       `translations/en.json` MUST remain BYTE-IDENTICAL.
       (FR-023)
+- [ ] T055 [P] [D5] Add a test (NO xfail — plain passing test)
+      that first asserts the service IS registered, then calls
+      `get_reservations` with `lookforward_days: 1096` (above
+      the 1095-day ceiling). Assert `ServiceValidationError`
+      is raised. Now that the schema field exists,
+      `vol.Range(max=1095)` rejects the value and HA raises
+      `ServiceValidationError`. Verify:
+      `uv run pytest <node> -v`. (FR-027, FR-028)
+- [ ] T056 [P] [D5] Add a test (NO xfail) that first asserts
+      the service IS registered, then calls
+      `get_reservations` with `lookbackward_days: 366` (above
+      365). Assert `ServiceValidationError` is raised via
+      `vol.Range(max=365)`. Verify:
+      `uv run pytest <node> -v`. (FR-026, FR-028)
+- [ ] T057 [P] [D5] Add a test (NO xfail) that first asserts
+      the service IS registered, then calls
+      `get_reservations` with `lookforward_days: 0` (below 1).
+      Assert `ServiceValidationError` is raised via
+      `vol.Range(min=1)`. Verify:
+      `uv run pytest <node> -v`. (FR-027, FR-028)
+- [ ] T058 [P] [D5] Add a test (NO xfail) that first asserts
+      the service IS registered, then calls
+      `get_reservations` with `lookbackward_days: -1` (below
+      0). Assert `ServiceValidationError` is raised via
+      `vol.Range(min=0)`. Verify:
+      `uv run pytest <node> -v`. (FR-026, FR-028)
 - [ ] T068 [D5] Remove all `xfail` markers and
       `# type: ignore[...]` comments from T053–T061 tests.
       Run `uv run pytest tests/ -q` and confirm all tests
@@ -1085,12 +1071,16 @@ substantive deliverables.
   implementation (T052). If it exceeds 440, extract
   `_raise_for_status` before committing.
 - **`vol.Schema` rejects unknown keys by default.** The D5
-  red-phase tests that pass `lookforward_days` to the service
-  before the field is added all fail with
-  `ServiceValidationError` from schema rejection. This is
-  correct and expected. A past plan draft incorrectly assumed
-  schemas accept unknown keys — a Copilot reviewer corrected
-  this.
+  red-phase tests that pass `lookforward_days` or
+  `lookbackward_days` to the service before the field is added
+  fail with `ServiceValidationError` from schema rejection.
+  This means range-boundary tests (T055–T058) cannot use
+  `xfail(raises=ServiceValidationError)` in the red phase —
+  they would XFAIL for the wrong reason (unknown-key rejection
+  rather than `vol.Range` validation), making the red phase
+  meaningless. These tests are therefore placed in the green
+  phase as plain passing tests, where `vol.Range` produces the
+  rejection.
 - **`ServiceNotFound` subclasses `ServiceValidationError`.**
   Every D5 test that asserts `ServiceValidationError` first
   asserts the service IS registered. This is mandated by
