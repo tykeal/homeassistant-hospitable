@@ -229,6 +229,27 @@ All new source files MUST include SPDX headers:
 
 Check `REUSE.toml` for file-type-specific header requirements.
 
+## Requirement Citations
+
+Spec-driven requirements live in `specs/NNN-name/spec.md` and are
+numbered `FR-001`, `FR-002`, … **Numbering restarts in every spec**,
+so `FR-030` in spec 001 is a completely different requirement from
+`FR-030` in spec 004. A bare `FR-NNN` is therefore ambiguous.
+
+**Going forward, write new citations as `spec XX FR-NNN`:**
+
+```plaintext
+# Good — unambiguous
+# See spec 004 FR-030 (privacy chokepoint)
+
+# Discouraged — ambiguous across four specs
+# See FR-030
+```
+
+**Do NOT retrofit existing bare citations.** There are ~178 bare
+`FR-NNN` references in `custom_components/`; rewriting them would be
+pure churn with no functional benefit.
+
 ## Git Worktrees
 
 When creating git worktrees for feature branches, bug fixes, or any
@@ -308,3 +329,4 @@ from the repository root using `uv`:
 | Subject mood | Imperative ("Add", not "Added") |
 | Body content | Explain what and why, not how |
 | After failed commit | Fix and retry (no reset) |
+| Requirement citation | `spec XX FR-NNN` (not bare `FR-NNN`) |
