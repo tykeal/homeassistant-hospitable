@@ -7,12 +7,11 @@ model, because the model drops the per-listing ``co_hosts`` array that
 FR-013 exists to let an operator discover. Reading the cache would be
 cheaper and would answer the wrong question.
 
-Scope note on privacy: FR-047 governs GUEST data. A listing carries the
-OPERATOR's own channel contact fields (``platform_email``,
-``platform_picture``), which belong to the person making the call and
-are the point of the service. They are therefore not filtered, and that
-is a deliberate scope decision rather than an oversight — FR-046 asks
-for each surface to be named, so this one is named.
+Scope note on privacy: ``platform_email`` and ``platform_picture`` on
+listing objects are gated behind the ``guest_contact_details`` option
+through the response privacy chokepoint (FR-009, spec 004 D2). When
+the opt-in is disabled both fields are omitted; when enabled they are
+present. Unknown listing keys are dropped fail-closed.
 """
 
 from __future__ import annotations

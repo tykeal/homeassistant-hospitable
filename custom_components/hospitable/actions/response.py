@@ -50,6 +50,14 @@ CO_HOST_KEYS = frozenset({"co_hosts"})
 CO_HOST_ALLOWED = ("user_id", "channel_name", "name")
 CO_HOST_CONTACT = ("email", "phone_numbers")
 
+# Listing objects use a SEPARATE allowlist (FR-011).
+# ``listings`` is the dict key under which a LIST of listing dicts
+# appears. The list-of-dicts shape is handled explicitly, mirroring
+# the co-host pattern, to avoid the list-vs-dict trap.
+LISTING_KEYS = frozenset({"listings"})
+LISTING_ALLOWED = ("platform", "platform_id", "co_hosts")
+LISTING_CONTACT = ("platform_email", "platform_picture")
+
 # Never released, under any option, at any depth. ``sender`` is the
 # opaque message author object; it carries the same fields as ``guest``
 # and has no returnable part (FR-047a).
@@ -73,6 +81,8 @@ def serialize_response(payload: Any, *, guest_contact: bool = False) -> Any:
             if key in IDENTITY_KEYS
             else _filter_co_hosts(value, guest_contact=guest_contact)
             if key in CO_HOST_KEYS
+            else _filter_listings(value, guest_contact=guest_contact)
+            if key in LISTING_KEYS
             else serialize_response(value, guest_contact=guest_contact)
             for key, value in payload.items()
             if key not in ALWAYS_DROPPED
@@ -140,3 +150,45 @@ def _filter_one_co_host(value: Any, *, guest_contact: bool) -> Any:
     if guest_contact:
         allowed.extend(CO_HOST_CONTACT)
     return {key: value[key] for key in allowed if key in value}
+
+
+def _filter_listings(value: Any, *, guest_contact: bool) -> Any:
+    """Reduce a listing list to allowlisted fields per entry (FR-011).
+
+    ``listings`` is a LIST of dicts. Each dict is reduced to the
+    listing allowlist, then recursed so nested ``co_hosts`` hit
+    the existing ``CO_HOST_KEYS`` branch. The list container is
+    handled explicitly to avoid the list-vs-dict trap (FR-012).
+
+    Args:
+        value: The listings value (expected to be a list of dicts).
+        guest_contact: Whether the guest-contact opt-in is enabled.
+
+    Returns:
+        The filtered list, or the value recursed if not a list.
+    """
+    if not isinstance(value, list):
+        return serialize_response(value, guest_contact=guest_contact)
+    return [_filter_one_listing(item, guest_contact=guest_contact) for item in value]
+
+
+def _filter_one_listing(value: Any, *, guest_contact: bool) -> Any:
+    """Reduce a single listing dict to its allowlisted fields.
+
+    The filtered dict is recursed through ``serialize_response`` so
+    that ``co_hosts`` inside it hits the ``CO_HOST_KEYS`` branch.
+
+    Args:
+        value: A single listing object.
+        guest_contact: Whether the guest-contact opt-in is enabled.
+
+    Returns:
+        The allowlisted subset, recursed for nested filtering.
+    """
+    if not isinstance(value, dict):
+        return serialize_response(value, guest_contact=guest_contact)
+    allowed = list(LISTING_ALLOWED)
+    if guest_contact:
+        allowed.extend(LISTING_CONTACT)
+    filtered = {key: value[key] for key in allowed if key in value}
+    return serialize_response(filtered, guest_contact=guest_contact)
