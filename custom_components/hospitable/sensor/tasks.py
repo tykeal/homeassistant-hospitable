@@ -41,9 +41,11 @@ _LOGGER = logging.getLogger(__name__)
 # the breakdown quietly disagree with the count for a third of tasks.
 #
 # The four buckets cover the full six-value ``progress_status``
-# vocabulary documented by ``meta.progress_statuses``. While all tasks
-# carry a status from this vocabulary (or null, treated as pending),
-# the four bucket counts sum to ``task_count``.
+# vocabulary documented by ``meta.progress_statuses``. While every
+# task's status is a member of this vocabulary (or null, treated as
+# pending), the four bucket counts sum to ``task_count``. If an
+# unknown status appears, the drift guard logs a warning and the
+# task is counted in no bucket.
 #
 # ``cancelled`` is keyed on ``progress_status``, NOT
 # ``assignment_status``. Both vocabularies contain ``cancelled`` but

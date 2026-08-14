@@ -297,9 +297,15 @@ async def test_drift_guard_logs_unknown_status(
             ),
         ]
     )
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(
+        logging.WARNING, logger="custom_components.hospitable.sensor.tasks"
+    ):
         await _setup_with_tasks(hass, respx_router, page)
-    assert any("teleported" in rec.message for rec in caplog.records)
+    assert any(
+        "teleported" in rec.message
+        for rec in caplog.records
+        if rec.name == "custom_components.hospitable.sensor.tasks"
+    )
 
 
 # ── T016: null still pending + four buckets sum (FR-004/005) ─────
