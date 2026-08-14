@@ -96,6 +96,24 @@ get_reservations:
       example: 66666666-7777-8888-9999-000000000000
       selector:
         text:
+    lookforward_days:
+      required: false
+      example: 400
+      selector:
+        number:
+          min: 1
+          max: 1095
+          step: 1
+          mode: box
+    lookbackward_days:
+      required: false
+      example: 30
+      selector:
+        number:
+          min: 0
+          max: 365
+          step: 1
+          mode: box
 get_property_info:
   target:
     entity:
