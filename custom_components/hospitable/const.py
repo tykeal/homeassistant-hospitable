@@ -5,8 +5,9 @@
 from homeassistant.const import Platform
 
 DOMAIN = "hospitable"
-VERSION = 1
-MINOR_VERSION = 1
+VERSION = "0.0.0"
+CONFIG_ENTRY_VERSION = 1
+CONFIG_ENTRY_MINOR_VERSION = 1
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONF_TOKEN = "token"
 CONF_ACCOUNT_NAMESPACE = "account_namespace"
