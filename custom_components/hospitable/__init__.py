@@ -26,12 +26,11 @@ from custom_components.hospitable.const import (
     CONF_TASK_INTERVAL,
     CONF_TASK_WINDOW_DAYS,
     CONF_TOKEN,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DEFAULT_AWAITING_HOST_REPLY,
     DEFAULT_TASK_WINDOW_DAYS,
     VERSION,
-)
-from custom_components.hospitable.const import (
-    MINOR_VERSION as MINOR_VERSION,
 )
 from custom_components.hospitable.const import (
     PLATFORMS as PLATFORMS,
@@ -193,7 +192,7 @@ async def async_unload_entry(hass: Any, entry: Any) -> bool:
 
 async def async_migrate_entry(hass: Any, entry: Any) -> bool:
     """Migrate entries while preserving frozen unique identifiers."""
-    return bool(getattr(entry, "version", VERSION) <= VERSION)
+    return bool(getattr(entry, "version", CONFIG_ENTRY_VERSION) <= CONFIG_ENTRY_VERSION)
 
 
-__all__ = ["MINOR_VERSION", "PLATFORMS", "VERSION"]
+__all__ = ["CONFIG_ENTRY_MINOR_VERSION", "CONFIG_ENTRY_VERSION", "PLATFORMS", "VERSION"]

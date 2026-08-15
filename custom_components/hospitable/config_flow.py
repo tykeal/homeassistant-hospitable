@@ -35,6 +35,8 @@ from custom_components.hospitable.const import (
     CONF_NAMESPACE_SOURCE,
     CONF_SELECTED_PROPERTIES,
     CONF_TOKEN,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
 from custom_components.hospitable.options_flow import (
@@ -81,8 +83,8 @@ def _error_key(exc: Exception) -> str:
 class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle Hospitable config, reauth, and property selection flows."""
 
-    VERSION = 1
-    MINOR_VERSION = 1
+    VERSION = CONFIG_ENTRY_VERSION
+    MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
     def __init__(self) -> None:
         """Initialize transient flow state."""

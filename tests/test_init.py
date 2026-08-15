@@ -25,7 +25,8 @@ def test_platforms_contains_sensor() -> None:
     """US2 forwards the sensor platform for reservation entities."""
     import custom_components.hospitable as integration
 
-    assert integration.VERSION == 1 and integration.MINOR_VERSION == 1
+    assert integration.CONFIG_ENTRY_VERSION == 1
+    assert integration.CONFIG_ENTRY_MINOR_VERSION == 1
     assert integration.PLATFORMS == [Platform.SENSOR]
 
 
