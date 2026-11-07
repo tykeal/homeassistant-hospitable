@@ -99,8 +99,8 @@ repos:
         args: ["-x"] # Check external files
         exclude: ".specify/(extensions/git/|)scripts/*/*"
 
-  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: c04ed26e40637cab1aa9879c693832a9c120fb20  # frozen: v1.7.12.24
+  - repo: https://github.com/kjanat/actionlint
+    rev: 08bb2c4f0d039744455b87aef1c647fb8b66d37b  # frozen: v1.17.0
     hooks:
       - id: actionlint
 
