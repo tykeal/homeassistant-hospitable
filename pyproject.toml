@@ -45,6 +45,12 @@ dev = [
     "respx>=0.22",
     "ruff>=0.15.21",
     "voluptuous>=0.15.2",
+    {include-group = "releasenotes"},
+]
+# reno manages releasenotes/notes/; kept in its own group so CI can
+# install it without Home Assistant (uv run --only-group releasenotes).
+releasenotes = [
+    "reno>=4.1.0",
 ]
 
 [tool.hatch.version]
@@ -71,6 +77,7 @@ files = ["custom_components", "tests"]
 module = [
     "homeassistant.*",
     "pytest_homeassistant_custom_component.*",
+    "reno.*",
     "respx.*",
     "voluptuous.*",
 ]

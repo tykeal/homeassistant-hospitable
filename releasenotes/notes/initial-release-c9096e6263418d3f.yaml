@@ -1,0 +1,22 @@
+---
+prelude: |
+  First release of Hospitable for Home Assistant, a custom integration
+  for the Hospitable Public API v2. It needs Home Assistant 2026.8.0 or
+  later and a Hospitable Personal Access Token with read **and** write
+  permissions; Public API access requires a paid Hospitable plan
+  (Essentials plans are excluded). Install it through HACS as a custom
+  repository, or copy `custom_components/hospitable/` manually.
+features:
+  - |
+    Sensor entities for each selected property: reservation state,
+    property details, tasks, messaging state, and aggregate calendar
+    availability.
+  - |
+    Six services for looking up data on demand and for sending a guest
+    message. Polling is strictly read-only; the only write is the
+    `POST` behind `hospitable.send_message`, made only when you call
+    it.
+  - |
+    Guest contact details and awaiting-host-reply tracking are opt-in
+    options, off by default, because of their privacy and API request
+    cost respectively.

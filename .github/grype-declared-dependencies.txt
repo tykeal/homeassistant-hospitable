@@ -29,9 +29,9 @@ homeassistant-hospitable
 httpx
 voluptuous
 
-# [project.optional-dependencies] test and [dependency-groups] dev.
-# Not shipped, but we do choose these versions, so a finding in one
-# of them is ours to act on.
+# [project.optional-dependencies] test and [dependency-groups] dev
+# and releasenotes. Not shipped, but we do choose these versions, so
+# a finding in one of them is ours to act on.
 homeassistant
 interrogate
 mypy
@@ -39,6 +39,7 @@ pytest
 pytest-asyncio
 pytest-cov
 pytest-homeassistant-custom-component
+reno
 respx
 ruff
 

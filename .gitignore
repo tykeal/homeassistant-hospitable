@@ -45,3 +45,5 @@ docs/_build/
 
 # aislop local score history (telemetry, not tracked)
 .aislop/history.jsonl
+# Written by the release-drafter workflow from .github/release-drafter.yml
+.github/release-drafter-generated.yml
