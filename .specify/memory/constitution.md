@@ -7,10 +7,13 @@ SPDX-License-Identifier: MIT
 <!--
   Sync Impact Report
   ==================================================
-  Version change: 1.1.1 → 1.1.2
-  Change type: PATCH - a governance-process clarification. No
-  principle is added, removed, renamed, renumbered, or materially
-  expanded; all twelve retain their existing scope.
+  Version change: 1.1.2 → 1.2.0
+  Change type: MINOR - materially expanded guidance. This amendment
+  adds new stack mandates (`httpx2`, `probatio`, `pytest-homeassistant`,
+  `-p no:respx`) and new prohibitions (no `httpx`/`voluptuous` imports
+  in production code, no inline `# type: ignore` in
+  `custom_components/`, a tightly scoped `follow_imports = "skip"`
+  exception). No principle is added, removed, renamed, or renumbered.
 
   Report scope: this block describes ONLY the most recent amendment.
   It is overwritten on every amendment; the full amendment history is
@@ -18,27 +21,54 @@ SPDX-License-Identifier: MIT
 
   Why this amendment exists
   -------------------------------------------------
-  The v1.1.1 amendment correctly overwrote the Sync Impact Report, but
-  the outgoing v1.1.0 report also contained live future-scope research
-  findings and an open webhook-signature TODO. Because the Governance
-  section described git history as the complete amendment history but
-  did not require relocating non-history content before overwrite,
-  those findings became invisible to normal repository readers. This
-  amendment adds that preservation check to Governance. The lost
-  webhook, OAuth, and rate-limit findings were moved into
-  `specs/001-hospitable-ha-integration/research.md` before this
-  amendment.
+  Home Assistant 2026.11 replaced `httpx` with `httpx2` and
+  `voluptuous` with `probatio`. Core calls `httpx2.alias_httpx()` and
+  `probatio.compat.install_as_voluptuous()` at import time, types
+  `data_schema` as `probatio.Schema`, and returns an `httpx2` client
+  from `get_async_client`. The test plugin moves from
+  `pytest-homeassistant-custom-component` to `pytest-homeassistant`,
+  which is versioned with core. `respx` keeps working because its
+  `import httpx` resolves to `httpx2` through Home Assistant's alias,
+  but its pytest plugin imports the real `httpx` before Home Assistant
+  loads, which makes `alias_httpx()` raise; it MUST be disabled with
+  `-p no:respx`. Because `respx`'s annotations reference the real
+  `httpx` package, mypy needs a `follow_imports = "skip"` override for
+  `respx`. The constitution still named `httpx` and
+  `pytest-homeassistant-custom-component` as mandated stacks, and the
+  Principle IV REUSE list still named `.grype.yaml`, which PR #151
+  deleted and removed from `REUSE.toml`.
 
   Modified sections:
-    - Governance
-      - The Sync Impact Report rule now requires amenders to inspect
-        the outgoing report for still-open TODOs, deferred-scope
-        research findings, or operational notes that must remain
-        visible, and to relocate them to a durable artifact before the
-        report is overwritten.
-      - The template-review rule now explicitly says each template must
-        be re-read for every amendment and that prior "no drift" claims
-        must not be copied forward without inspection.
+    - Principle II (API Client Design)
+      - Outbound HTTP is exercised through `httpx2` and mocked with
+        `respx`, which patches `httpx2` via Home Assistant's `httpx`
+        alias.
+    - Principle IV (Licensing & Attribution Standards)
+      - The Apache-2.0 `REUSE.toml`-covered path list now matches
+        `REUSE.toml`: `.grype.yaml` removed; `tests/fixtures/**` and
+        `releasenotes/notes/*.yaml` added. Its replacement,
+        `.github/grype-declared-dependencies.txt`, carries inline SPDX
+        headers and is intentionally not listed.
+    - Additional Constraints → Dependency Management
+      - HTTP stack is `httpx2` and validation stack is `probatio`, as
+        supplied by Home Assistant core; production code MUST NOT
+        import `httpx` or `voluptuous`.
+    - Additional Constraints → Test Stack
+      - `pytest-homeassistant` replaces
+        `pytest-homeassistant-custom-component`; respx's pytest plugin
+        MUST be disabled with `-p no:respx`.
+    - Additional Constraints → Static Analysis Settings
+      - Inline `# type: ignore` markers are PROHIBITED in
+        `custom_components/`; Principle XII red-phase ignores remain
+        allowed in test files only.
+      - `follow_imports = "skip"` overrides are permitted only for a
+        third-party test library whose annotations target a module
+        Home Assistant aliases at runtime (currently `respx`), and MUST
+        NOT cover `custom_components` or `tests` modules.
+    - Principle XII was re-read for consistency: its `# type: ignore`
+      guidance concerns red-phase test imports only and does not
+      conflict with the new production-code prohibition; it is
+      unchanged.
 
   Added sections: None.
 
@@ -46,36 +76,57 @@ SPDX-License-Identifier: MIT
 
   Renumbered principles: None.
 
+  Outgoing-report preservation check
+  -------------------------------------------------
+  Per Governance, the outgoing v1.1.2 report was inspected for
+  still-open TODOs, deferred-scope research, or operational notes. It
+  contained none: its only substantive content (webhook, OAuth, and
+  rate-limit findings) had already been relocated to
+  `specs/001-hospitable-ha-integration/research.md`. Nothing further
+  needed relocating.
+
   Template propagation status
   -------------------------------------------------
-  All five files in .specify/templates/ were opened and inspected for
-  this amendment. Findings, stated as checked rather than assumed:
+  All five files in .specify/templates/ were re-opened and inspected
+  for this amendment and searched for `httpx`, `voluptuous`,
+  `probatio`, `respx`, `pytest-homeassistant`, `grype`, and
+  `type: ignore`. Findings, stated as checked rather than assumed:
 
     - .specify/templates/plan-template.md — CHECKED, no change needed.
-      Its Constitution Check section delegates gates to the current
-      constitution through the placeholder "[Gates determined based on
-      constitution file]" and contains no Sync Impact Report,
-      amendment, migration, or template-review process text.
+      Its Technical Context fields ("Primary Dependencies", "Testing")
+      are generic placeholders, and its Constitution Check delegates
+      gates via "[Gates determined based on constitution file]". It
+      names no HTTP, validation, or test-plugin library.
     - .specify/templates/tasks-template.md — CHECKED, no change needed.
-      Its project overlay discusses mandatory tests and red-phase
-      commits under Principles I, IX, and XII only. It contains no Sync
-      Impact Report, amendment, migration, or template-review process
-      text.
+      Its project overlay mentions `# type: ignore[import-not-found]`
+      only for red-phase deferred imports in tests (Tests note, User
+      Story 1 test note, "Within Each User Story"), which remains
+      permitted. It names no HTTP, validation, or test-plugin library.
     - .specify/templates/spec-template.md — CHECKED, no change needed.
-      The template is generic feature-spec boilerplate and contains no
-      Sync Impact Report, amendment, migration, or template-review
-      process text.
+      Technology-agnostic feature-spec boilerplate; none of the
+      searched terms appear.
     - .specify/templates/checklist-template.md — CHECKED, no change
-      needed. The checklist scaffold contains no constitution,
-      amendment, migration, or template-review process text.
+      needed. Sample-item scaffold; none of the searched terms appear.
     - .specify/templates/constitution-template.md — CHECKED, no change
-      needed. It is the unfilled upstream scaffold with placeholder
-      governance and version fields only; it does not contain this
-      project's Sync Impact Report preservation rule.
+      needed. Unfilled upstream scaffold with placeholder principles,
+      governance, and version fields; none of the searched terms
+      appear.
 
-  Migration plan: No code migration is required. Future-scope research
-  that would otherwise have been lost has already been preserved in the
-  durable research artifact for spec 001.
+  Migration plan: This amendment deliberately lands ahead of the code
+  migration, which PR #153 MUST complete before it merges. Until then
+  `main` still uses `httpx`, `voluptuous`, and
+  `pytest-homeassistant-custom-component`, and is knowingly out of
+  step with this constitution. PR #153 MUST move production code from
+  `voluptuous` to `probatio` and from `httpx` to `httpx2` without any
+  inline `# type: ignore` in `custom_components/`; switch the test
+  plugin to `pytest-homeassistant`; run pytest with `-p no:respx`; add
+  the `[[tool.mypy.overrides]] module = ["respx", "respx.*"]` entry
+  with `follow_imports = "skip"`; raise the minimum supported Home
+  Assistant version in `hacs.json` from 2026.8.0 to 2026.11.0, the
+  first release that ships `httpx2` and `probatio`, with the reno
+  release note the Home Assistant Compatibility constraint requires;
+  and update README and AGENTS.md. This constitution amendment
+  carries no code changes.
   ==================================================
 -->
 
@@ -196,9 +247,10 @@ codebase.
   and a redacted response-body excerpt). Bare `Exception` propagation
   is PROHIBITED.
 - The client MUST be independently testable without a live Hospitable
-  account. All outbound HTTP MUST be exercised through `httpx` and
-  mocked with `respx`; tests that require real network access are
-  PROHIBITED.
+  account. All outbound HTTP MUST be exercised through `httpx2` (Home
+  Assistant's HTTP stack) and mocked with `respx`, which patches
+  `httpx2` through Home Assistant's `httpx` alias; tests that require
+  real network access are PROHIBITED.
 - Request and response payloads MUST be validated against expected
   schemas. A malformed or unexpectedly shaped API response MUST raise
   an explicit error rather than yielding a partially populated entity.
@@ -267,7 +319,8 @@ actually changed behavior.
   license for the file's location:
   - **Apache-2.0** — the default for all project-authored code,
     documentation, configuration, `custom_components/**/*.json`,
-    `specs/**`, `hacs.json`, `uv.lock`, and `.grype.yaml`.
+    `specs/**`, `hacs.json`, `uv.lock`, `tests/fixtures/**`, and
+    `releasenotes/notes/*.yaml`.
   - **MIT** — vendored Spec Kit material under `.specify/**`,
     `.github/*/speckit.**`, and `.vscode/**`, copyright
     "Delimarsky, D., & Riem, M. (2026)". Contributors MUST NOT
@@ -839,11 +892,15 @@ structurally impossible rather than merely discouraged.
 - **Dependency Management**: Dependencies MUST be managed with `uv`,
   and `uv.lock` MUST be committed. Adding a dependency without updating
   the lock file in the same commit is PROHIBITED. Runtime dependencies
-  MUST be kept minimal; the HTTP stack is `httpx`.
-- **Test Stack**: Tests MUST use `pytest` with
-  `pytest-homeassistant-custom-component` and MUST mock all Hospitable
-  HTTP traffic with `respx`. `pyproject.toml` MUST set the following
-  under `[tool.pytest.ini_options]`:
+  MUST be kept minimal; the HTTP stack is `httpx2` and the validation
+  stack is `probatio`, both as supplied by Home Assistant core;
+  production code MUST NOT import `httpx` or `voluptuous`.
+- **Test Stack**: Tests MUST use `pytest` with `pytest-homeassistant`
+  (versioned with Home Assistant core), MUST disable respx's pytest
+  plugin (`-p no:respx`) so Home Assistant can install its `httpx`
+  alias first, and MUST mock all Hospitable HTTP traffic with `respx`.
+  `pyproject.toml` MUST set the following under
+  `[tool.pytest.ini_options]`:
 
   ```toml
   [tool.pytest.ini_options]
@@ -867,6 +924,18 @@ structurally impossible rather than merely discouraged.
   `[[tool.mypy.overrides]] module = "tests.*"`; mypy's `exclude` MUST
   NOT be used, because it drops files from type checking entirely and
   would gut Principle I's zero-`mypy`-errors requirement.
+  Inline `# type: ignore` markers of any kind are PROHIBITED in
+  `custom_components/`; type errors in production code MUST be fixed,
+  not suppressed. The red-phase `import-not-found` (and re-coded
+  `attr-defined`) ignores permitted by Principle XII apply only to
+  test files. A `[[tool.mypy.overrides]]` entry setting
+  `follow_imports = "skip"` is permitted ONLY for a third-party test
+  library whose annotations target a module Home Assistant aliases at
+  runtime — currently `respx`, as `module = ["respx", "respx.*"]`,
+  because its annotations reference the real `httpx` package rather
+  than `httpx2`. Such an override MUST NOT be applied to
+  `custom_components` or `tests` modules and MUST NOT be used as a
+  general escape hatch.
 - **Coverage Measurement**: Coverage MUST be measured over production
   code only:
 
@@ -1005,4 +1074,4 @@ structurally impossible rather than merely discouraged.
 - Use `AGENTS.md` for day-to-day runtime development guidance that
   supplements, but never overrides, this constitution.
 
-**Version**: 1.1.2 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-10
+**Version**: 1.2.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-11-07
