@@ -6,23 +6,58 @@ name: 'Autolabeler'
 
 # yamllint disable-line rule:truthy
 on:
+  # 'edited' is load-bearing. Every autolabeler rule in
+  # .github/release-drafter.yml matches on the pull request TITLE, so
+  # a title corrected after opening needs a fresh run to earn its
+  # label. Without it, the common sequence of opening without a
+  # Conventional Commits prefix, failing the semantic pull request
+  # check, then fixing the title, leaves the pull request unlabelled
+  # for good: no release-note category and no version increment.
+  # 'synchronize' does not cover this, firing on a push rather than on
+  # a metadata edit.
   pull_request:
     types:
       - opened
       - synchronize
       - reopened
+      - edited
   pull_request_target:
     types:
       - opened
       - synchronize
       - reopened
+      - edited
 
 permissions: {}
 
 concurrency:
+  # Keep 'github.event_name' in the group key. This workflow triggers
+  # on both 'pull_request' and 'pull_request_target' for the same pull
+  # request, so a shared group would have one lane stall the other.
   # yamllint disable-line rule:line-length
   group: ${{ format('al-{0}-pr-{1}', github.event_name, github.event.pull_request.number) }}
-  cancel-in-progress: true
+  # Do NOT cancel: 'Autolabel PR' is a required status check in this
+  # repository's 'Best Practices' ruleset. The organisation template
+  # in lfreleng-actions/.github made the same change for the same
+  # reason; older copies of it cancelled in progress, so do not sync
+  # one of those back over this block.
+  #
+  # A cancelled run leaves a cancelled check run beside a successful
+  # one for the same head SHA, so the merge box reads "Some checks
+  # were not successful" and ruleset evaluation blocks even though the
+  # check passed. The 'edited' trigger makes the back-to-back burst
+  # that produces this common.
+  #
+  # Queue rather than replace, matching semantic-pull-request.yaml.
+  # The default queue is 'single', which holds one pending run and
+  # cancels it when a third event arrives, so a burst still leaves a
+  # cancellation behind. 'queue: max' holds up to 100 and runs them in
+  # order. The two settings are complementary: 'queue: max' cannot be
+  # combined with 'cancel-in-progress: true', which is a validation
+  # error. Labelling takes seconds, so running every superseded event
+  # through to completion costs almost nothing.
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   autolabel:
@@ -45,9 +80,9 @@ jobs:
     steps:
       # Harden the runner used by this workflow
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: 'audit'
 
       # yamllint disable-line rule:line-length
-      - uses: release-drafter/release-drafter/autolabeler@34d80673e067bdc0c24568d3af899c216adcfaa9 # v7.7.0
+      - uses: release-drafter/release-drafter/autolabeler@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0

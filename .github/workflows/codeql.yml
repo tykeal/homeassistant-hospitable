@@ -25,10 +25,35 @@ permissions: {}
 jobs:
   scan:
     name: 'Audit Repository'
+    # Migrated from lfit/releng-reusable-workflows, which is retiring,
+    # to the security lane in lfreleng-actions/security-workflows.
+    # The rename from reuse-python-codeql.yaml also renamed the config
+    # input: 'codeql_config' is now 'config_file'. The lane builds its
+    # matrix from the 'languages' input, which defaults to 'python',
+    # so this caller keeps the previous single-language behaviour
+    # without passing it.
+    #
+    # Check runs change name with the lane: 'Audit Repository /
+    # CodeQL Scan: python' becomes 'Audit Repository / Analyze
+    # (python)', alongside a new 'Audit Repository / Validate Workflow
+    # Inputs' job. The old name was a required status check in the
+    # 'Best Practices' ruleset, which now names the new one instead;
+    # keep the two in step if this job or the lane is renamed again.
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-python-codeql.yaml@f7aae218f1fa0257e3dcd19f5c7d3f88f482f266  # v0.10.1
+    uses: lfreleng-actions/security-workflows/.github/workflows/codeql.yaml@b9d7b83b5696ab8388bcc11c3fe931563861e258  # v0.10.0
     with:
-      codeql_config: .github/codeql/codeql-config.yml
+      config_file: .github/codeql/codeql-config.yml
+      # Keep the code scanning category the old workflow derived from
+      # its language/build-mode matrix. The lane derives
+      # '<path>:analyze/language:python' instead, so main's existing
+      # configuration would never be matched again: every pull request
+      # would then report the CodeQL check as neutral ("1
+      # configuration not found") and the ruleset's code scanning
+      # merge protection could not compare alerts. Pinning the
+      # category keeps the alert history continuous. It is per
+      # language, so this must change if 'languages' ever does.
+      # yamllint disable-line rule:line-length
+      category: '.github/workflows/codeql.yml:analyze/build-mode:none/language:python'
     permissions:
       security-events: write  # Upload CodeQL results to code scanning.
       # required to fetch internal or private CodeQL packs

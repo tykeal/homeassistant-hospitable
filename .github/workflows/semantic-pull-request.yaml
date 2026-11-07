@@ -13,9 +13,31 @@ on:
 
 permissions: {}
 
+# A literal group, NOT '${{ github.workflow }}-${{ github.ref }}'.
+# github.workflow resolves to the workflow NAME, so any other workflow
+# in the repository carrying this same name would compute the same
+# group and one of the two would be cancelled.
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
-  cancel-in-progress: true
+  group: 'semantic-pull-request-${{ github.ref }}'
+  # Do NOT cancel, and queue rather than replace.
+  #
+  # 'Semantic Pull Request / Semantic Pull Request' is a required
+  # status check in the 'Best Practices' ruleset. Closely-spaced
+  # 'edited' and 'synchronize' events would otherwise leave a
+  # cancelled check run beside a successful one for the same head
+  # SHA. The merge box then reads "Some checks were not successful",
+  # and ruleset evaluation blocks on the cancelled run even though
+  # the check passed.
+  #
+  # cancel-in-progress alone is not enough: the queue defaults to
+  # 'single', which holds one pending run and cancels it when a third
+  # event arrives. 'queue: max' holds up to 100 and runs them in
+  # order. It cannot be combined with 'cancel-in-progress: true',
+  # which is a validation error.
+  #
+  # The check takes seconds, so queueing costs little.
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   semantic-pull-request:
@@ -23,8 +45,17 @@ jobs:
     # Delegate to the shared reusable workflow, which tolerates Dependabot's
     # truncated single-commit subjects for long dependency names that
     # otherwise trip validateSingleCommitMatchesPrTitle.
+    #
+    # Migrated from lfit/releng-reusable-workflows, which is retiring.
+    # The reusable's job is still named 'Semantic Pull Request', so the
+    # check run stays 'Semantic Pull Request / Semantic Pull Request'
+    # and the 'Best Practices' ruleset naming it keeps matching.
+    #
+    # Every input is optional and defaults to the organisation's
+    # Conventional Commits policy, so this caller passes none. See
+    # generic-workflows' docs/semantic-pull-request.md.
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-semantic-pull-request.yaml@f7aae218f1fa0257e3dcd19f5c7d3f88f482f266  # v0.10.1
+    uses: lfreleng-actions/generic-workflows/.github/workflows/semantic-pull-request.yaml@c98f3aaa4c67e656cb5a53e3a5ef22f6aa2d024e  # v0.8.0
     permissions:
       contents: read
       pull-requests: read  # Gate step queries the PR API (avoids 403)
