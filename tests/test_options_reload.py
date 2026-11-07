@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from pytest_homeassistant.common import MockConfigEntry

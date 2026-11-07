@@ -16,9 +16,6 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
-
-# Home Assistant 2026.11 types get_async_client() as httpx2 but aliases
-# httpx to httpx2 at runtime; the arg-type ignores below are static-only.
 from homeassistant.helpers.httpx_client import get_async_client
 
 from custom_components.hospitable.api.auth import StaticTokenProvider
@@ -199,8 +196,7 @@ def read_client(hass: HomeAssistant, entry: ConfigEntry) -> HospitableApiClient:
         if isinstance(client, HospitableApiClient):
             return client
     return HospitableApiClient(
-        StaticTokenProvider(str(entry.data[CONF_TOKEN])),
-        get_async_client(hass),  # type: ignore[arg-type]
+        StaticTokenProvider(str(entry.data[CONF_TOKEN])), get_async_client(hass)
     )
 
 

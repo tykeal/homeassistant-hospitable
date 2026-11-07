@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 
-import httpx
+import httpx2 as httpx
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN

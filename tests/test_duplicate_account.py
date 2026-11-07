@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (

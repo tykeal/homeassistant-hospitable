@@ -204,7 +204,7 @@ async def test_get_reservations_with_device_target(
     loaded_config_entry_factory: Any,
 ) -> None:
     """get_reservations accepts device target without property_id (FR-015)."""
-    import httpx
+    import httpx2 as httpx
 
     from custom_components.hospitable.api.const import BASE_URL
     from custom_components.hospitable.const import DOMAIN as HDOM

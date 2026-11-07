@@ -16,9 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any, NamedTuple
 
-# Home Assistant 2026.11 types schemas as probatio but aliases voluptuous
-# to probatio at runtime; the arg-type ignores below are static-only.
-import voluptuous as vol
+import probatio as vol
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -156,7 +154,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             DOMAIN,
             definition.name,
             _bind(definition.handler),
-            schema=definition.schema,  # type: ignore[arg-type]
+            schema=definition.schema,
             supports_response=definition.supports_response,
         )
 

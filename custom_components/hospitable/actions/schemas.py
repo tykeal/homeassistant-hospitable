@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.helpers import config_validation as cv
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"

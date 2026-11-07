@@ -25,9 +25,6 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-
-# Home Assistant 2026.11 types get_async_client() as httpx2 but aliases
-# httpx to httpx2 at runtime; the arg-type ignores below are static-only.
 from homeassistant.helpers.httpx_client import get_async_client
 
 from custom_components.hospitable import rate_limit
@@ -93,7 +90,7 @@ async def async_handle_send_message(
     token = str(entry.data[CONF_TOKEN])
     rate_limit.TRACKER.check(token, reservation_uuid)
 
-    client = HospitableWriteClient(StaticTokenProvider(token), get_async_client(hass))  # type: ignore[arg-type]
+    client = HospitableWriteClient(StaticTokenProvider(token), get_async_client(hass))
     sender_id = call.data.get(ATTR_SENDER_ID)
     if sender_id is not None:
         await _assert_airbnb(entry, client, reservation_uuid)

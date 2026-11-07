@@ -1227,32 +1227,33 @@ wheels = [
 name = "homeassistant-hospitable"
 source = { editable = "." }
 dependencies = [
-    { name = "httpx" },
-    { name = "voluptuous" },
+    { name = "httpx2" },
+    { name = "probatio" },
 ]
 
 [package.optional-dependencies]
 test = [
     { name = "homeassistant" },
-    { name = "httpx" },
+    { name = "httpx2" },
     { name = "interrogate" },
     { name = "mypy" },
     { name = "pillow" },
+    { name = "probatio" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-homeassistant" },
     { name = "respx" },
-    { name = "voluptuous" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "homeassistant" },
-    { name = "httpx" },
+    { name = "httpx2" },
     { name = "interrogate" },
     { name = "mypy" },
     { name = "pillow" },
+    { name = "probatio" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1261,7 +1262,6 @@ dev = [
     { name = "respx" },
     { name = "ruff" },
     { name = "types-pyyaml" },
-    { name = "voluptuous" },
 ]
 releasenotes = [
     { name = "reno" },
@@ -1270,28 +1270,29 @@ releasenotes = [
 [package.metadata]
 requires-dist = [
     { name = "homeassistant", marker = "extra == 'test'", specifier = ">=2026.11.0" },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "httpx", marker = "extra == 'test'", specifier = "==0.28.1" },
+    { name = "httpx2", specifier = "==2.14.0" },
+    { name = "httpx2", marker = "extra == 'test'", specifier = "==2.14.0" },
     { name = "interrogate", marker = "extra == 'test'", specifier = ">=1.7" },
     { name = "mypy", marker = "extra == 'test'", specifier = "==2.3.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=11" },
+    { name = "probatio", specifier = ">=0.13.0" },
+    { name = "probatio", marker = "extra == 'test'", specifier = ">=0.13.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.4.0" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=6.0" },
     { name = "pytest-homeassistant", marker = "extra == 'test'", specifier = ">=2026.11.0" },
     { name = "respx", marker = "extra == 'test'", specifier = ">=0.22" },
-    { name = "voluptuous", specifier = ">=0.15.2" },
-    { name = "voluptuous", marker = "extra == 'test'", specifier = ">=0.15.2" },
 ]
 provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "homeassistant", specifier = ">=2026.11.0" },
-    { name = "httpx", specifier = "==0.28.1" },
+    { name = "httpx2", specifier = "==2.14.0" },
     { name = "interrogate", specifier = ">=1.7" },
     { name = "mypy", specifier = "==2.3.0" },
     { name = "pillow", specifier = ">=11" },
+    { name = "probatio", specifier = ">=0.13.0" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=6.0" },
@@ -1300,7 +1301,6 @@ dev = [
     { name = "respx", specifier = ">=0.22" },
     { name = "ruff", specifier = ">=0.15.21" },
     { name = "types-pyyaml" },
-    { name = "voluptuous", specifier = ">=0.15.2" },
 ]
 releasenotes = [{ name = "reno", specifier = ">=4.1.0" }]
 

@@ -7,15 +7,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-# Home Assistant 2026.11 types schemas as probatio but aliases voluptuous
-# to probatio at runtime; the arg-type ignores below are static-only.
-import voluptuous as vol
+import probatio as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow
-
-# Home Assistant 2026.11 types get_async_client() as httpx2 but aliases
-# httpx to httpx2 at runtime; the arg-type ignores below are static-only.
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -66,7 +61,7 @@ USER_SCHEMA = vol.Schema({vol.Required(CONF_TOKEN): str})
 
 def _client(hass: Any, token: str) -> HospitableApiClient:
     """Build an API client for config-flow validation."""
-    return HospitableApiClient(StaticTokenProvider(token), get_async_client(hass))  # type: ignore[arg-type]
+    return HospitableApiClient(StaticTokenProvider(token), get_async_client(hass))
 
 
 def _error_key(exc: Exception) -> str:
@@ -109,7 +104,7 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Validate a token, fetch properties, and advance to selection."""
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=USER_SCHEMA)  # type: ignore[arg-type]
+            return self.async_show_form(step_id="user", data_schema=USER_SCHEMA)
 
         token = str(user_input[CONF_TOKEN])
         api = _client(self.hass, token)
@@ -127,7 +122,7 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected Hospitable config-flow error")
             return self.async_show_form(
                 step_id="user",
-                data_schema=USER_SCHEMA,  # type: ignore[arg-type]
+                data_schema=USER_SCHEMA,
                 errors={"base": _error_key(exc)},
             )
 
@@ -147,7 +142,7 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
             if not selected:
                 return self.async_show_form(
                     step_id="properties",
-                    data_schema=self._properties_schema(),  # type: ignore[arg-type]
+                    data_schema=self._properties_schema(),
                     errors={"base": "no_properties_selected"},
                 )
             return self.async_create_entry(
@@ -160,9 +155,7 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
                 options={**DEFAULT_OPTIONS, CONF_SELECTED_PROPERTIES: selected},
             )
         return self.async_show_form(
-            step_id="properties",
-            data_schema=self._properties_schema(),  # type: ignore[arg-type]
-            errors={},
+            step_id="properties", data_schema=self._properties_schema(), errors={}
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
@@ -180,7 +173,7 @@ class HospitableConfigFlow(ConfigFlow, domain=DOMAIN):
         """Render the reauth token form, naming the account in the prompt."""
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=USER_SCHEMA,  # type: ignore[arg-type]
+            data_schema=USER_SCHEMA,
             errors=errors,
             description_placeholders={"account": self._account_id},
         )

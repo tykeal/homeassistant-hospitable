@@ -26,8 +26,8 @@
 homeassistant-hospitable
 
 # [project] dependencies, shipped to users.
-httpx
-voluptuous
+httpx2
+probatio
 
 # [project.optional-dependencies] test and [dependency-groups] dev
 # and releasenotes. Not shipped, but we do choose these versions, so

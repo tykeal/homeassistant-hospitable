@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import CONF_TOKEN

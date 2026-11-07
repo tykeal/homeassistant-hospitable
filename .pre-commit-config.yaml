@@ -205,10 +205,12 @@ repos:
           - "homeassistant>=2026.11.0"
           - "pytest"
           - "pytest-homeassistant>=2026.11.0"
-          - "httpx"
+          - "httpx2==2.14.0"
+          - "probatio>=0.13.0"
           - "respx"
-          # Home Assistant 2026.11 no longer depends on voluptuous.
-          - "voluptuous"
+          # prek's mypy env has no pip, so --install-types cannot fetch
+          # these stubs for scripts/render_release_notes.py.
+          - "types-PyYAML"
 
   # - repo: local
   #   hooks:

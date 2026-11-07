@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
