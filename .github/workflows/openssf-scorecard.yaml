@@ -47,14 +47,10 @@ jobs:
     # there is no pull_request trigger, so none gates a merge.
     # yamllint disable-line rule:line-length
     uses: lfreleng-actions/security-workflows/.github/workflows/openssf-scorecard.yaml@b9d7b83b5696ab8388bcc11c3fe931563861e258  # v0.10.0
-    # DIVERGENCE FROM RENTAL CONTROL: no 'cache-mode: none' here yet.
-    # The 'branch_protection_rule' trigger is low-trust, so capping the
-    # callee's cache access is worth doing, and Scorecard caches
-    # nothing. But the actionlint release pinned in
-    # .pre-commit-config.yaml predates the cache-mode key (GA
-    # 2026-09-10) and rejects it as a syntax error. Add it back once
-    # that hook understands the key. Until then the low-trust trigger
-    # still leaves the callee with read-only cache access by default.
+    # The 'branch_protection_rule' trigger is low-trust, so cap what the
+    # callee may request. Scorecard analyses the checked out tree and
+    # caches nothing, so denying all cache access costs nothing.
+    cache-mode: none
     permissions:
       contents: read  # Check out the repository to analyze.
       # Needed to upload the results to code-scanning dashboard.
