@@ -26,6 +26,8 @@ maintainer's manual end-to-end validation against his own account on
 
 ## Installation
 
+Hospitable requires Home Assistant 2026.11.0 or later.
+
 ### HACS custom repository
 
 1. In Home Assistant, open HACS.

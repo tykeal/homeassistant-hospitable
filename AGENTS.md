@@ -296,6 +296,18 @@ from the repository root using `uv`:
 - All tests must pass before pushing
 - New features should include appropriate test coverage
 
+The test plugin is `pytest-homeassistant`, which is versioned with and
+pins Home Assistant core. `pyproject.toml` passes `-p no:respx` so that
+Home Assistant installs its `httpx` alias before respx imports the
+real `httpx`; do not remove it.
+
+Production code uses the libraries Home Assistant supplies: `httpx2`
+for HTTP and `probatio` for schemas (imported as `vol`). Never import
+`httpx` or `voluptuous` in `custom_components/`, and never add an
+inline `# type: ignore` there; fix the type error instead. Tests mock
+HTTP with `respx`, whose mypy override (`follow_imports = "skip"`) is
+the only sanctioned exception.
+
 ## Release Notes
 
 Describe user-visible changes with a [reno](https://docs.openstack.org/reno/latest/)
