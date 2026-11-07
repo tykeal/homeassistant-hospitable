@@ -97,3 +97,14 @@ jobs:
       - name: 'Lint release notes'
         if: steps.changes.outputs.changed == 'true'
         run: uv run --frozen --only-group releasenotes reno lint
+
+      # reno lint only warns about a section that is not a string or a
+      # list of strings; the renderer rejects it. Render exactly as the
+      # release-drafter workflow does so such a note fails here rather
+      # than breaking the draft release after merge.
+      - name: 'Render release notes'
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          uv run --frozen --only-group releasenotes \
+            python scripts/render_release_notes.py \
+            --release-drafter-config .github/release-drafter.yml
