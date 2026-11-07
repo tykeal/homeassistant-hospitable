@@ -31,7 +31,7 @@ jobs:
     env:
       PRE_COMMIT_VERSION: '4.1.0'
       UV_VERSION: '0.11.11'
-      MYPY_VERSION: '2.3.0'
+      MYPY_VERSION: '2.4.1'
     steps:
       # yamllint disable-line rule:line-length
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
