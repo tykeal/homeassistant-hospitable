@@ -14,12 +14,6 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_RED = pytest.mark.xfail(
-    raises=FileNotFoundError,
-    reason="red phase: scripts/render_release_notes.py does not exist yet",
-    strict=True,
-)
-
 
 def _load_renderer() -> Any:
     """Import scripts/render_release_notes.py by path.
@@ -70,7 +64,6 @@ class FakeLoader:
         raise KeyError(filename)
 
 
-@_RED
 @pytest.mark.parametrize(
     ("version", "expected"),
     [
@@ -88,7 +81,6 @@ def test_select_versions(version: str | None, expected: list[str]) -> None:
     assert rrn.select_versions(versions, tags, version) == expected
 
 
-@_RED
 def test_select_versions_head_on_tag_has_no_unreleased_notes() -> None:
     """Right after a release, nothing is unreleased."""
     rrn = _load_renderer()
@@ -96,7 +88,6 @@ def test_select_versions_head_on_tag_has_no_unreleased_notes() -> None:
     assert rrn.select_versions(["v0.2.0", "v0.1.0"], {"v0.2.0", "v0.1.0"}, None) == []
 
 
-@_RED
 def test_select_versions_without_tags_takes_everything() -> None:
     """Before the first release tag, every note is unreleased."""
     rrn = _load_renderer()
@@ -107,7 +98,6 @@ def test_select_versions_without_tags_takes_everything() -> None:
     ]
 
 
-@_RED
 def test_render_orders_sections_and_formats_multiline_items() -> None:
     """Sections follow config order; continuation lines stay in the bullet."""
     rrn = _load_renderer()
@@ -139,7 +129,6 @@ def test_render_orders_sections_and_formats_multiline_items() -> None:
     )
 
 
-@_RED
 def test_render_without_notes_is_empty() -> None:
     """Empty or blank items produce no output at all."""
     rrn = _load_renderer()
@@ -150,7 +139,6 @@ def test_render_without_notes_is_empty() -> None:
     assert rrn.render_markdown(notes, SECTIONS) == ""
 
 
-@_RED
 def test_drafter_config_unchanged_without_notes() -> None:
     """With no notes the committed config is used as is."""
     rrn = _load_renderer()
@@ -159,7 +147,6 @@ def test_drafter_config_unchanged_without_notes() -> None:
     assert rrn.build_drafter_config(base, "") == base
 
 
-@_RED
 def test_drafter_config_places_notes_between_badge_and_changes() -> None:
     """Notes follow the badge in the header; everything else is preserved."""
     rrn = _load_renderer()
@@ -177,7 +164,6 @@ def test_drafter_config_places_notes_between_badge_and_changes() -> None:
     }
 
 
-@_RED
 def test_main_rejects_unknown_version(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -189,7 +175,6 @@ def test_main_rejects_unknown_version(
     assert "not a git tag" in capsys.readouterr().err
 
 
-@_RED
 def test_main_writes_drafter_config(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
