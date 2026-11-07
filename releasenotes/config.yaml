@@ -8,6 +8,10 @@
 default_branch: main
 # Release tags are vX.Y.Z; any vX.Y.ZrcN tags fold into the final release.
 collapse_pre_releases: true
+# reno's default pattern expects a '.' before the pre-release number
+# ('1.0.0.0rc1'), so on 'v0.2.0rc1' it strips '.0rc1' and files the
+# notes under 'v0.2'. Strip only the suffix; a, b and rc are accepted.
+pre_release_tag_re: '(?P<pre_release>(?:a|b|rc)\d+)$'
 # Main is the only release branch, so scan its full history.
 stop_at_branch_base: false
 # Section order is the order of the rendered release notes. The optional
