@@ -49,12 +49,6 @@ SPDX-FileCopyrightText = "2026 Andrew Grimberg <tykeal@bardicgrove.org>"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = ".grype.yaml"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Andrew Grimberg <tykeal@bardicgrove.org>"
-SPDX-License-Identifier = "Apache-2.0"
-
-[[annotations]]
 path = "custom_components/hospitable/brand/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Hospitable R&D BV"
