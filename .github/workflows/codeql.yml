@@ -43,6 +43,17 @@ jobs:
     uses: lfreleng-actions/security-workflows/.github/workflows/codeql.yaml@b9d7b83b5696ab8388bcc11c3fe931563861e258  # v0.10.0
     with:
       config_file: .github/codeql/codeql-config.yml
+      # Keep the code scanning category the old workflow derived from
+      # its language/build-mode matrix. The lane derives
+      # '<path>:analyze/language:python' instead, so main's existing
+      # configuration would never be matched again: every pull request
+      # would then report the CodeQL check as neutral ("1
+      # configuration not found") and the ruleset's code scanning
+      # merge protection could not compare alerts. Pinning the
+      # category keeps the alert history continuous. It is per
+      # language, so this must change if 'languages' ever does.
+      # yamllint disable-line rule:line-length
+      category: '.github/workflows/codeql.yml:analyze/build-mode:none/language:python'
     permissions:
       security-events: write  # Upload CodeQL results to code scanning.
       # required to fetch internal or private CodeQL packs
