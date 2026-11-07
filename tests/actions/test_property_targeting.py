@@ -215,8 +215,9 @@ async def test_get_reservations_with_device_target(
     # Find the device for prop-example-001
     device_reg = dr.async_get(hass)
     namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
-    device_entry = device_reg.async_get_device(
-        identifiers={build_device_identifier(namespace, "prop-example-001")},
+    device_entry = device_reg.async_get_device_by_identifier(
+        build_device_identifier(namespace, "prop-example-001"),
+        entry.entry_id,
     )
     assert device_entry is not None
 
