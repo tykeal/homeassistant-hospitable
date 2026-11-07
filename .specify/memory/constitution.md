@@ -121,8 +121,12 @@ SPDX-License-Identifier: MIT
   inline `# type: ignore` in `custom_components/`; switch the test
   plugin to `pytest-homeassistant`; run pytest with `-p no:respx`; add
   the `[[tool.mypy.overrides]] module = ["respx", "respx.*"]` entry
-  with `follow_imports = "skip"`; and update README and AGENTS.md.
-  This constitution amendment carries no code changes.
+  with `follow_imports = "skip"`; raise the minimum supported Home
+  Assistant version in `hacs.json` from 2026.8.0 to 2026.11.0, the
+  first release that ships `httpx2` and `probatio`, with the reno
+  release note the Home Assistant Compatibility constraint requires;
+  and update README and AGENTS.md. This constitution amendment
+  carries no code changes.
   ==================================================
 -->
 
