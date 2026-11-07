@@ -866,13 +866,9 @@ behavioural tests that assert on the API call parameters.
       ```python
       lookforward = call.data.get(
           ATTR_LOOKFORWARD_DAYS,
-          int(entry.options.get(
-              CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT
-          )),
+          int(entry.options.get(CONF_LOOKAHEAD_DAYS, LOOKAHEAD_DEFAULT)),
       )
-      lookbackward = call.data.get(
-          ATTR_LOOKBACKWARD_DAYS, 7
-      )
+      lookbackward = call.data.get(ATTR_LOOKBACKWARD_DAYS, 7)
       today = dt_util.utcnow().date()
       start = today - timedelta(days=lookbackward)
       end = today + timedelta(days=lookforward)

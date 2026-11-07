@@ -49,7 +49,7 @@ dev = [
     "probatio>=0.13.0",
     "pytest-homeassistant>=2026.11.0",
     "respx>=0.22",
-    "ruff>=0.15.21",
+    "ruff>=0.17.3",
     # Stubs for the yaml import in scripts/render_release_notes.py and
     # its tests; mypy --install-types cannot fetch them without pip.
     "types-PyYAML",
