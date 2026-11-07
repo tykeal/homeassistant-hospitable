@@ -48,6 +48,9 @@ dev = [
     "pytest-homeassistant>=2026.11.0",
     "respx>=0.22",
     "ruff>=0.15.21",
+    # Stubs for the yaml import in scripts/render_release_notes.py and
+    # its tests; mypy --install-types cannot fetch them without pip.
+    "types-PyYAML",
     "voluptuous>=0.15.2",
     {include-group = "releasenotes"},
 ]
