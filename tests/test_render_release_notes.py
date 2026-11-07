@@ -187,3 +187,69 @@ def test_main_writes_drafter_config(
 
     assert rrn.main(["--release-drafter-config", str(base), "--output", str(out)]) == 0
     assert yaml.safe_load(out.read_text())["header"] == "badge\n\n- Note.\n\n"
+
+
+@pytest.mark.xfail(
+    raises=TypeError,
+    reason="red phase: a scalar section value is iterated and crashes",
+    strict=True,
+)
+def test_collect_rejects_non_list_section() -> None:
+    """A section that is neither a string nor a list names the bad file.
+
+    reno lint only warns about it, so the renderer is the gate.
+    """
+    rrn = _load_renderer()
+    loader = FakeLoader({"v0.2.0-1": {"bad.yaml": {"features": 42}}})
+
+    with pytest.raises(ValueError, match=r"bad\.yaml.*features"):
+        rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
+
+
+@pytest.mark.xfail(
+    raises=pytest.fail.Exception,
+    reason="red phase: non-string items are silently dropped",
+    strict=True,
+)
+def test_collect_rejects_non_string_item() -> None:
+    """A non-string item would be lost from the release notes, so fail."""
+    rrn = _load_renderer()
+    loader = FakeLoader({"v0.2.0-1": {"bad.yaml": {"fixes": ["ok", 42]}}})
+
+    with pytest.raises(ValueError, match=r"bad\.yaml.*fixes"):
+        rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
+
+
+@pytest.mark.xfail(
+    raises=pytest.fail.Exception,
+    reason="red phase: a non-string prelude is silently dropped",
+    strict=True,
+)
+def test_collect_rejects_non_string_prelude() -> None:
+    """The prelude is a single block of text."""
+    rrn = _load_renderer()
+    loader = FakeLoader({"v0.2.0-1": {"bad.yaml": {"prelude": ["a", "b"]}}})
+
+    with pytest.raises(ValueError, match=r"bad\.yaml.*prelude"):
+        rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
+
+
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="red phase: main lets an invalid note escape as a traceback",
+    strict=True,
+)
+def test_main_reports_invalid_note(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An invalid note is a clean error exit, not a traceback."""
+    rrn = _load_renderer()
+
+    def _invalid(_root: Path, _version: str | None) -> str:
+        """Fail as collect_notes does on a malformed note."""
+        raise ValueError("bad.yaml: section 'features' is not a list")
+
+    monkeypatch.setattr(rrn, "load_release_notes", _invalid)
+
+    assert rrn.main([]) == 1
+    assert "bad.yaml" in capsys.readouterr().err
