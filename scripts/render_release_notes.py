@@ -80,20 +80,37 @@ def collect_notes(
     section_names: Sequence[str],
     prelude_name: str,
 ) -> RenderedNotes:
-    """Gather the prelude and section items from the selected versions."""
+    """Gather the prelude and section items from the selected versions.
+
+    Raises ``ValueError`` naming the file and section when a prelude is
+    not a string or a section is not a string or list of strings.
+    ``reno lint`` only warns about such notes, and skipping them would
+    silently drop text from the release notes.
+    """
     notes = RenderedNotes()
     for version in versions:
         for filename, sha in loader[version]:
             content = loader.parse_note_file(filename, sha)
             prelude = content.get(prelude_name)
-            if isinstance(prelude, str) and prelude.strip():
+            if prelude is not None and not isinstance(prelude, str):
+                raise ValueError(
+                    f"{filename}: section {prelude_name!r} must be a string"
+                )
+            if prelude and prelude.strip():
                 notes.prelude.append(prelude)
             for name in section_names:
                 items = content.get(name) or []
                 if isinstance(items, str):
                     items = [items]
+                if not isinstance(items, list) or not all(
+                    isinstance(item, str) for item in items
+                ):
+                    raise ValueError(
+                        f"{filename}: section {name!r} must be a string or "
+                        "a list of strings"
+                    )
                 notes.sections.setdefault(name, []).extend(
-                    item for item in items if isinstance(item, str) and item.strip()
+                    item for item in items if item.strip()
                 )
     return notes
 
@@ -218,13 +235,25 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def fail(message: str, status: int) -> int:
+    """Report ``message`` on standard error and return exit ``status``."""
+    print(f"error: {message}", file=sys.stderr)
+    return status
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the renderer; return the process exit status."""
+    """Run the renderer; return the process exit status.
+
+    The status is 2 for an unknown ``--version`` and 1 for a malformed
+    note.
+    """
     args = parse_args(argv)
     if args.version is not None and args.version not in git_tags(args.repo_root):
-        print(f"error: {args.version!r} is not a git tag", file=sys.stderr)
-        return 2
-    output = load_release_notes(args.repo_root, args.version)
+        return fail(f"{args.version!r} is not a git tag", 2)
+    try:
+        output = load_release_notes(args.repo_root, args.version)
+    except ValueError as err:
+        return fail(str(err), 1)
     if args.release_drafter_config is not None:
         output = build_drafter_config(
             args.release_drafter_config.read_text(encoding="utf-8"), output

@@ -189,11 +189,6 @@ def test_main_writes_drafter_config(
     assert yaml.safe_load(out.read_text())["header"] == "badge\n\n- Note.\n\n"
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    reason="red phase: a scalar section value is iterated and crashes",
-    strict=True,
-)
 def test_collect_rejects_non_list_section() -> None:
     """A section that is neither a string nor a list names the bad file.
 
@@ -206,11 +201,6 @@ def test_collect_rejects_non_list_section() -> None:
         rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
 
 
-@pytest.mark.xfail(
-    raises=pytest.fail.Exception,
-    reason="red phase: non-string items are silently dropped",
-    strict=True,
-)
 def test_collect_rejects_non_string_item() -> None:
     """A non-string item would be lost from the release notes, so fail."""
     rrn = _load_renderer()
@@ -220,11 +210,6 @@ def test_collect_rejects_non_string_item() -> None:
         rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
 
 
-@pytest.mark.xfail(
-    raises=pytest.fail.Exception,
-    reason="red phase: a non-string prelude is silently dropped",
-    strict=True,
-)
 def test_collect_rejects_non_string_prelude() -> None:
     """The prelude is a single block of text."""
     rrn = _load_renderer()
@@ -234,11 +219,6 @@ def test_collect_rejects_non_string_prelude() -> None:
         rrn.collect_notes(loader, ["v0.2.0-1"], SECTION_NAMES, "prelude")
 
 
-@pytest.mark.xfail(
-    raises=ValueError,
-    reason="red phase: main lets an invalid note escape as a traceback",
-    strict=True,
-)
 def test_main_reports_invalid_note(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
