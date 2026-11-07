@@ -38,7 +38,7 @@ mypy
 pytest
 pytest-asyncio
 pytest-cov
-pytest-homeassistant-custom-component
+pytest-homeassistant
 reno
 respx
 ruff

@@ -7,6 +7,9 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.helpers import device_registry as dr
+
+# Home Assistant 2026.11 types get_async_client() as httpx2 but aliases
+# httpx to httpx2 at runtime; the arg-type ignores below are static-only.
 from homeassistant.helpers.httpx_client import get_async_client
 
 from custom_components.hospitable.actions import (
@@ -80,7 +83,8 @@ def _known_property_ids(
 async def async_setup_entry(hass: Any, entry: Any) -> bool:
     """Set up one Hospitable config entry and forward the sensor platform."""
     client = HospitableApiClient(
-        StaticTokenProvider(entry.data[CONF_TOKEN]), get_async_client(hass)
+        StaticTokenProvider(entry.data[CONF_TOKEN]),
+        get_async_client(hass),  # type: ignore[arg-type]
     )
     properties_coordinator = HospitablePropertiesCoordinator(
         hass,

@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 from homeassistant.data_entry_flow import InvalidData
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (

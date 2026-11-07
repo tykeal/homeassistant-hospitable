@@ -18,7 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "homeassistant>=2026.8.0",
+    # pytest-homeassistant is versioned with, and pins, Home Assistant
+    # core; keep this floor in step with it.
+    "homeassistant>=2026.11.0",
     "httpx==0.28.1",
     "interrogate>=1.7",
     "mypy==2.3.0",
@@ -26,14 +28,16 @@ test = [
     "pytest>=8.0",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=6.0",
-    "pytest-homeassistant-custom-component>=0.13.340",
+    "pytest-homeassistant>=2026.11.0",
     "respx>=0.22",
     "voluptuous>=0.15.2",
 ]
 
 [dependency-groups]
 dev = [
-    "homeassistant>=2026.8.0",
+    # pytest-homeassistant is versioned with, and pins, Home Assistant
+    # core; keep this floor in step with it.
+    "homeassistant>=2026.11.0",
     "httpx==0.28.1",
     "interrogate>=1.7",
     "mypy==2.3.0",
@@ -41,7 +45,7 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=6.0",
-    "pytest-homeassistant-custom-component>=0.13.340",
+    "pytest-homeassistant>=2026.11.0",
     "respx>=0.22",
     "ruff>=0.15.21",
     "voluptuous>=0.15.2",
@@ -61,6 +65,9 @@ tag-pattern = "v(?P<version>.*)"
 packages = ["custom_components"]
 
 [tool.pytest.ini_options]
+# Let Home Assistant install its httpx alias before respx is imported
+# (pytest-homeassistant README).
+addopts = "-p no:respx"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 xfail_strict = true
@@ -76,7 +83,7 @@ files = ["custom_components", "tests"]
 [[tool.mypy.overrides]]
 module = [
     "homeassistant.*",
-    "pytest_homeassistant_custom_component.*",
+    "pytest_homeassistant.*",
     "reno.*",
     "respx.*",
     "voluptuous.*",

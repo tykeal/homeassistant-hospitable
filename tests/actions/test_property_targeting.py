@@ -28,7 +28,7 @@ NAMESPACE = "acct-example-0001"
 
 def _mock_entry(hass: Any, entry_id: str = "test-entry-id") -> Any:
     """Build and register a minimal MockConfigEntry."""
-    from pytest_homeassistant_custom_component.common import (
+    from pytest_homeassistant.common import (
         MockConfigEntry,
     )
 

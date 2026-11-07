@@ -17,7 +17,12 @@ import respx
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
-    """Enable Home Assistant custom integration loading for every test."""
+    """Start Home Assistant and expose this checkout's integration to it.
+
+    pytest-homeassistant enables custom integrations by default, but
+    requesting ``enable_custom_integrations`` (which depends on
+    ``hass``) still gives every test a running instance.
+    """
     module = sys.modules.get("custom_components")
     if module is not None and hasattr(module, "__path__"):
         local_path = str(Path.cwd() / "custom_components")

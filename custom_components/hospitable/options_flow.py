@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+# Home Assistant 2026.11 types schemas as probatio but aliases voluptuous
+# to probatio at runtime; the arg-type ignores below are static-only.
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
 from homeassistant.helpers.selector import (
@@ -157,7 +159,7 @@ class HospitableOptionsFlow(OptionsFlow):
         )
         return self.async_show_form(
             step_id="init",
-            data_schema=self._build_schema(available, options, selection, overrides),
+            data_schema=self._build_schema(available, options, selection, overrides),  # type: ignore[arg-type]
             errors=errors,
             description_placeholders={"estimate": str(estimate)},
         )
