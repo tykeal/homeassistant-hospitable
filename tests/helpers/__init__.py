@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
 
-import httpx
+import httpx2 as httpx
 
 # ``tests/helpers`` is a PACKAGE, so ``__file__`` sits one level deeper
 # than the ``tests/`` root that holds ``fixtures/``.

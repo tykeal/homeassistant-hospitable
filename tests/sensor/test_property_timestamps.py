@@ -14,12 +14,12 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 
-import httpx
+import httpx2 as httpx
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hospitable.api.models import HospitableReservation
 from custom_components.hospitable.const import (

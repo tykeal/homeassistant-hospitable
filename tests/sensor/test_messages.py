@@ -27,7 +27,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 
 from tests.helpers.message_entry import (
@@ -684,7 +684,7 @@ async def test_the_options_flow_exposes_the_awaiting_toggle(
     constant proves the option is reachable by a user, survives a
     submission, and lands in the stored options.
     """
-    import voluptuous as vol
+    import probatio as vol
 
     from custom_components.hospitable.const import (
         CONF_AWAITING_HOST_REPLY,

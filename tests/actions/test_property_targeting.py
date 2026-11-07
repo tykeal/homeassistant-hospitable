@@ -28,7 +28,7 @@ NAMESPACE = "acct-example-0001"
 
 def _mock_entry(hass: Any, entry_id: str = "test-entry-id") -> Any:
     """Build and register a minimal MockConfigEntry."""
-    from pytest_homeassistant_custom_component.common import (
+    from pytest_homeassistant.common import (
         MockConfigEntry,
     )
 
@@ -204,7 +204,7 @@ async def test_get_reservations_with_device_target(
     loaded_config_entry_factory: Any,
 ) -> None:
     """get_reservations accepts device target without property_id (FR-015)."""
-    import httpx
+    import httpx2 as httpx
 
     from custom_components.hospitable.api.const import BASE_URL
     from custom_components.hospitable.const import DOMAIN as HDOM

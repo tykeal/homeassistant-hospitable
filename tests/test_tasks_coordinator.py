@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 
 from tests.helpers.task_entry import (
     PROPERTY_A,

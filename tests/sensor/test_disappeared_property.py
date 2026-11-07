@@ -12,12 +12,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,

@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 
 from custom_components.hospitable.api.auth import build_auth_headers
 from custom_components.hospitable.api.client import HospitableApiClient

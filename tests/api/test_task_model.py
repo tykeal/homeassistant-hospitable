@@ -15,7 +15,7 @@ import dataclasses
 from datetime import date
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 
 from tests.helpers import load_fixture
 from tests.helpers.task_entry import (

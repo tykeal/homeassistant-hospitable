@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import probatio as vol
 import pytest
-import voluptuous as vol
 from homeassistant.helpers import selector
 from homeassistant.util.yaml import load_yaml_dict
 

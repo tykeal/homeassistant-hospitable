@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
@@ -112,7 +112,7 @@ def _require_new_fields(result: Any) -> None:
     """Assert both new fields are in the schema before submitting.
 
     Submitting a key the schema does not declare raises ``InvalidData``
-    from voluptuous, which would pin the red phase on the wrong
+    from probatio, which would pin the red phase on the wrong
     exception and prove nothing. Checking the schema first makes the
     red-phase failure an ``AssertionError`` about the missing field.
 

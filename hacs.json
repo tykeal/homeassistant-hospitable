@@ -1,6 +1,6 @@
 {
   "name": "Hospitable",
-  "homeassistant": "2026.8.0",
+  "homeassistant": "2026.11.0",
   "zip_release": true,
   "filename": "hospitable.zip"
 }

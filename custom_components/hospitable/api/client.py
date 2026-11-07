@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from datetime import date
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 
 from custom_components.hospitable.api.auth import TokenProvider, build_auth_headers
 from custom_components.hospitable.api.calendar import build_calendar_params

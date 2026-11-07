@@ -16,7 +16,7 @@ from datetime import date
 from typing import Any
 from urllib.parse import parse_qs
 
-import httpx
+import httpx2 as httpx
 
 from tests.helpers import load_fixture
 

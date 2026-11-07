@@ -32,7 +32,7 @@ import json
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 import respx
 
@@ -134,13 +134,14 @@ async def _property_info(hass: Any, *, entry_id: str | None = None) -> dict[str,
     data: dict[str, Any] = {"property_id": PROPERTY_A}
     if entry_id is not None:
         data["config_entry_id"] = entry_id
-    return await hass.services.async_call(  # type: ignore[no-any-return]
+    response: dict[str, Any] = await hass.services.async_call(
         DOMAIN,
         "get_property_info",
         data,
         blocking=True,
         return_response=True,
     )
+    return response
 
 
 def _co_hosts(response: dict[str, Any]) -> list[dict[str, Any]]:
@@ -155,7 +156,8 @@ def _co_hosts(response: dict[str, Any]) -> list[dict[str, Any]]:
     assert response["found"] is True
     listings = response["property"]["listings"]
     assert listings, "no listings were returned"
-    return listings[0]["co_hosts"]  # type: ignore[no-any-return]
+    co_hosts: list[dict[str, Any]] = listings[0]["co_hosts"]
+    return co_hosts
 
 
 async def test_a_populated_co_host_reaches_the_caller(

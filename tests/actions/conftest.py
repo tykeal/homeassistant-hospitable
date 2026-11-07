@@ -16,7 +16,7 @@ import importlib
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 import respx
 
@@ -327,7 +327,7 @@ def loaded_config_entry_factory(
         Returns:
             The loaded ``MockConfigEntry``.
         """
-        common = importlib.import_module("pytest_homeassistant_custom_component.common")
+        common = importlib.import_module("pytest_homeassistant.common")
         api_const = importlib.import_module("custom_components.hospitable.api.const")
         const = importlib.import_module("custom_components.hospitable.const")
         mock_polling_endpoints(respx_router, api_const.BASE_URL)

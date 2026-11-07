@@ -202,11 +202,15 @@ repos:
         language_version: python3.14
         args: ["--show-error-codes", "--install-types", "--non-interactive"]
         additional_dependencies:
-          - "homeassistant>=2026.8.0"
+          - "homeassistant>=2026.11.0"
           - "pytest"
-          - "pytest-homeassistant-custom-component>=0.13.0"
-          - "httpx"
+          - "pytest-homeassistant>=2026.11.0"
+          - "httpx2==2.14.0"
+          - "probatio>=0.13.0"
           - "respx"
+          # prek's mypy env has no pip, so --install-types cannot fetch
+          # these stubs for scripts/render_release_notes.py.
+          - "types-PyYAML"
 
   # - repo: local
   #   hooks:

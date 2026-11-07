@@ -39,11 +39,11 @@ import copy
 from datetime import datetime, timedelta
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_TOKEN
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (

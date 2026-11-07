@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any, NamedTuple
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,

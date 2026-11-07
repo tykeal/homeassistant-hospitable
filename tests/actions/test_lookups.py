@@ -25,7 +25,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 
 from tests.actions.conftest import (

@@ -15,7 +15,7 @@ import copy
 import logging
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 
 from tests.helpers.task_entry import (

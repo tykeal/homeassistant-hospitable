@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 import respx
 
@@ -243,7 +243,7 @@ async def test_body_is_required_and_must_be_non_empty(
     respx_router: respx.Router,
 ) -> None:
     """An absent or blank body never reaches the API."""
-    import voluptuous as vol
+    import probatio as vol
     from homeassistant.exceptions import ServiceValidationError
 
     await loaded_config_entry_factory(hass)
@@ -292,7 +292,7 @@ async def test_images_are_optional_and_capped_at_three(
     """Up to three image URIs are accepted; a fourth is refused."""
     import json
 
-    import voluptuous as vol
+    import probatio as vol
     from homeassistant.exceptions import ServiceValidationError
 
     from tests.helpers import load_fixture

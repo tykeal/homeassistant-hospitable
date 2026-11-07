@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow
