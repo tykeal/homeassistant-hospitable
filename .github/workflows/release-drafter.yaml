@@ -23,7 +23,7 @@ jobs:
       contents: write
       pull-requests: read
     runs-on: 'ubuntu-latest'
-    timeout-minutes: 3
+    timeout-minutes: 10
     steps:
       # Harden the runner used by this workflow
       # yamllint disable-line rule:line-length
