@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 5
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -38,7 +38,7 @@ jobs:
       - name: "Gather repository metadata"
         id: repo-metadata
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/repository-metadata-action@8d17362fe9a656744433f3dec7fc60f14b23f858  # v0.2.6
+        uses: lfreleng-actions/repository-metadata-action@f0e5d2d8dc1154a5d702b75acc551eff6ba072dc  # v0.5.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_summary: 'true'
@@ -56,7 +56,7 @@ jobs:
       tag: "${{ steps.tag-validate.outputs.tag_name }}"
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -70,7 +70,7 @@ jobs:
       - name: 'Verify pushed tag'
         id: 'tag-validate'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/tag-validate-action@b2865c287f732486e12dfdfb75aef0692b024608  # v1.1.2
+        uses: lfreleng-actions/tag-validate-action@e2a80f310fd8f4f43e86e2abc5ffb032e8217a41  # v1.1.11
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           require_type: 'semver'
@@ -121,7 +121,7 @@ jobs:
       GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -134,7 +134,7 @@ jobs:
       - name: 'Build Python project'
         id: 'python-build'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/python-build-action@97cf36d2a5914c94761408545d154c983024de1d  # v2.0.0
+        uses: lfreleng-actions/python-build-action@3a996fe53edf0117e283b9fef8d3aacaa9adaf02  # v2.1.2
         with:
           sigstore_sign: true
           attestations: true
@@ -151,7 +151,7 @@ jobs:
     timeout-minutes: 12
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -160,7 +160,7 @@ jobs:
 
       - name: 'Test Python project [PYTEST]'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/python-test-action@4129c285f63e4d004b9e615b881f44cd63ba5f45  # v1.2.0
+        uses: lfreleng-actions/python-test-action@644a2008072617b9cf4846ca2b9d385691f9dc67  # v1.3.3
         with:
           python_version: "${{ matrix.python-version }}"
 
@@ -176,7 +176,7 @@ jobs:
     timeout-minutes: 10
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -185,7 +185,7 @@ jobs:
 
       - name: 'Audit Python project'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/python-audit-action@b0f486bd612f394d36e1cb7068a608525bcc9b09  # v0.4.0
+        uses: lfreleng-actions/python-audit-action@379a6a772cdf47b130bae3ab47718a22518bb83c  # v0.6.4
         with:
           python_version: "${{ matrix.python-version }}"
           permit_fail: "${{ vars.NO_BLOCK_AUDIT_FAIL == 'true' }}"
@@ -200,7 +200,7 @@ jobs:
       contents: read
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -210,7 +210,7 @@ jobs:
       - name: "Generate SBOM"
         id: sbom
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/python-sbom-action@60648e3351a48617d40f68ccb1f143e050f74c96  # v0.1.1
+        uses: lfreleng-actions/python-sbom-action@639001a0def8109e045818dfb3ee82cf602657af  # v0.1.4
         with:
           # The action defaults to 3.12, which cannot satisfy the
           # project floor of >=3.14.2, so uv silently falls back to
@@ -224,7 +224,7 @@ jobs:
 
       - name: "Upload SBOM artifacts"
         # yamllint disable-line rule:line-length
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: sbom-files
           path: |
@@ -253,7 +253,7 @@ jobs:
       issues: read
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -264,7 +264,7 @@ jobs:
 
       - name: "Download SBOM artefact"
         # yamllint disable-line rule:line-length
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: sbom-files
 
@@ -315,7 +315,7 @@ jobs:
     timeout-minutes: 5
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -375,7 +375,7 @@ jobs:
 
       - name: 'Upload ZIP artifact'
         # yamllint disable-line rule:line-length
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: integration-zip
           path: hospitable.zip
@@ -395,7 +395,7 @@ jobs:
       GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -404,21 +404,21 @@ jobs:
 
       - name: '⬇ Download build artefacts'
         # yamllint disable-line rule:line-length
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: "${{ needs.python-build.outputs.artefact_name }}"
           path: "${{ needs.python-build.outputs.artefact_path }}"
 
       - name: '⬇ Download integration ZIP'
         # yamllint disable-line rule:line-length
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: integration-zip
           path: release-assets
 
       - name: 'Attach artefacts to release'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/release-assets-action@51e2955cf9aeab3731efd7cc4605aa2847e7d8e2  # v0.1.3
+        uses: lfreleng-actions/release-assets-action@0ecf15d765d7898fdd31465516294a1fd2b50358  # v0.1.6
         with:
           # yamllint disable-line rule:line-length
           asset_paths: '["${{ needs.python-build.outputs.artefact_path }}/**", "release-assets/**"]'
@@ -438,7 +438,7 @@ jobs:
       release_url: "${{ steps.promote-release.outputs.release_url || steps.set-promoted-url.outputs.release_url }}"
     steps:
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: 'audit'
 
@@ -465,7 +465,7 @@ jobs:
         id: 'promote-release'
         if: steps.check-promoted.outputs.already_promoted == 'false'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/draft-release-promote-action@e420b392557c9b1eea642f0d54dec4ff39086d5f  # v0.1.5
+        uses: lfreleng-actions/draft-release-promote-action@b9e1fbf7c3ca0049dabc1a6d26f0be68a6bd99d8  # v0.1.8
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           tag: "${{ needs.tag-validate.outputs.tag }}"
