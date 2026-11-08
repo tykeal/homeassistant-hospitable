@@ -402,12 +402,28 @@ async def test_repair_flow_aborts_for_a_missing_entry(hass: Any) -> None:
 async def test_issue_removed_with_the_entry(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
-    """Deleting the entry deletes its issue."""
+    """Deleting the entry deletes its issue.
+
+    Two independent layers: the issue is linked to the entry, which
+    Home Assistant's own removal cleanup honours, and
+    ``async_remove_entry`` deletes it explicitly. Each is asserted on
+    its own, since either alone would pass the end-to-end removal.
+    """
     importlib.import_module(_MODULE)
+    from custom_components.hospitable import async_remove_entry
+
     freezer.move_to(_NOW)
     entry = await _setup(hass, respx_router, make_token(_NOW + timedelta(days=5)))
-    assert _issue(hass, entry) is not None
+    issue = _issue(hass, entry)
+    assert issue is not None
+    assert issue.config_entry_id == entry.entry_id
 
+    await async_remove_entry(hass, entry)
+    assert _issue(hass, entry) is None
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert _issue(hass, entry) is not None
     assert await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
 
