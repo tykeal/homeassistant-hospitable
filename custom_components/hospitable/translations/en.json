@@ -135,6 +135,21 @@
     "persistent_failure": {
       "title": "Hospitable is repeatedly unavailable",
       "description": "The Hospitable integration for account {account} has failed to refresh several times in a row. Check your network connection and the Hospitable status page, then reload the integration once service is restored."
+    },
+    "token_expiring": {
+      "title": "Hospitable token expires on {expiry}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Renew the Hospitable token",
+            "description": "The Personal Access Token used by {title} expires on {expiry} (UTC). Hospitable tokens last one year and cannot be renewed automatically; once it expires the integration stops updating.\n\n1. Sign in at my.hospitable.com and open Apps > API access > Access tokens.\n2. Create a new Personal Access Token for the same account, with the same permissions as the current one, and copy it.\n3. Select Submit below, then enter the new token in the re-authentication prompt Home Assistant opens for {title}.\n\nThis warning clears once the new token is accepted. You can delete the old token in Hospitable afterwards."
+          }
+        },
+        "abort": {
+          "reauth_started": "Re-authentication has started. Open Settings > Devices & services, find the Hospitable entry marked as needing attention, select Reconfigure, and enter the new Personal Access Token.",
+          "entry_not_found": "This Hospitable entry no longer exists, so there is no token to renew."
+        }
+      }
     }
   },
   "services": {

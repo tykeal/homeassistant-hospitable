@@ -48,7 +48,6 @@ _TITLE = "Hospitable Test"
 _NOW = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
 _SUB_MARKER = "sub-claim-marker-7f3a"
 _JTI_MARKER = "jti-claim-marker-9c1e"
-_RED = "TDD red phase: spec 001 OQ-007 token expiry warning not implemented"
 
 
 def _segment(value: Any) -> str:
@@ -139,7 +138,6 @@ async def _setup(hass: Any, respx_router: Any, token: str) -> MockConfigEntry:
 # ``ModuleNotFoundError`` the markers pin and needs no suppression.
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 def test_expiry_is_read_from_the_exp_claim() -> None:
     """A JWT-shaped token yields its ``exp`` claim as an aware UTC time."""
     module = importlib.import_module(_MODULE)
@@ -152,7 +150,6 @@ def test_expiry_is_read_from_the_exp_claim() -> None:
     assert result.utcoffset() == timedelta(0)
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 def test_expiry_accepts_padded_payload_segments() -> None:
     """Padding on the payload segment is tolerated, not required."""
     module = importlib.import_module(_MODULE)
@@ -163,7 +160,6 @@ def test_expiry_accepts_padded_payload_segments() -> None:
     assert module.token_expiry(f"{header}.{padded}.{signature}") == expires
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 @pytest.mark.parametrize(
     "token",
     [
@@ -200,7 +196,6 @@ def test_unreadable_tokens_yield_no_expiry(
             assert part not in caplog.text
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_issue_raised_inside_the_lead_window(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -222,7 +217,6 @@ async def test_issue_raised_inside_the_lead_window(
     }
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_issue_is_an_error_once_the_token_has_expired(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -242,7 +236,6 @@ async def test_issue_is_an_error_once_the_token_has_expired(
     }
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_no_issue_outside_the_lead_window(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -256,7 +249,6 @@ async def test_no_issue_outside_the_lead_window(
     assert _issue(hass, entry) is None
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_unreadable_token_clears_a_stale_issue(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -281,7 +273,6 @@ async def test_unreadable_token_clears_a_stale_issue(
     assert _issue(hass, entry) is None
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_timer_raises_then_escalates_the_issue(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -312,7 +303,6 @@ async def test_timer_raises_then_escalates_the_issue(
     assert issue.severity is ir.IssueSeverity.ERROR
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_unload_cancels_the_timer(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -331,7 +321,6 @@ async def test_unload_cancels_the_timer(
     assert _issue(hass, entry) is None
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_repair_flow_starts_reauth_and_fresh_token_clears_issue(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -382,10 +371,12 @@ async def test_repair_flow_starts_reauth_and_fresh_token_clears_issue(
     assert _issue(hass, entry) is None
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_repair_flow_aborts_for_a_missing_entry(hass: Any) -> None:
     """A fix flow for an entry that no longer exists aborts cleanly."""
     importlib.import_module(_MODULE)
+    # Home Assistant resolves the repairs platform only for a LOADED
+    # integration, so load it without any entry.
+    assert await async_setup_component(hass, DOMAIN, {})
     assert await async_setup_component(hass, "repairs", {})
     ir.async_create_issue(
         hass,
@@ -408,7 +399,6 @@ async def test_repair_flow_aborts_for_a_missing_entry(hass: Any) -> None:
     assert result["reason"] == "entry_not_found"
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_issue_removed_with_the_entry(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
@@ -424,7 +414,6 @@ async def test_issue_removed_with_the_entry(
     assert _issue(hass, entry) is None
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 async def test_token_and_claims_never_leak(
     hass: Any,
     respx_router: Any,
@@ -457,7 +446,6 @@ async def test_token_and_claims_never_leak(
     assert dump["token_expires"] == expires.date().isoformat()
 
 
-@pytest.mark.xfail(raises=ImportError, strict=True, reason=_RED)
 def test_issue_strings_explain_the_renewal() -> None:
     """The issue text tells the user exactly how to renew the token."""
     importlib.import_module(_MODULE)
