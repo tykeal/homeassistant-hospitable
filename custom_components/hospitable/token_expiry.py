@@ -58,8 +58,12 @@ def token_expiry(token: str) -> datetime | None:
         return None
     payload_segment = segments[1]
     try:
-        raw = base64.urlsafe_b64decode(
-            payload_segment + "=" * (-len(payload_segment) % 4)
+        # Strict, so stray characters reject the token rather than being
+        # silently dropped and the remainder read as a real expiry.
+        raw = base64.b64decode(
+            payload_segment + "=" * (-len(payload_segment) % 4),
+            altchars=b"-_",
+            validate=True,
         )
         payload: Any = json.loads(raw.decode("utf-8"))
     except ValueError:  # binascii, Unicode and JSON decode errors alike

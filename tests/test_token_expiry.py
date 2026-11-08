@@ -168,6 +168,10 @@ def test_expiry_accepts_padded_payload_segments() -> None:
         pytest.param("one.two", id="two-segments"),
         pytest.param("a.b.c.d", id="four-segments"),
         pytest.param("head.!!!not-base64!!!.sig", id="bad-base64"),
+        pytest.param(
+            "{}.{}!!!!.{}".format(*make_token(_NOW).split(".")),
+            id="valid-payload-with-stray-characters",
+        ),
         pytest.param(f"h.{_raw_segment(b'not json')}.s", id="not-json"),
         pytest.param(f"h.{_raw_segment(b'\xff\xfe')}.s", id="not-utf8"),
         pytest.param(f"h.{_segment([1, 2])}.s", id="payload-not-object"),
