@@ -240,6 +240,35 @@ async def test_issue_is_an_error_once_the_token_has_expired(
     }
 
 
+async def test_expired_issue_survives_an_auth_failure_at_setup(
+    hass: Any, respx_router: Any, freezer: Any
+) -> None:
+    """An expired token is named even when Hospitable rejects it.
+
+    The check runs before the first poll, so a 401 that fails setup
+    still leaves the ERROR issue explaining why, next to reauth.
+    """
+    importlib.import_module(_MODULE)
+    freezer.move_to(_NOW)
+    expires = _NOW - timedelta(days=1)
+    respx_router.get(f"{BASE_URL}/properties").mock(
+        return_value=httpx.Response(401, json=load_fixture("error_401.json"))
+    )
+    entry = _entry(hass, make_token(expires))
+
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    issue = _issue(hass, entry)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.ERROR
+    assert any(
+        flow["context"]["source"] == "reauth"
+        for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    )
+
+
 async def test_no_issue_outside_the_lead_window(
     hass: Any, respx_router: Any, freezer: Any
 ) -> None:
