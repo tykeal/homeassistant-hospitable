@@ -23,7 +23,9 @@ from typing import Any
 from custom_components.hospitable.const import (
     CONF_GUEST_CONTACT_DETAILS,
     CONF_NAMESPACE_SOURCE,
+    CONF_TOKEN,
 )
+from custom_components.hospitable.token_expiry import token_expiry
 
 ALLOWED_TOP_LEVEL = {
     "version",
@@ -32,6 +34,7 @@ ALLOWED_TOP_LEVEL = {
     "options",
     "coordinators",
     "counts",
+    "token_expires",
 }
 
 REDACTED = "**REDACTED**"
@@ -132,6 +135,7 @@ async def async_get_config_entry_diagnostics(hass: Any, entry: Any) -> dict[str,
 
     * the credential never enters the payload, since ``entry.data`` is
       never dumped and ``data`` is not an allowlisted section either;
+      only the token's expiry DATE is derived from it;
     * guest identity DOES enter it, deliberately, so that FR-042's
       show-redacted requirement has something to act on.
 
@@ -161,8 +165,26 @@ async def async_get_config_entry_diagnostics(hass: Any, entry: Any) -> dict[str,
                 name: _item_count(coordinator)
                 for name, coordinator in coordinators.items()
             },
+            "token_expires": _token_expiry_date(entry),
         }
     )
+
+
+def _token_expiry_date(entry: Any) -> str | None:
+    """Return the token's expiry DATE only (spec 001 OQ-007).
+
+    The token is read to derive the date and goes no further: neither
+    it nor any other claim is part of the returned value.
+
+    Args:
+        entry: The config entry being dumped.
+
+    Returns:
+        The ISO expiry date, or ``None`` when it cannot be read.
+    """
+    token = dict(getattr(entry, "data", None) or {}).get(CONF_TOKEN)
+    expires = token_expiry(token) if isinstance(token, str) else None
+    return expires.date().isoformat() if expires else None
 
 
 def _entry_coordinators(entry: Any) -> dict[str, Any]:

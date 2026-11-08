@@ -52,6 +52,10 @@ from custom_components.hospitable.services.window import (
     LOOKAHEAD_DEFAULT,
     LOOKBACK_DEFAULT,
 )
+from custom_components.hospitable.token_expiry import (
+    async_delete_token_issue,
+    async_track_token_expiry,
+)
 
 
 async def _async_update_options(hass: Any, entry: Any) -> None:
@@ -79,6 +83,10 @@ def _known_property_ids(
 
 async def async_setup_entry(hass: Any, entry: Any) -> bool:
     """Set up one Hospitable config entry and forward the sensor platform."""
+    # Checked before the first poll so an already expired token is
+    # named in its own repair issue even when setup then fails with an
+    # auth error (spec 001 OQ-007).
+    async_track_token_expiry(hass, entry)
     client = HospitableApiClient(
         StaticTokenProvider(entry.data[CONF_TOKEN]), get_async_client(hass)
     )
@@ -188,6 +196,16 @@ async def async_unload_entry(hass: Any, entry: Any) -> bool:
     entry.runtime_data = None
     async_unload_services(hass, unloading_entry_id=entry.entry_id)
     return bool(unload_ok)
+
+
+async def async_remove_entry(hass: Any, entry: Any) -> None:
+    """Drop the token expiry issue of a deleted entry.
+
+    Unloading keeps the issue on purpose: the stored token still
+    expires whether or not the entry is loaded, and the next setup
+    re-evaluates it. Only deletion makes the warning meaningless.
+    """
+    async_delete_token_issue(hass, entry.entry_id)
 
 
 async def async_migrate_entry(hass: Any, entry: Any) -> bool:

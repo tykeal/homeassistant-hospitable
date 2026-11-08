@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Hospitable now warns before a Personal Access Token expires.
+    Tokens last one year and cannot be renewed automatically, so a
+    **Repairs** issue appears 30 days before the expiry date (and
+    becomes an error once the token has expired). Fixing the issue
+    starts re-authentication, so you can create a new token at
+    my.hospitable.com under **Apps > API access > Access tokens** and
+    enter it before the old one stops working. The issue clears once
+    the new token is accepted. Diagnostics now include the token's
+    expiry date (the date only, never the token). The expiry is read
+    from the token itself on a best-effort basis; if a token's format
+    cannot be read, no warning is shown and the integration falls back
+    to prompting for re-authentication when the token is rejected.

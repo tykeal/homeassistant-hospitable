@@ -66,6 +66,34 @@ Options are available after setup:
 | `task_window_days` | Task window (days) | `14` | `1` to `730` | How many days ahead tasks are fetched, counting from today. Tasks are never fetched backwards. Hospitable rejects a window ending more than three years ahead. |
 | `timezone_overrides` | Property timezone overrides | `{}` | IANA timezone names | Stored as a mapping by property id. Blank submitted values remove an override. |
 
+### Token expiry
+
+Hospitable Personal Access Tokens expire one year after they are
+created and cannot be renewed automatically. The integration reads the
+expiry date from the token and, 30 days before it, raises a
+**Settings > System > Repairs** issue titled "Hospitable token expires
+on" followed by the date. The issue becomes an error once the date has passed, and
+the integration then stops updating until a new token is entered.
+
+To renew:
+
+1. Sign in at my.hospitable.com and open **Apps > API access > Access
+   tokens**.
+2. Create a new Personal Access Token for the same account, with the
+   same permissions as the current one, and copy it.
+3. Open the repair issue and select **Submit**. Home Assistant starts
+   re-authentication; open **Settings > Devices & services**, select
+   **Reconfigure** on the Hospitable entry marked as needing
+   attention, and paste the new token.
+
+The new token must belong to the same Hospitable account. The issue
+clears as soon as it is accepted; the old token can then be deleted in
+Hospitable. The expiry is read on a best-effort basis because
+Hospitable does not document the token format (spec 001 OQ-007). If it
+cannot be read, no early warning appears and the integration asks for
+re-authentication only once Hospitable rejects the token. Only the
+expiry date is ever shown or logged, never the token.
+
 ## Entities
 
 Each selected or previously selected property has one Home Assistant
@@ -414,7 +442,8 @@ Downloading diagnostics from the integration's entry gives configuration
 and coordinator state with guest fields shown as `**REDACTED**`. Each
 coordinator section includes a `last_trace_id` for correlating with
 upstream support; a trace identifier is treated as operational data,
-not personal data. The Personal Access Token is never included.
+not personal data. The Personal Access Token is never included;
+`token_expires` gives only its expiry date (or `null` if unreadable).
 
 ## Terminology
 

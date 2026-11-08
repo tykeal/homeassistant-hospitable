@@ -50,7 +50,13 @@ def _actionable_strings(catalog: dict[str, Any]) -> dict[str, str]:
     for key, value in options.get("error", {}).items():
         result[f"options.error.{key}"] = value
     for key, issue in catalog.get("issues", {}).items():
-        result[f"issues.{key}.description"] = issue["description"]
+        # A fixable issue carries its explanation in the fix flow's
+        # steps instead of a top-level description.
+        if "fix_flow" not in issue:
+            result[f"issues.{key}.description"] = issue["description"]
+            continue
+        for step, body in issue["fix_flow"].get("step", {}).items():
+            result[f"issues.{key}.fix_flow.step.{step}"] = body["description"]
     return result
 
 
@@ -61,6 +67,8 @@ def _all_user_strings(catalog: dict[str, Any]) -> dict[str, str]:
         result[f"config.abort.{key}"] = value
     for key, issue in catalog.get("issues", {}).items():
         result[f"issues.{key}.title"] = issue["title"]
+        for reason, value in issue.get("fix_flow", {}).get("abort", {}).items():
+            result[f"issues.{key}.fix_flow.abort.{reason}"] = value
     return result
 
 
