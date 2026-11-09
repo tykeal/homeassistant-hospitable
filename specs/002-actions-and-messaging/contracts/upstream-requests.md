@@ -151,6 +151,9 @@ from spec 001).
 request is issued PER SELECTED PROPERTY (fan-out), not one batched
 request naming every property.
 
+**Amendment (2026-11-09)**: only while the `poll_tasks` option is on.
+It is off for new entries, and with it off `/tasks` is never requested.
+
 | Property | Value |
 | --- | --- |
 | Tier | CONFIRMED-BY-TEST |

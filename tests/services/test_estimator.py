@@ -5,12 +5,14 @@
 from __future__ import annotations
 
 
-def test_default_request_estimate() -> None:
-    """Assert default ten-property request estimate.
+def test_request_estimate_with_task_polling() -> None:
+    """Assert the ten-property estimate with opt-in task polling on.
 
-    The task poll is included: it fans out one request per property per
-    cycle, so ten properties on the default 15-minute cadence add 960
-    requests a day on top of the 1704 the other polls cost.
+    The task poll is included when enabled: it fans out one request per
+    property per cycle, so ten properties on the default 15-minute
+    cadence add 960 requests a day on top of the 1704 the other polls
+    cost. The default, task-free figure is pinned in
+    ``tests/test_task_polling_opt_in.py``.
     """
     from custom_components.hospitable.services.estimator import (
         estimate_requests_per_day,

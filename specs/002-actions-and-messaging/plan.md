@@ -255,6 +255,11 @@ publishes no rate limit and returns no `x-ratelimit-*` headers.
 Pagination is followed per property, each using its own
 `meta.last_page`.
 
+**Amendment (2026-11-09)**: `HospitableTasksCoordinator` is built only
+while the `poll_tasks` option is on, which is off for new entries and
+migrated on for entries that predate it (config entry minor version
+2). See the amendment above spec 002 FR-030.
+
 The reservation coordinator is modified in US6 to:
 
 - Add `include=guest` to the request (zero extra cost)

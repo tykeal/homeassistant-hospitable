@@ -20,6 +20,7 @@ from custom_components.hospitable.const import (
     CONF_AWAITING_HOST_REPLY,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
+    CONF_POLL_TASKS,
     CONF_PROPERTY_INTERVAL,
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
@@ -29,7 +30,9 @@ from custom_components.hospitable.const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_AWAITING_HOST_REPLY,
+    DEFAULT_POLL_TASKS,
     DEFAULT_TASK_WINDOW_DAYS,
+    POLL_TASKS_MINOR_VERSION,
     VERSION,
 )
 from custom_components.hospitable.const import (
@@ -145,18 +148,29 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     # entities report unavailable until the next successful poll (FR-061).
     await calendar_coordinator.async_refresh()
 
-    tasks_coordinator = HospitableTasksCoordinator(
-        hass,
-        client,
-        property_ids=list(selected),
-        window_days=entry.options.get(CONF_TASK_WINDOW_DAYS, DEFAULT_TASK_WINDOW_DAYS),
-        config_entry=entry,
-        interval_minutes=entry.options.get(CONF_TASK_INTERVAL),
-    )
-    # Task data is supplementary in the same way calendar data is, so a
-    # task outage must not block the whole entry from loading. Its
-    # entities report unavailable until the next successful poll.
-    await tasks_coordinator.async_refresh()
+    coordinators: dict[str, Any] = {
+        "properties": properties_coordinator,
+        "reservations": reservations_coordinator,
+        "calendar": calendar_coordinator,
+    }
+    # Opt-in: with the option off there is no coordinator, so /tasks is
+    # never requested (spec 002 FR-030 amendment, 2026-11-09).
+    if entry.options.get(CONF_POLL_TASKS, DEFAULT_POLL_TASKS):
+        tasks_coordinator = HospitableTasksCoordinator(
+            hass,
+            client,
+            property_ids=list(selected),
+            window_days=entry.options.get(
+                CONF_TASK_WINDOW_DAYS, DEFAULT_TASK_WINDOW_DAYS
+            ),
+            config_entry=entry,
+            interval_minutes=entry.options.get(CONF_TASK_INTERVAL),
+        )
+        # Task data is supplementary in the same way calendar data is, so
+        # a task outage must not block the whole entry from loading. Its
+        # entities report unavailable until the next successful poll.
+        await tasks_coordinator.async_refresh()
+        coordinators["tasks"] = tasks_coordinator
 
     for property_id in known:
         property_model = properties.get(property_id)
@@ -170,12 +184,7 @@ async def async_setup_entry(hass: Any, entry: Any) -> bool:
     remove_listener = entry.add_update_listener(_async_update_options)
     entry.runtime_data = {
         "client": client,
-        "coordinators": {
-            "properties": properties_coordinator,
-            "reservations": reservations_coordinator,
-            "calendar": calendar_coordinator,
-            "tasks": tasks_coordinator,
-        },
+        "coordinators": coordinators,
         "selected_property_ids": selected,
         "known_property_ids": known,
         "listeners": [remove_listener],
@@ -209,8 +218,33 @@ async def async_remove_entry(hass: Any, entry: Any) -> None:
 
 
 async def async_migrate_entry(hass: Any, entry: Any) -> bool:
-    """Migrate entries while preserving frozen unique identifiers."""
-    return bool(getattr(entry, "version", CONFIG_ENTRY_VERSION) <= CONFIG_ENTRY_VERSION)
+    """Migrate entries while preserving frozen unique identifiers.
+
+    Minor 1 to 2 adds the task-polling opt-in. Entries created before it
+    existed always polled tasks, so they are migrated with polling ON to
+    keep their task sensors across the upgrade; only new entries start
+    with it off.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry: The config entry to migrate.
+
+    Returns:
+        ``False`` for an entry from a newer major version, which this
+        code cannot read; ``True`` otherwise.
+    """
+    if entry.version > CONFIG_ENTRY_VERSION:
+        return False
+    if entry.version == 1 and entry.minor_version < POLL_TASKS_MINOR_VERSION:
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                CONF_POLL_TASKS: entry.options.get(CONF_POLL_TASKS, True),
+            },
+            minor_version=POLL_TASKS_MINOR_VERSION,
+        )
+    return True
 
 
 __all__ = ["CONFIG_ENTRY_MINOR_VERSION", "CONFIG_ENTRY_VERSION", "PLATFORMS", "VERSION"]

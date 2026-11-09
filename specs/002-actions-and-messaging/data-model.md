@@ -260,6 +260,7 @@ was never the shipped name. The SERVICE FIELD is still
 | --- | --- | --- | --- |
 | `awaiting_host_reply` | `bool` | `False` | FR-038a |
 | `guest_contact_details` | `bool` | `False` | FR-038b |
+| `poll_tasks` | `bool` | `False` | Amendment 2026-11-09; gates spec 002 FR-030 to FR-035 |
 | `task_interval_minutes` | `int` | `15` | FR-034; floor 5 |
 | `task_window_days` | `int` | `14` | FR-030; forward-only lookahead, range 1-730 |
 
@@ -270,6 +271,13 @@ new options have defaults that produce backward-compatible behavior
 (no new entities created, no new API calls made). No migration is
 needed — the options flow handles absent keys by applying defaults.
 
+**Amendment (2026-11-09)**: the paragraph above was not true of the
+task options, which created task sensors and `/tasks` requests on every
+entry by default. Task polling is now gated by `poll_tasks`, and
+`MINOR_VERSION` is `2`. `async_migrate_entry` moves a minor-1 entry to
+minor 2 by setting `poll_tasks: True`, because such an entry always
+polled tasks; entries created at minor 2 default it to `False`.
+
 ## New coordinator
 
 ### `HospitableTasksCoordinator`
@@ -278,6 +286,7 @@ needed — the options flow handles absent keys by applying defaults.
 | --- | --- |
 | Data type | `dict[str, tuple[HospitableTask, ...]]` |
 | Key | `property_id` from `property.id` |
+| Created | Only while `poll_tasks` is on (amendment 2026-11-09) |
 | Interval option | `task_interval_minutes` |
 | Window option | `task_window_days` (default 14, range 1-730) |
 | Default | 15 min |

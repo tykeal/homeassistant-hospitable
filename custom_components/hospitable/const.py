@@ -7,7 +7,10 @@ from homeassistant.const import Platform
 DOMAIN = "hospitable"
 VERSION = "0.0.0"
 CONFIG_ENTRY_VERSION = 1
-CONFIG_ENTRY_MINOR_VERSION = 1
+# Minor 2 added CONF_POLL_TASKS; async_migrate_entry turns it on for
+# minor-1 entries so an upgrade keeps polling tasks.
+POLL_TASKS_MINOR_VERSION = 2
+CONFIG_ENTRY_MINOR_VERSION = POLL_TASKS_MINOR_VERSION
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONF_TOKEN = "token"
 CONF_ACCOUNT_NAMESPACE = "account_namespace"
@@ -24,6 +27,11 @@ CONF_AWAITING_HOST_REPLY = "awaiting_host_reply"
 DEFAULT_AWAITING_HOST_REPLY = False
 CONF_GUEST_CONTACT_DETAILS = "guest_contact_details"
 DEFAULT_GUEST_CONTACT_DETAILS = False
+# Task polling costs one request per selected property per cycle and
+# most installs never use it, so new entries start with it OFF (spec
+# 002 FR-030 amendment, 2026-11-09).
+CONF_POLL_TASKS = "poll_tasks"
+DEFAULT_POLL_TASKS = False
 CONF_TASK_INTERVAL = "task_interval_minutes"
 DEFAULT_TASK_INTERVAL = 15
 MIN_TASK_INTERVAL = 5

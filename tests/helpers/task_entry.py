@@ -49,6 +49,7 @@ from custom_components.hospitable.api.const import BASE_URL
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
     CONF_NAMESPACE_SOURCE,
+    CONF_POLL_TASKS,
     CONF_SELECTED_PROPERTIES,
     DOMAIN,
 )
@@ -231,6 +232,8 @@ def mock_tasks(
 def build_entry(**options: Any) -> MockConfigEntry:
     """Build an unloaded config entry selecting both example properties.
 
+    Task polling is opt-in, so the entry turns it on explicitly.
+
     Args:
         **options: Extra config-entry options to merge in.
 
@@ -246,6 +249,7 @@ def build_entry(**options: Any) -> MockConfigEntry:
         },
         options={
             CONF_SELECTED_PROPERTIES: [PROPERTY_A, PROPERTY_B],
+            CONF_POLL_TASKS: True,
             **options,
         },
         unique_id=ACCOUNT,

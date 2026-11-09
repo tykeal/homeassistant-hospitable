@@ -29,6 +29,7 @@ from pytest_homeassistant.common import MockConfigEntry
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
     CONF_NAMESPACE_SOURCE,
+    CONF_POLL_TASKS,
     CONF_SELECTED_PROPERTIES,
     DOMAIN,
 )
@@ -112,7 +113,7 @@ async def _setup_entry(hass: Any, *, namespace: str, token: str) -> MockConfigEn
             CONF_ACCOUNT_NAMESPACE: namespace,
             CONF_NAMESPACE_SOURCE: "account",
         },
-        options={CONF_SELECTED_PROPERTIES: [_PROPERTY_ID]},
+        options={CONF_SELECTED_PROPERTIES: [_PROPERTY_ID], CONF_POLL_TASKS: True},
         unique_id=namespace,
     )
     entry.add_to_hass(hass)
