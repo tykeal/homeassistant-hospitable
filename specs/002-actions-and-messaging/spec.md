@@ -185,6 +185,10 @@ and the endpoint is confirmed accessible.
 next-task sensor and a task-count sensor updated from the `/tasks`
 endpoint, and that pagination is handled correctly.
 
+**Amendment (2026-11-09)**: these sensors exist only while the
+`poll_tasks` option is on, which is off for new entries; see the
+amendment above spec 002 FR-030.
+
 **Acceptance Scenarios**:
 
 1. **Given** a property with upcoming tasks, **When** the task
@@ -564,6 +568,24 @@ diagnostics never contain the guest name unredacted.
   `config_entry_id` field for multi-entry disambiguation (FR-008).
 
 #### Task sensors
+
+> **Amendment (2026-11-09): task polling is opt-in.** spec 002 FR-030
+> through spec 002 FR-035 apply only while the `poll_tasks` option is
+> on. New config entries MUST default it OFF. Entries created before
+> the option existed MUST be migrated with it ON (config entry minor
+> version 1 to 2) so an upgrade keeps its task sensors unchanged. With
+> the option off the integration MUST NOT build the task coordinator,
+> MUST make no `/tasks` request, MUST NOT create the spec 002 FR-032
+> sensors, and MUST remove task sensors already in the entity registry
+> rather than leave them unavailable; turning it back on MUST recreate
+> them under their unchanged unique ids. Changing the option reloads
+> the entry. `task_interval_minutes` and `task_window_days` matter only
+> while it is on. Rationale: most installs use the integration to
+> message guests, while the fan-out costs one request per selected
+> property per poll, 960 a day at ten properties on the default
+> cadence, which took the default budget to 2,664 against the 2,000
+> target of spec 001 SC-004. With tasks off by default that budget is
+> 1,704 again.
 
 - **FR-030**: The integration MUST poll `GET /tasks` with the
   `properties[]` parameter, which is mandatory.
