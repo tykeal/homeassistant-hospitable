@@ -25,6 +25,7 @@ from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
     CONF_LOOKAHEAD_DAYS,
     CONF_NAMESPACE_SOURCE,
+    CONF_POLL_TASKS,
     CONF_SELECTED_PROPERTIES,
     DOMAIN,
 )
@@ -73,6 +74,7 @@ async def test_full_lifecycle_issues_only_get_requests(
         options={
             CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
             CONF_LOOKAHEAD_DAYS: 30,
+            CONF_POLL_TASKS: True,
         },
         unique_id=_ACCOUNT,
     )
@@ -99,6 +101,7 @@ async def test_full_lifecycle_issues_only_get_requests(
         options={
             CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
             CONF_LOOKAHEAD_DAYS: 45,
+            CONF_POLL_TASKS: True,
         },
     )
     await hass.async_block_till_done()
@@ -136,6 +139,7 @@ async def test_service_call_may_post_while_lifecycle_stays_read_only(
         options={
             CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
             CONF_LOOKAHEAD_DAYS: 30,
+            CONF_POLL_TASKS: True,
         },
         unique_id=_ACCOUNT,
     )
@@ -218,6 +222,7 @@ async def test_the_read_services_issue_only_get_requests(
         options={
             CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
             CONF_LOOKAHEAD_DAYS: 30,
+            CONF_POLL_TASKS: True,
         },
         unique_id=_ACCOUNT,
     )
@@ -290,6 +295,7 @@ async def test_the_opt_in_message_poll_stays_read_only(
         CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
         CONF_LOOKAHEAD_DAYS: 30,
         CONF_AWAITING_HOST_REPLY: True,
+        CONF_POLL_TASKS: True,
     }
     entry = MockConfigEntry(
         domain=DOMAIN,

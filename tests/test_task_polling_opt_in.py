@@ -25,7 +25,6 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import InvalidData
 from homeassistant.util import dt as dt_util
@@ -140,11 +139,6 @@ async def _set_poll_tasks(hass: Any, entry: MockConfigEntry, enabled: bool) -> N
     assert entry.state is ConfigEntryState.LOADED
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, task polling not opt-in",
-)
 async def test_a_new_entry_does_not_poll_tasks(hass: Any, respx_router: Any) -> None:
     """An entry created by the config flow polls no tasks and has no sensors."""
     respx_router.get(f"{BASE_URL}/user").respond(json=load_fixture("user.json"))
@@ -174,11 +168,6 @@ async def test_a_new_entry_does_not_poll_tasks(hass: Any, respx_router: Any) -> 
     assert not tasks_route.called
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, no task-polling migration",
-)
 async def test_an_existing_entry_is_migrated_to_keep_polling_tasks(
     hass: Any, respx_router: Any
 ) -> None:
@@ -195,11 +184,6 @@ async def test_an_existing_entry_is_migrated_to_keep_polling_tasks(
     assert None not in _task_entities(hass)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, task polling not opt-in",
-)
 async def test_turning_task_polling_off_removes_sensors_and_requests(
     hass: Any, respx_router: Any
 ) -> None:
@@ -220,11 +204,6 @@ async def test_turning_task_polling_off_removes_sensors_and_requests(
     assert tasks_route.call_count == calls
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, task polling not opt-in",
-)
 async def test_turning_task_polling_on_restores_sensors(
     hass: Any, respx_router: Any
 ) -> None:
@@ -242,11 +221,6 @@ async def test_turning_task_polling_on_restores_sensors(
     assert None not in _task_entities(hass)
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, no task-polling option",
-)
 async def test_the_options_form_offers_task_polling_off_by_default(
     hass: Any,
 ) -> None:
@@ -271,11 +245,6 @@ async def test_the_options_form_offers_task_polling_off_by_default(
         assert "request" in step["data_description"].get(POLL_TASKS, "")
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    strict=True,
-    reason="TDD red phase: spec 002 FR-030 amendment, estimate counts tasks",
-)
 def test_the_default_estimate_meets_sc_004_again() -> None:
     """Ten properties at defaults, without tasks, stay under 2,000 a day."""
     from custom_components.hospitable.services.estimator import (

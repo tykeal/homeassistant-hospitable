@@ -19,6 +19,8 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 
@@ -338,3 +340,32 @@ def build_task_sensors(
                 )
             )
     return sensors
+
+
+def remove_task_sensors(
+    hass: HomeAssistant,
+    entry_id: str,
+    account_namespace: str,
+    property_ids: list[str],
+) -> None:
+    """Drop the registry entries of task sensors while polling is off.
+
+    Without this, turning task polling off would leave every task
+    sensor behind as a permanently unavailable entity. Re-enabling the
+    option recreates them under the same unique ids.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry whose task sensors are removed.
+        account_namespace: Account namespace for unique ids.
+        property_ids: Every known property id of the entry.
+    """
+    unique_ids = {
+        build_unique_id(account_namespace, property_id, factory._entity_key)
+        for property_id in property_ids
+        for factory in (HospitableNextTaskSensor, HospitableTaskCountSensor)
+    }
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, entry_id):
+        if entity.unique_id in unique_ids:
+            registry.async_remove(entity.entity_id)

@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    New **Poll Hospitable tasks** option. Cleaning and maintenance task
+    polling, and the next task and task count sensors it feeds, is now
+    an opt-in. Each task poll costs one API request per selected
+    property, so at the default 15-minute interval ten properties add
+    960 requests a day. New setups start with it off, which brings the
+    default daily request budget for ten properties back to 1,704.
+    Turning the option off removes the task sensors; turning it back on
+    recreates them.
+upgrade:
+  - |
+    Existing setups keep task polling on, so their next task and task
+    count sensors carry on unchanged. If you do not use those sensors,
+    turn **Poll Hospitable tasks** off in the integration options to
+    save about 96 API requests per selected property per day at the
+    default 15-minute interval. New setups have task polling off.

@@ -12,7 +12,7 @@ def estimate_requests_per_day(
     property_interval_minutes: int,
     reservation_interval_minutes: int,
     last_observed_reservation_count: int,
-    task_interval_minutes: int,
+    task_interval_minutes: int | None,
 ) -> int:
     """Estimate daily upstream requests for the configured options.
 
@@ -20,7 +20,9 @@ def estimate_requests_per_day(
     property per cycle, which at thirteen properties on the default
     cadence is over a thousand requests a day. Omitting it would make
     the figure shown beside the rate-limit warning understate the real
-    budget by more than the rest of the integration combined.
+    budget by more than the rest of the integration combined. Task
+    polling is opt-in, so a ``None`` cadence means it is off and costs
+    nothing (spec 002 FR-030 amendment, 2026-11-09).
 
     Args:
         selected_property_count: Number of selected properties.
@@ -28,7 +30,8 @@ def estimate_requests_per_day(
         reservation_interval_minutes: Reservation polling cadence.
         last_observed_reservation_count: Reservations seen last poll,
             used to estimate reservation pagination.
-        task_interval_minutes: Task polling cadence.
+        task_interval_minutes: Task polling cadence, or ``None`` when
+            task polling is off.
 
     Returns:
         The estimated number of upstream requests per day.
@@ -41,5 +44,9 @@ def estimate_requests_per_day(
     # One request per property per cycle: the task poll fans out rather
     # than batching, so it does not benefit from the batching the
     # reservation poll gets.
-    task_polls = floor(1440 / task_interval_minutes) * selected_property_count
+    task_polls = (
+        0
+        if task_interval_minutes is None
+        else floor(1440 / task_interval_minutes) * selected_property_count
+    )
     return property_polls + calendar_polls + reservation_polls + task_polls

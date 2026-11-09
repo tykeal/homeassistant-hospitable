@@ -30,6 +30,7 @@ from custom_components.hospitable.const import (
     CONF_AWAITING_HOST_REPLY,
     CONF_GUEST_CONTACT_DETAILS,
     CONF_NAMESPACE_SOURCE,
+    CONF_POLL_TASKS,
     CONF_SELECTED_PROPERTIES,
     DOMAIN,
 )
@@ -271,6 +272,7 @@ async def setup_audit_entry(
             CONF_SELECTED_PROPERTIES: [PROPERTY_A, PROPERTY_B],
             CONF_GUEST_CONTACT_DETAILS: guest_contact,
             CONF_AWAITING_HOST_REPLY: awaiting,
+            CONF_POLL_TASKS: True,
         },
         unique_id=account,
     )

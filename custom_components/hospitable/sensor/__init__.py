@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -20,7 +21,10 @@ from custom_components.hospitable.sensor.availability import build_availability_
 from custom_components.hospitable.sensor.messages import build_message_sensors
 from custom_components.hospitable.sensor.property import build_property_sensors
 from custom_components.hospitable.sensor.reservation import build_reservation_sensors
-from custom_components.hospitable.sensor.tasks import build_task_sensors
+from custom_components.hospitable.sensor.tasks import (
+    build_task_sensors,
+    remove_task_sensors,
+)
 from custom_components.hospitable.services.timezones import resolve_property_timezone
 
 
@@ -35,7 +39,7 @@ async def async_setup_entry(
     reservations_coordinator = coordinators["reservations"]
     properties_coordinator = coordinators["properties"]
     calendar_coordinator = coordinators["calendar"]
-    tasks_coordinator = coordinators["tasks"]
+    tasks_coordinator = coordinators.get("tasks")
     properties = properties_coordinator.data or {}
 
     account_namespace = entry.data[CONF_ACCOUNT_NAMESPACE]
@@ -70,6 +74,20 @@ async def async_setup_entry(
         except ValueError:
             property_timezones[property_id] = (str(hass.config.time_zone), "instance")
 
+    # The tasks coordinator exists only while task polling is on.
+    task_sensors: list[SensorEntity] = []
+    if tasks_coordinator is None:
+        remove_task_sensors(hass, entry.entry_id, account_namespace, known)
+    else:
+        task_sensors.extend(
+            build_task_sensors(
+                tasks_coordinator,
+                properties_coordinator,
+                account_namespace,
+                property_names,
+            )
+        )
+
     async_add_entities(
         [
             *build_reservation_sensors(
@@ -102,11 +120,6 @@ async def async_setup_entry(
                     )
                 ),
             ),
-            *build_task_sensors(
-                tasks_coordinator,
-                properties_coordinator,
-                account_namespace,
-                property_names,
-            ),
+            *task_sensors,
         ]
     )

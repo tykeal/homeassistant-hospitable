@@ -85,6 +85,7 @@ async def test_gate_2_no_coordinator_holds_a_write_client(
         options={
             const.CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
             const.CONF_LOOKAHEAD_DAYS: 30,
+            const.CONF_POLL_TASKS: True,
         },
         unique_id=ACCOUNT_NAMESPACE,
     )

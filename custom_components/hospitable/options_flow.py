@@ -25,6 +25,7 @@ from custom_components.hospitable.const import (
     CONF_GUEST_CONTACT_DETAILS,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
+    CONF_POLL_TASKS,
     CONF_PROPERTY_INTERVAL,
     CONF_RESERVATION_INTERVAL,
     CONF_SELECTED_PROPERTIES,
@@ -33,6 +34,7 @@ from custom_components.hospitable.const import (
     CONF_TIMEZONE_OVERRIDES,
     DEFAULT_AWAITING_HOST_REPLY,
     DEFAULT_GUEST_CONTACT_DETAILS,
+    DEFAULT_POLL_TASKS,
     DEFAULT_PROPERTY_INTERVAL,
     DEFAULT_RESERVATION_INTERVAL,
     DEFAULT_TASK_INTERVAL,
@@ -60,6 +62,10 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_PROPERTY_INTERVAL: DEFAULT_PROPERTY_INTERVAL,
     CONF_LOOKBACK_DAYS: LOOKBACK_DEFAULT,
     CONF_LOOKAHEAD_DAYS: LOOKAHEAD_DEFAULT,
+    # OFF for new entries: one request per property per task cycle buys
+    # nothing for installs that only message guests. Entries created
+    # before the option are migrated ON instead (async_migrate_entry).
+    CONF_POLL_TASKS: DEFAULT_POLL_TASKS,
     CONF_TASK_INTERVAL: DEFAULT_TASK_INTERVAL,
     CONF_TASK_WINDOW_DAYS: DEFAULT_TASK_WINDOW_DAYS,
     CONF_TIMEZONE_OVERRIDES: {},
@@ -105,6 +111,8 @@ class HospitableOptionsFlow(OptionsFlow):
             ):
                 if field in user_input:
                     options[field] = user_input[field]
+            if CONF_POLL_TASKS in user_input:
+                options[CONF_POLL_TASKS] = bool(user_input[CONF_POLL_TASKS])
             for key, value in user_input.items():
                 if key.startswith(TZ_FIELD_PREFIX):
                     overrides[key[len(TZ_FIELD_PREFIX) :]] = str(value)
@@ -128,6 +136,7 @@ class HospitableOptionsFlow(OptionsFlow):
                         CONF_PROPERTY_INTERVAL: user_input[CONF_PROPERTY_INTERVAL],
                         CONF_LOOKBACK_DAYS: user_input[CONF_LOOKBACK_DAYS],
                         CONF_LOOKAHEAD_DAYS: user_input[CONF_LOOKAHEAD_DAYS],
+                        CONF_POLL_TASKS: bool(options[CONF_POLL_TASKS]),
                         CONF_TASK_INTERVAL: user_input[CONF_TASK_INTERVAL],
                         CONF_TASK_WINDOW_DAYS: user_input[CONF_TASK_WINDOW_DAYS],
                         CONF_TIMEZONE_OVERRIDES: resolved_overrides,
@@ -153,7 +162,9 @@ class HospitableOptionsFlow(OptionsFlow):
                 options[CONF_RESERVATION_INTERVAL], DEFAULT_RESERVATION_INTERVAL
             ),
             self._last_reservation_count(),
-            _safe_interval(options[CONF_TASK_INTERVAL], DEFAULT_TASK_INTERVAL),
+            _safe_interval(options[CONF_TASK_INTERVAL], DEFAULT_TASK_INTERVAL)
+            if options[CONF_POLL_TASKS]
+            else None,
         )
         return self.async_show_form(
             step_id="init",
@@ -250,6 +261,7 @@ class HospitableOptionsFlow(OptionsFlow):
             vol.Optional(
                 CONF_LOOKAHEAD_DAYS, default=options[CONF_LOOKAHEAD_DAYS]
             ): vol.Coerce(int),
+            vol.Optional(CONF_POLL_TASKS, default=bool(options[CONF_POLL_TASKS])): bool,
             vol.Optional(
                 CONF_TASK_INTERVAL, default=options[CONF_TASK_INTERVAL]
             ): vol.Coerce(int),

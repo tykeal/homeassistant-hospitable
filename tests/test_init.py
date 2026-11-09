@@ -15,6 +15,7 @@ from pytest_homeassistant.common import MockConfigEntry
 from custom_components.hospitable.const import (
     CONF_ACCOUNT_NAMESPACE,
     CONF_NAMESPACE_SOURCE,
+    CONF_POLL_TASKS,
     CONF_SELECTED_PROPERTIES,
     DOMAIN,
 )
@@ -26,7 +27,7 @@ def test_platforms_contains_sensor() -> None:
     import custom_components.hospitable as integration
 
     assert integration.CONFIG_ENTRY_VERSION == 1
-    assert integration.CONFIG_ENTRY_MINOR_VERSION == 1
+    assert integration.CONFIG_ENTRY_MINOR_VERSION == 2
     assert integration.PLATFORMS == [Platform.SENSOR]
 
 
@@ -45,7 +46,10 @@ async def test_setup_entry_loads_properties_and_devices(
             CONF_ACCOUNT_NAMESPACE: "acct-example-0001",
             CONF_NAMESPACE_SOURCE: "account",
         },
-        options={CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"]},
+        options={
+            CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
+            CONF_POLL_TASKS: True,
+        },
         unique_id="acct-example-0001",
     )
     entry.add_to_hass(hass)
@@ -108,7 +112,10 @@ async def test_setup_entry_instantiates_all_coordinators(
             CONF_ACCOUNT_NAMESPACE: "acct-example-0001",
             CONF_NAMESPACE_SOURCE: "account",
         },
-        options={CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"]},
+        options={
+            CONF_SELECTED_PROPERTIES: ["prop-example-001", "prop-example-002"],
+            CONF_POLL_TASKS: True,
+        },
         unique_id="acct-example-0001",
     )
     entry.add_to_hass(hass)
