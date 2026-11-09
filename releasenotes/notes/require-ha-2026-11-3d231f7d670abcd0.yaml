@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    Hospitable now requires Home Assistant 2026.11.0 or later. That
-    release replaced Home Assistant's HTTP client and schema validation
-    libraries (`httpx2` and `probatio`), and the integration now uses
-    them directly. Upgrade Home Assistant before installing this
-    version; HACS will not offer it to older installations.

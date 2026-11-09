@@ -5,18 +5,55 @@ prelude: |
   later and a Hospitable Personal Access Token with read **and** write
   permissions; Public API access requires a paid Hospitable plan
   (Essentials plans are excluded). Install it through HACS as a custom
-  repository, or copy `custom_components/hospitable/` manually.
+  repository, or manually by extracting the `hospitable.zip` release
+  asset into `custom_components/hospitable/` in your Home Assistant
+  configuration directory.
 features:
   - |
-    Sensor entities for each selected property: reservation state,
-    property details, tasks, messaging state, and aggregate calendar
-    availability.
+    Set up from **Settings > Devices & services**: enter a Personal
+    Access Token, which is checked against Hospitable, then select at
+    least one property. Each selected property becomes a device.
+    Several Hospitable accounts can be added side by side.
   - |
-    Six services for looking up data on demand and for sending a guest
-    message. Polling is strictly read-only; the only write is the
-    `POST` behind `hospitable.send_message`, made only when you call
-    it.
+    Options to change which properties are monitored; tune the
+    reservation, property and task polling intervals, the reservation
+    lookback and lookahead window and how far ahead tasks are fetched;
+    set per-property IANA timezone overrides; and enable two opt-ins,
+    both off by default: guest contact details (privacy) and
+    awaiting-host-reply tracking (extra API requests).
   - |
-    Guest contact details and awaiting-host-reply tracking are opt-in
-    options, off by default, because of their privacy and API request
-    cost respectively.
+    Sensors for each property: next arrival, next departure, upcoming
+    reservations, reservation status (with guest and booking details),
+    calendar availability, property info, last message, next task and
+    task count, plus awaiting host reply when that option is on.
+  - |
+    Six actions that return a response for use in automations:
+    `hospitable.send_message` sends a guest message with up to three
+    images, optionally on behalf of an Airbnb co-host via `sender_id`;
+    `get_messages` returns a reservation's message thread;
+    `find_reservation` returns one reservation; `get_reservations`
+    returns a property's reservations (`lookforward_days` 1–1095,
+    `lookbackward_days` 0–365, default 7); `get_property_info` returns
+    a property's details, listings and co-hosts; and `list_properties`
+    lists the account's properties without an API request. Reservation
+    actions target an entity or reservation UUID; property actions
+    target an entity, a device or a `property_id`. A lookup that finds
+    nothing returns `found: false` instead of failing.
+  - |
+    Polling is strictly read-only. The only write is the request behind
+    `hospitable.send_message`, made only when you call it. Sending is
+    rate limited locally to 2 messages per minute per reservation and
+    50 per 5 minutes per token.
+  - |
+    Guest privacy by default: action responses include only allowlisted
+    fields, guest email and phone numbers appear only with the guest
+    contact details option on, guest attributes are never written to
+    the recorder database, and diagnostics redact guest data and never
+    include the token.
+  - |
+    Repairs and re-authentication: a rejected token starts
+    re-authentication, and **Repairs** issues report refused access
+    and repeated refresh failures. Tokens expire after one year, so a
+    fixable issue appears 30 days before the expiry date and starts
+    re-authentication for a new token. Diagnostics show the token's
+    expiry date only.
