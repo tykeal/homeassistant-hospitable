@@ -32,6 +32,7 @@ from custom_components.hospitable.const import (
     DEFAULT_AWAITING_HOST_REPLY,
     DEFAULT_POLL_TASKS,
     DEFAULT_TASK_WINDOW_DAYS,
+    POLL_TASKS_MINOR_VERSION,
     VERSION,
 )
 from custom_components.hospitable.const import (
@@ -234,14 +235,14 @@ async def async_migrate_entry(hass: Any, entry: Any) -> bool:
     """
     if entry.version > CONFIG_ENTRY_VERSION:
         return False
-    if entry.version == 1 and entry.minor_version < 2:
+    if entry.version == 1 and entry.minor_version < POLL_TASKS_MINOR_VERSION:
         hass.config_entries.async_update_entry(
             entry,
             options={
                 **entry.options,
                 CONF_POLL_TASKS: entry.options.get(CONF_POLL_TASKS, True),
             },
-            minor_version=2,
+            minor_version=POLL_TASKS_MINOR_VERSION,
         )
     return True
 

@@ -9,7 +9,8 @@ VERSION = "0.0.0"
 CONFIG_ENTRY_VERSION = 1
 # Minor 2 added CONF_POLL_TASKS; async_migrate_entry turns it on for
 # minor-1 entries so an upgrade keeps polling tasks.
-CONFIG_ENTRY_MINOR_VERSION = 2
+POLL_TASKS_MINOR_VERSION = 2
+CONFIG_ENTRY_MINOR_VERSION = POLL_TASKS_MINOR_VERSION
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONF_TOKEN = "token"
 CONF_ACCOUNT_NAMESPACE = "account_namespace"

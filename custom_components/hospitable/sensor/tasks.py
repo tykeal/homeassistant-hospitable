@@ -15,6 +15,7 @@ to guard (FR-042).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
@@ -36,6 +37,11 @@ from custom_components.hospitable.entity import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+NEXT_TASK_KEY = "next_task"
+TASK_COUNT_KEY = "task_count"
+# Every unique-id key a task sensor uses; registry cleanup removes these.
+TASK_SENSOR_KEYS = (NEXT_TASK_KEY, TASK_COUNT_KEY)
 
 # Progress buckets for the count sensor's breakdown. ``progress_status``
 # is NULLABLE upstream and was null on 54 of 153 observed tasks, so null
@@ -168,7 +174,7 @@ class _HospitableTaskEntity(HospitableEntity, SensorEntity):
 class HospitableNextTaskSensor(_HospitableTaskEntity):
     """The soonest upcoming task for one property."""
 
-    _entity_key = "next_task"
+    _entity_key = NEXT_TASK_KEY
     _attr_translation_key = "next_task"
     # Task scheduling detail changes on every poll and has no value as
     # recorder history, so it is never written to long-term storage.
@@ -237,7 +243,7 @@ class HospitableNextTaskSensor(_HospitableTaskEntity):
 class HospitableTaskCountSensor(_HospitableTaskEntity):
     """How many tasks fall in one property's configured window."""
 
-    _entity_key = "task_count"
+    _entity_key = TASK_COUNT_KEY
     _attr_translation_key = "task_count"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _unrecorded_attributes = frozenset(
@@ -346,7 +352,7 @@ def remove_task_sensors(
     hass: HomeAssistant,
     entry_id: str,
     account_namespace: str,
-    property_ids: list[str],
+    property_ids: Iterable[str],
 ) -> None:
     """Drop the registry entries of task sensors while polling is off.
 
@@ -361,9 +367,9 @@ def remove_task_sensors(
         property_ids: Every known property id of the entry.
     """
     unique_ids = {
-        build_unique_id(account_namespace, property_id, factory._entity_key)
+        build_unique_id(account_namespace, property_id, key)
         for property_id in property_ids
-        for factory in (HospitableNextTaskSensor, HospitableTaskCountSensor)
+        for key in TASK_SENSOR_KEYS
     }
     registry = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, entry_id):
