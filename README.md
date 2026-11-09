@@ -62,8 +62,9 @@ Options are available after setup:
 | `lookahead_days` | Lookahead days | `90` | `1` to `730` | Widening the window can increase reservation pages per poll. |
 | `guest_contact_details` | Include guest contact details | `false` | On or off | **Privacy opt-in.** Off by default. When on, the reservation status entity gains `guest_email` and `guest_phone_numbers`, and the lookup services return `email` and `phone_numbers` in their responses. Anyone who can read a dashboard or write a template on this Home Assistant instance can then read them. Guest first name, last name, location and language are always exposed; guest attributes are never written to the recorder database. |
 | `awaiting_host_reply` | Track awaiting host reply | `false` | On or off | **API cost opt-in.** Off by default. When on, each reservation poll makes one extra request per property to read that property's message thread; a 13-property account adds roughly 13 requests per cycle. See [Rate limits](#rate-limits) — this consumes per-reservation budget that sending a message may also need. |
-| `task_interval_minutes` | Task polling interval (minutes) | `15` | Minimum `5` | Drives the next-task and task-count sensors. Costs one request per selected property per poll, so the cost scales with how many properties you selected. |
-| `task_window_days` | Task window (days) | `14` | `1` to `730` | How many days ahead tasks are fetched, counting from today. Tasks are never fetched backwards. Hospitable rejects a window ending more than three years ahead. |
+| `poll_tasks` | Poll Hospitable tasks | `false` | On or off | **API cost opt-in.** Off for new setups; setups created before this option existed are migrated with it on, so their task sensors carry on unchanged. When on, the next-task and task-count sensors are created and tasks are polled at one request per selected property per poll, 960 requests/day for ten properties at the default interval (see [Request economy](#request-economy)). Turning it off stops the task requests and removes the task sensors; turning it back on recreates them with the same entity ids. |
+| `task_interval_minutes` | Task polling interval (minutes) | `15` | Minimum `5` | Used only when `poll_tasks` is on. Drives the next-task and task-count sensors. Costs one request per selected property per poll, so the cost scales with how many properties you selected. |
+| `task_window_days` | Task window (days) | `14` | `1` to `730` | Used only when `poll_tasks` is on. How many days ahead tasks are fetched, counting from today. Tasks are never fetched backwards. Hospitable rejects a window ending more than three years ahead. |
 | `timezone_overrides` | Property timezone overrides | `{}` | IANA timezone names | Stored as a mapping by property id. Blank submitted values remove an override. |
 
 ### Token expiry
@@ -108,8 +109,8 @@ the property id, and the entity key, not from the display name.
 | Upcoming reservations | `upcoming_reservations` | Measurement state class | Count of forthcoming reservations | None |
 | Property info | `property_info` | Diagnostic entity category | Current property display name, or no value | `property_id`, `address`, `checkin_time`, `checkout_time`, `max_guests`, `effective_timezone`, `timezone_source`, `listings`, `listings_available` |
 | Availability | `availability` | Enum | `available`, `booked`, `unknown` | `nightly_rate`, `currency`, `min_stay`, `closed_for_checkin`, `closed_for_checkout`, `forward_window` |
-| Next task | `next_task` | Timestamp | Start instant of the soonest task in the window, or no value | `task_id`, `task_type`, `service_type`, `service_id`, `start_date`, `end_date`, `progress_status`, `assignment_status`, `assignment_updated_at` |
-| Task count | `task_count` | Measurement state class | Number of tasks in the configured window | `pending_count`, `in_progress_count`, `completed_count`, `cancelled_count` |
+| Next task | `next_task` | Timestamp | Start instant of the soonest task in the window, or no value | `task_id`, `task_type`, `service_type`, `service_id`, `start_date`, `end_date`, `progress_status`, `assignment_status`, `assignment_updated_at`; created only when the `poll_tasks` option is on |
+| Task count | `task_count` | Measurement state class | Number of tasks in the configured window | `pending_count`, `in_progress_count`, `completed_count`, `cancelled_count`; created only when the `poll_tasks` option is on |
 | Last message | `last_message_at` | Timestamp | Instant of the most recent message in the thread, or no value | `last_guest_message_at` |
 | Awaiting host reply | `awaiting_host_reply` | Enum | `on` (guest wrote last), `off` (host wrote last) | Created only when the `awaiting_host_reply` option is on |
 
@@ -134,7 +135,7 @@ state is reserved for integration data that cannot currently be reached.
 
 ## Request economy
 
-The integration has four polling coordinators:
+The integration has up to four polling coordinators:
 
 - properties coordinator: fetches `/properties` pages at the
   `property_interval_minutes` cadence;
@@ -142,8 +143,10 @@ The integration has four polling coordinators:
   property ids at the `reservation_interval_minutes` cadence;
 - calendar coordinator: fetches one `/properties/{property_id}/calendar`
   response per selected property, sharing the property cadence;
-- tasks coordinator: fetches one `/tasks` request per selected property
-  at the `task_interval_minutes` cadence (each request may paginate).
+- tasks coordinator, only when the `poll_tasks` option is on: fetches
+  one `/tasks` request per selected property at the
+  `task_interval_minutes` cadence (each request may paginate). With the
+  option off it is not created and `/tasks` is never requested.
 
 A fifth component, the message-presence fetcher, is not a coordinator
 of its own. When the `awaiting_host_reply` option is on, it
@@ -162,31 +165,35 @@ reservation_polls_per_day = floor(1440 / reservation_interval_minutes)
                             * batches * pages
 task_polls_per_day = floor(1440 / task_interval_minutes)
                      * selected_property_count * task_pages
+                     (only when poll_tasks is on; 0 otherwise)
 batches     = ceil(selected_property_count / 50)
 pages       = max(1, ceil(last_observed_reservation_count / 100))
 task_pages  = max(1, ceil(tasks_in_window / tasks_per_page))
 ```
 
 For SC-004's example of ten selected properties with no more than 500
-reservations in the window and one page of tasks per property:
+reservations in the window, task polling off (the default for new
+setups):
 
 | Component | Arithmetic | Requests/day |
 | --- | --- | --- |
 | Properties | `24 * 1` page, assuming ≤100 account properties | 24 |
 | Calendar | `24 * 10` selected properties | 240 |
 | Reservations | `288 * 1` batch `* 5` pages | 1,440 |
-| Tasks | `96 * 10` selected properties `* 1` page | 960 |
-| **Total** | `24 + 240 + 1,440 + 960` | **2,664** |
+| **Total** | `24 + 240 + 1,440` | **1,704** |
 
-**That exceeds SC-004's 2,000 requests/day ceiling.** The original
-three-coordinator count omitted tasks entirely. At defaults a
-ten-property account breaches the ceiling by roughly 33%. Increasing
-`task_interval_minutes` to `30` brings the total to
-`24 + 240 + 1440 + 480 = 2,184`, still above. To stay under 2,000
-with ten properties at a 5-minute reservation interval, either the
-task interval must rise to roughly `60` (yielding
-`24 + 240 + 1440 + 240 = 1,944`) or the reservation interval must
-widen, or fewer properties must be selected.
+That is under SC-004's 2,000 requests/day ceiling, with roughly 15%
+headroom.
+
+Turning `poll_tasks` on adds one request per selected property per
+task poll. With one page of tasks per property at the default
+15-minute interval that is `96 * 10 = 960` requests/day, for a total
+of `1,704 + 960 = 2,664`, which exceeds the SC-004 ceiling by roughly
+33%. Setups created before the option existed are migrated with it on
+and therefore start at this figure. A `task_interval_minutes` of `30`
+brings the total to `1,704 + 480 = 2,184`, still above; at `60` it is
+`1,704 + 240 = 1,944`. Turning `poll_tasks` off saves 96 requests per
+selected property per day at the default interval.
 
 If the `awaiting_host_reply` option is also on, each reservation
 poll adds one message-thread read per property, subject to the
@@ -203,7 +210,8 @@ daily_requests =
   + floor(1440 / property_interval_minutes) * selected_property_count
   + floor(1440 / reservation_interval_minutes) * reservation_batches
     * reservation_pages
-  + floor(1440 / task_interval_minutes) * selected_property_count
+  + (if poll_tasks is on)
+    floor(1440 / task_interval_minutes) * selected_property_count
     * task_pages
   + (if awaiting_host_reply is on)
     floor(1440 / max(reservation_interval_minutes, 1))
