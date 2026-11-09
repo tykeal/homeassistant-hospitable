@@ -55,7 +55,39 @@ jobs:
             --release-drafter-config .github/release-drafter.yml \
             --output .github/release-drafter-generated.yml
 
+      # Release Drafter compares against the last published release.
+      # Before the first one exists it has no baseline, so it lists no
+      # pull requests and warns. Until then, compare from the root
+      # commit instead. The check asks for a published, non-prerelease
+      # release rather than a v* tag because that is exactly how
+      # Release Drafter picks its baseline; a bare tag with no release
+      # would leave it without one. Afterwards `from` is empty, which
+      # Release Drafter treats as unset.
+      - name: 'Choose the change comparison baseline'
+        id: 'baseline'
+        shell: 'bash'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          published="$(gh release list --exclude-drafts \
+            --exclude-pre-releases --limit 1 --json tagName --jq 'length')"
+          if [ "${published}" != "0" ]; then
+            echo "from=" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          roots="$(git rev-list --max-parents=0 HEAD)"
+          count="$(printf '%s\n' "${roots}" | grep -c .)"
+          if [ "${count}" -ne 1 ]; then
+            echo "::error::Expected one root commit, found ${count}"
+            exit 1
+          fi
+          echo "No published release; comparing from root ${roots}"
+          echo "from=${roots}" >> "${GITHUB_OUTPUT}"
+
       # yamllint disable-line rule:line-length
       - uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
         with:
           config-name: 'file:.github/release-drafter-generated.yml'
+          from: ${{ steps.baseline.outputs.from }}

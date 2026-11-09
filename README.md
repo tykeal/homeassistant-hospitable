@@ -478,8 +478,11 @@ Fill in the sections that apply (`upgrade`, `features`, `fixes`,
 `deprecations` or `security`) and delete the rest. A breaking change
 (a `Type!:` title or the `breaking-change` label) must add a note. The
 draft GitHub release shows every note added since the last release tag,
-between the downloads badge and the list of pull requests. To preview
-it (reno only sees notes that are committed or staged with `git add`):
+between the downloads badge and the list of pull requests. Until the
+first release is published, that list compares against the
+repository's first commit, so it covers every merged pull request. To
+preview it (reno only sees notes that are committed or staged with
+`git add`):
 
 ```bash
 uv run python scripts/render_release_notes.py
