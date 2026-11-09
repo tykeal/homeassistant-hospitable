@@ -54,8 +54,9 @@ from tests.helpers.task_entry import (
 POLL_TASKS = "poll_tasks"
 CURRENT_MINOR_VERSION = 2
 TASK_KEYS = ("next_task", "task_count")
-STRINGS = Path("custom_components/hospitable/strings.json")
-EN = Path("custom_components/hospitable/translations/en.json")
+COMPONENT = Path(__file__).resolve().parent.parent / "custom_components/hospitable"
+STRINGS = COMPONENT / "strings.json"
+EN = COMPONENT / "translations/en.json"
 
 
 def _entry(*, minor_version: int, **options: Any) -> MockConfigEntry:
